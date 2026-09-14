@@ -183,9 +183,17 @@ const LIFE_AREA_LABEL: Partial<Record<number, string>> = {
   10: "career and public standing",
 };
 
+/**
+ * Each life-area label already contains its own "and" (e.g. "home and
+ * emotional foundation"), so gluing two together with a bare "and"/","
+ * reads as one run-on list instead of two distinct areas — "along with"
+ * keeps the two-item case (the only case this is actually called with)
+ * unambiguous; longer lists fall back to semicolons for the same reason.
+ */
 function joinWithAnd(items: string[]): string {
   if (items.length <= 1) return items.join("");
-  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+  if (items.length === 2) return `${items[0]}, along with ${items[1]}`;
+  return `${items.slice(0, -1).join("; ")}; and ${items[items.length - 1]}`;
 }
 
 function OverviewTab({ chart }: { chart: KundaliChart }) {
