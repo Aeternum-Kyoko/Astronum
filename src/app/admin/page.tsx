@@ -2,6 +2,9 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import LogoutButton from "@/components/LogoutButton";
 
+// Session-gated (see src/proxy.ts) and reads live data — never prerender this at build time.
+export const dynamic = "force-dynamic";
+
 export default async function AdminDashboardPage() {
   const posts = await prisma.blogPost.findMany({ orderBy: { createdAt: "desc" } });
 

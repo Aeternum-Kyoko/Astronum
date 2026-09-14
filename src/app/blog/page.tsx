@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   description: "Vedic astrology insights, forecasts, and remedies.",
 };
 
+// Reads live published posts — never prerender this at build time.
+export const dynamic = "force-dynamic";
+
 export default async function BlogIndexPage() {
   const posts = await prisma.blogPost.findMany({
     where: { published: true },
