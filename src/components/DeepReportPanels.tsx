@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { KundaliReport } from "@/lib/astrology/report";
 import type { HouseReading } from "@/lib/astrology/houseReadings";
-import type { EventTheme, TimelineMaha, Tone } from "@/lib/astrology/lifeTimeline";
+import type { EventTheme, LifeEvent, TimelineMaha, TimelineYear, Tone } from "@/lib/astrology/lifeTimeline";
+import type { EvidenceLayer } from "@/lib/astrology/lifeEvents";
 
 // Report dates arrive from the API as ISO strings; wrap every one in new Date().
 const monthYear = (d: Date | string) => new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "short" });
@@ -250,51 +251,128 @@ function Stat({ label, value }: { label: string; value: string }) {
 const THEME_ICON: Record<EventTheme, string> = {
   education: "Study",
   career: "Career",
+  jobChange: "Job change",
+  recognition: "Recognition",
   marriage: "Marriage",
+  romance: "Romance",
   children: "Children",
   property: "Property",
-  travel: "Travel",
+  relocation: "Moving home",
+  travel: "Abroad",
   wealth: "Wealth",
+  loss: "Money caution",
   health: "Health",
   spiritual: "Spiritual",
 };
 const TONE_CLASS: Record<Tone, string> = { Supportive: "text-gold-bright", Mixed: "text-cream", Demanding: "text-rose" };
 const ALL_THEMES = Object.keys(THEME_ICON) as EventTheme[];
+const LAYER_CLASS: Record<EvidenceLayer, string> = {
+  Dasha: "border-gold/50 text-gold-bright",
+  Chart: "border-cream/40 text-cream",
+  Transit: "border-gold/50 text-gold-bright",
+  Ashtakavarga: "border-cream/40 text-cream",
+  Yogini: "border-border text-muted",
+  Chara: "border-border text-muted",
+  KP: "border-border text-muted",
+  Yoga: "border-gold/50 text-gold-bright",
+  Age: "border-rose/40 text-rose",
+};
+const LEVEL_CLASS = { Strong: "bg-gold text-on-gold", Likely: "border border-gold/60 text-gold-bright", Possible: "border border-border text-muted" } as const;
 
 export function TimelinePanel({ report }: { report: KundaliReport | null }) {
   const [filter, setFilter] = useState<EventTheme | "all">("all");
+  const [view, setView] = useState<"dasha" | "years">("dasha");
   const [openMaha, setOpenMaha] = useState<number | null>(null);
+  const [allYears, setAllYears] = useState(false);
   if (!report?.timeline) return <Missing />;
   const now = new Date(report.generatedAt);
   const t = report.timeline;
   const currentIdx = t.mahas.findIndex((m) => new Date(m.start) <= now && now < new Date(m.end));
   const shownMaha = openMaha ?? currentIdx;
+  const currentYear = t.years.findIndex((y) => new Date(y.start) <= now && now < new Date(y.end));
+  const years = allYears ? t.years : t.years.slice(Math.max(0, currentYear), Math.max(0, currentYear) + 12);
+  const keys = t.keyWindows.filter((k) => filter === "all" || k.kind === filter);
 
   return (
     <div className="space-y-6">
       <p className="mx-auto max-w-2xl text-center text-sm leading-relaxed text-muted">
-        Your life by age. Each dasha sub-period is read for the events it is most likely to bring — from the houses its lords rule and occupy, whether the event&rsquo;s significator is running, Jupiter and Saturn&rsquo;s double transit, and whether the event suits that age. These are tendencies to plan around, not certainties.
+        Your life by age. Every event is tested against seven independent techniques — the dasha lords, the divisional chart, month-by-month transits, Ashtakavarga, Yogini dasha, Chara dasha and KP — and the confidence shows how many of them agree. Tendencies to plan around, not certainties.
       </p>
 
-      <nav aria-label="Filter by theme" className="flex flex-wrap justify-center gap-1.5">
-        {(["all", ...ALL_THEMES] as const).map((k) => (
-          <button
-            key={k}
-            type="button"
-            onClick={() => setFilter(k)}
-            aria-pressed={filter === k}
-            className={`rounded-full border px-3 py-1 text-xs font-semibold ${filter === k ? "border-gold bg-gold text-on-gold" : "border-border text-muted hover:border-gold hover:text-cream"}`}
-          >
-            {k === "all" ? "All themes" : THEME_ICON[k]}
-          </button>
-        ))}
-      </nav>
+      {t.keyWindows.length > 0 && (
+        <section className="card-edge rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-cream">Key windows of your life</h3>
+          <p className="mt-1 text-sm text-muted">The single most likely period for each kind of event.</p>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {keys.map((k) => (
+              <li key={k.kind} className={`rounded-xl border p-4 ${k.nature === "caution" ? "border-rose/40" : "border-border/70"}`}>
+                <p className="flex items-start justify-between gap-2">
+                  <span className={`text-sm font-semibold ${k.nature === "caution" ? "text-rose" : "text-cream"}`}>{THEME_ICON[k.kind]}</span>
+                  <span className="font-tabular text-sm font-bold text-gold-bright">{k.confidence}%</span>
+                </p>
+                <span className="mt-2 block h-1.5 rounded-full bg-border" aria-hidden="true">
+                  <span className={`block h-1.5 rounded-full ${k.nature === "caution" ? "bg-rose" : "bg-gold"}`} style={{ width: `${k.confidence}%` }} />
+                </span>
+                <p className="mt-2 text-sm text-cream">
+                  Age {k.ages} · {monthYear(k.start)} – {monthYear(k.end)}
+                </p>
+                <p className="text-xs text-muted">{k.dasha} period</p>
+                {k.peak && (
+                  <p className="mt-1 text-xs text-gold-bright">
+                    Peak: {monthYear(k.peak.start)} – {monthYear(k.peak.end)} ({k.peak.why})
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-      <ol className="space-y-3">
-        {t.mahas.map((m, i) => (
-          <MahaItem key={m.lord + m.start} m={m} open={shownMaha === i} current={i === currentIdx} now={now} filter={filter} toggle={() => setOpenMaha(shownMaha === i ? -1 : i)} />
-        ))}
-      </ol>
+      <div className="flex flex-col items-center gap-3">
+        <div className="inline-flex gap-1 rounded-full border border-border bg-ink-deep/80 p-1" role="group" aria-label="Timeline view">
+          {(["dasha", "years"] as const).map((v) => (
+            <button key={v} type="button" onClick={() => setView(v)} aria-pressed={view === v} className={`rounded-full px-4 py-1.5 text-xs font-semibold ${view === v ? "bg-gold text-on-gold" : "text-muted hover:text-cream"}`}>
+              {v === "dasha" ? "By dasha period" : "Year by year"}
+            </button>
+          ))}
+        </div>
+        <nav aria-label="Filter by theme" className="flex flex-wrap justify-center gap-1.5">
+          {(["all", ...ALL_THEMES] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setFilter(k)}
+              aria-pressed={filter === k}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold ${filter === k ? "border-gold bg-gold text-on-gold" : "border-border text-muted hover:border-gold hover:text-cream"}`}
+            >
+              {k === "all" ? "All themes" : THEME_ICON[k]}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {view === "dasha" ? (
+        <ol className="space-y-3">
+          {t.mahas.map((m, i) => (
+            <MahaItem key={m.lord + m.start} m={m} open={shownMaha === i} current={i === currentIdx} now={now} filter={filter} toggle={() => setOpenMaha(shownMaha === i ? -1 : i)} />
+          ))}
+        </ol>
+      ) : (
+        <section className="card-edge rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-cream">Year by year</h3>
+          <p className="mt-1 text-sm text-muted">Birthday to birthday: the running periods, where Jupiter and Saturn are from your Lagna and Moon, Sade Sati, and the year&rsquo;s likely events.</p>
+          <ol className="mt-4 divide-y divide-border/60">
+            {years
+              .filter((y) => filter === "all" || y.highlights.some((h) => h.kind === filter))
+              .map((y) => (
+                <YearRow key={y.age} y={y} current={t.years[currentYear]?.age === y.age} />
+              ))}
+          </ol>
+          <button type="button" onClick={() => setAllYears(!allYears)} className="mt-4 text-sm font-semibold text-gold-bright hover:underline">
+            {allYears ? "Show the next 12 years only" : "Show every year, birth to 90"}
+          </button>
+        </section>
+      )}
 
       <section className="card-edge rounded-2xl p-6">
         <h3 className="text-lg font-bold text-cream">Milestones by age</h3>
@@ -311,13 +389,68 @@ export function TimelinePanel({ report }: { report: KundaliReport | null }) {
           ))}
         </ol>
       </section>
+
+      <section className="card-edge rounded-2xl p-6">
+        <h3 className="text-lg font-bold text-cream">How each event is judged</h3>
+        <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-muted">
+          <li><span className="font-semibold text-cream">Dasha</span> — the Mahadasha and Antardasha lords must signify the event&rsquo;s houses: through their star lord (strongest), their own placement and lordship, or their aspects. Houses that deny the event count against it.</li>
+          <li><span className="font-semibold text-cream">Divisional chart</span> — the event&rsquo;s varga (D9 marriage, D10 career, D7 children, D4 property, D24 education, D30 health) must link the running lords to its key house.</li>
+          <li><span className="font-semibold text-cream">Transit</span> — checked month by month: Jupiter and Saturn together on the event house or its lord (the double transit).</li>
+          <li><span className="font-semibold text-cream">Ashtakavarga</span> — transits through signs with many bindus deliver; weak signs dampen.</li>
+          <li><span className="font-semibold text-cream">Yogini and Chara dasha</span> — two independent dasha systems; agreement raises confidence.</li>
+          <li><span className="font-semibold text-cream">KP</span> — the event&rsquo;s cusp sub lord must promise it; a weak promise lowers every window.</li>
+          <li><span className="font-semibold text-cream">Age and natal strength</span> — events outside their usual age and houses that are weak at birth are weighted down; Raj and Dhan yogas activated by the running lords add weight.</li>
+        </ol>
+        <p className="mt-3 text-sm text-muted">The peak months come from the Pratyantardasha that signifies the event most, overlapping the best transit months.</p>
+      </section>
     </div>
   );
 }
 
+function YearRow({ y, current }: { y: TimelineYear; current: boolean }) {
+  const [open, setOpen] = useState(current);
+  return (
+    <li className={`py-3 ${current ? "-mx-3 rounded-xl bg-gold/5 px-3" : ""}`}>
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full flex-wrap items-center justify-between gap-2 text-left">
+        <span className="flex flex-wrap items-baseline gap-x-3">
+          <span className="font-tabular font-semibold text-gold-bright">Age {y.age}</span>
+          <span className="text-sm text-muted">
+            {monthYear(y.start)} – {monthYear(y.end)}
+          </span>
+          <span className="text-sm text-cream">{y.dasha}</span>
+          {current && <span className="rounded-full bg-gold px-2 py-0.5 text-[10px] font-bold text-on-gold">This year</span>}
+        </span>
+        <span className="flex items-center gap-2">
+          {y.saturnPhase && <span className="rounded-full border border-rose/40 px-2 py-0.5 text-[11px] text-rose">{y.saturnPhase}</span>}
+          <span className="tracking-wider" role="img" aria-label={`${y.rating} out of 5`}>
+            <span className="text-gold-bright">{"★".repeat(y.rating)}</span>
+            <span className="text-border">{"★".repeat(5 - y.rating)}</span>
+          </span>
+        </span>
+      </button>
+      {y.highlights.length > 0 && (
+        <ul className="mt-2 flex flex-wrap gap-1.5">
+          {y.highlights.map((h) => (
+            <li key={h.label} className={`rounded-full border px-2.5 py-0.5 text-xs ${h.nature === "caution" ? "border-rose/40 text-rose" : "border-gold/40 text-gold-bright"}`}>
+              {h.label} · {h.confidence}%
+            </li>
+          ))}
+        </ul>
+      )}
+      {open && (
+        <ul className="mt-2 space-y-1 text-sm text-muted">
+          {y.text.map((x) => (
+            <li key={x}>{x}</li>
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
 function MahaItem({ m, open, current, now, filter, toggle }: { m: TimelineMaha; open: boolean; current: boolean; now: Date; filter: EventTheme | "all"; toggle: () => void }) {
-  const antars = m.antars.filter((a) => filter === "all" || a.themes.some((t) => t.kind === filter));
-  const themeCount = m.antars.reduce((n, a) => n + a.themes.filter((t) => filter === "all" || t.kind === filter).length, 0);
+  const antars = m.antars.filter((a) => filter === "all" || a.events.some((e) => e.kind === filter));
+  const count = m.antars.reduce((n, a) => n + a.events.filter((e) => filter === "all" || e.kind === filter).length, 0);
   return (
     <li className={`card-edge rounded-2xl ${current ? "ring-1 ring-gold/60" : ""}`}>
       <button type="button" onClick={toggle} aria-expanded={open} className="flex w-full flex-wrap items-center justify-between gap-3 p-5 text-left">
@@ -336,7 +469,7 @@ function MahaItem({ m, open, current, now, filter, toggle }: { m: TimelineMaha; 
         <span className="text-right text-sm">
           <span className={`block font-semibold ${TONE_CLASS[m.tone]}`}>{m.tone}</span>
           <span className="text-xs text-muted">
-            {themeCount} likely event{themeCount === 1 ? "" : "s"}
+            {count} likely event{count === 1 ? "" : "s"}
           </span>
         </span>
       </button>
@@ -344,12 +477,12 @@ function MahaItem({ m, open, current, now, filter, toggle }: { m: TimelineMaha; 
         <div className="border-t border-border px-5 pt-4 pb-5">
           <p className="text-sm leading-relaxed text-muted">{m.summary}</p>
           {antars.length === 0 ? (
-            <p className="mt-3 text-sm text-muted">No sub-period here strongly points to this theme.</p>
+            <p className="mt-3 text-sm text-muted">No sub-period here clearly points to this theme.</p>
           ) : (
             <ol className="mt-4 space-y-3">
               {antars.map((a) => {
                 const live = new Date(a.start) <= now && now < new Date(a.end);
-                const themes = a.themes.filter((t) => filter === "all" || t.kind === filter);
+                const events = a.events.filter((e) => filter === "all" || e.kind === filter);
                 return (
                   <li key={a.lord + a.start} className={`rounded-xl border p-4 ${live ? "border-gold/60 bg-gold/5" : "border-border/70"}`}>
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -364,13 +497,10 @@ function MahaItem({ m, open, current, now, filter, toggle }: { m: TimelineMaha; 
                     <p className="mt-1 text-xs text-muted">
                       {a.note} Houses active: {a.houses.map(ordinal).join(", ")}.
                     </p>
-                    {themes.length > 0 && (
-                      <ul className="mt-2 space-y-1.5">
-                        {themes.map((t) => (
-                          <li key={t.kind} className="text-sm">
-                            <span className={`font-semibold ${t.kind === "health" ? "text-rose" : "text-gold-bright"}`}>{t.label}</span>
-                            <span className="text-muted"> — {t.why.join("; ")}.</span>
-                          </li>
+                    {events.length > 0 && (
+                      <ul className="mt-3 space-y-3">
+                        {events.map((e) => (
+                          <EventCard key={e.kind} e={e} />
                         ))}
                       </ul>
                     )}
@@ -380,6 +510,52 @@ function MahaItem({ m, open, current, now, filter, toggle }: { m: TimelineMaha; 
             </ol>
           )}
         </div>
+      )}
+    </li>
+  );
+}
+
+function EventCard({ e }: { e: LifeEvent }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <li className={`rounded-lg border p-3 ${e.nature === "caution" ? "border-rose/40" : "border-border/60"}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className={`text-sm font-semibold ${e.nature === "caution" ? "text-rose" : "text-gold-bright"}`}>{e.label}</span>
+        <span className="flex items-center gap-2">
+          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${LEVEL_CLASS[e.level]}`}>{e.level}</span>
+          <span className="font-tabular text-sm font-bold text-cream">{e.confidence}%</span>
+        </span>
+      </div>
+      {e.peak && (
+        <p className="mt-1 text-xs text-cream">
+          Peak: {monthYear(e.peak.start)} – {monthYear(e.peak.end)} <span className="text-muted">({e.peak.why})</span>
+        </p>
+      )}
+      <ul className="mt-2 flex flex-wrap gap-1" aria-label="Agreeing techniques">
+        {[...new Set(e.evidence.filter((x) => x.points > 0).map((x) => x.layer))].map((l) => (
+          <li key={l} className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${LAYER_CLASS[l]}`}>
+            {l}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs text-muted">{e.advice}</p>
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="mt-1 text-xs font-semibold text-gold-bright hover:underline">
+        {open ? "Hide the evidence" : "Show the evidence"}
+      </button>
+      {open && (
+        <ul className="mt-2 space-y-1 text-xs">
+          {e.evidence.map((x, i) => (
+            <li key={i} className="flex gap-2">
+              <span className={`shrink-0 font-tabular font-semibold ${x.points > 0 ? "text-gold-bright" : "text-rose"}`}>
+                {x.points > 0 ? "+" : ""}
+                {x.points}
+              </span>
+              <span className="text-muted">
+                <span className="font-semibold text-cream">{x.layer}:</span> {x.text}.
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
     </li>
   );
