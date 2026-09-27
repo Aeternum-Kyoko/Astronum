@@ -28,7 +28,7 @@ export default function SignsExplorer() {
                 </h2>
                 <span className="text-xs text-muted">{s.rulingPlanet}</span>
               </div>
-              <p className="mt-1 text-xs tracking-wide text-muted uppercase">
+              <p className="mt-1 text-xs text-muted">
                 {s.element} · {s.quality}
               </p>
               <p className="mt-3 text-sm leading-relaxed text-cream">{s.description}</p>

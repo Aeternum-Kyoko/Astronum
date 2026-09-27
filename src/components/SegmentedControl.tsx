@@ -30,7 +30,7 @@ export default function SegmentedControl<T extends string>({
               transition={{ type: "spring", stiffness: 450, damping: 32 }}
             />
           )}
-          <span className={`relative z-10 transition-colors ${value === opt.value ? "text-ink-deep" : "text-muted hover:text-cream"}`}>
+          <span className={`relative z-10 transition-colors ${value === opt.value ? "text-on-gold" : "text-muted hover:text-cream"}`}>
             {opt.label}
           </span>
         </button>

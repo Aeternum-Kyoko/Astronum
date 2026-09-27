@@ -36,6 +36,8 @@ interface GridPlanet {
   planet: string;
   signIndex: number;
   retrograde: boolean;
+  /** Status marks (↑ ↓ R C V); defaults to "R" for retrograde planets. */
+  markers?: string;
   dignity?: Dignity | null;
   house?: number;
   degreeInSign?: number;
@@ -57,7 +59,7 @@ export default function ChartGrid({
   }
 
   return (
-    <div className="mx-auto grid aspect-square w-full max-w-md grid-cols-4 grid-rows-4 gap-1.5 rounded-xl border border-gold/30 bg-gradient-to-br from-surface to-ink-deep p-1.5 shadow-[0_0_18px_rgba(212,175,106,0.10)]">
+    <div className="mx-auto grid aspect-square w-full max-w-md grid-cols-4 grid-rows-4 gap-1.5 rounded-xl border border-gold/40 bg-surface p-1.5">
       {GRID_SIGNS.map((row, r) =>
         row.map((signIndex, c) => {
           if (signIndex === null) {
@@ -100,7 +102,11 @@ export default function ChartGrid({
                     className={`text-xs font-semibold ${p.dignity ? DIGNITY_COLOR[p.dignity] : "text-cream"}`}
                   >
                     {PLANET_ABBR[p.planet]}
-                    {p.retrograde && <sup className="text-rose">R</sup>}
+                    {[...(p.markers ?? (p.retrograde ? "R" : ""))].map((m, i) => (
+                      <sup key={i} className={m === "↓" || m === "C" || m === "R" ? "text-rose" : "text-gold-bright"}>
+                        {m}
+                      </sup>
+                    ))}
                   </span>
                 ))}
               </div>

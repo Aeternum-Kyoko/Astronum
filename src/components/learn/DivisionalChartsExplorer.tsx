@@ -28,7 +28,7 @@ export default function DivisionalChartsExplorer() {
                 </h2>
                 <span className="text-xs text-muted">÷{v.divisions}</span>
               </div>
-              <p className="mt-1 text-xs tracking-wide text-gold uppercase">{v.blurb}</p>
+              <p className="mt-1 text-xs text-gold">{v.blurb}</p>
               <p className="mt-3 text-sm leading-relaxed text-cream">{v.description}</p>
             </article>
           ))}

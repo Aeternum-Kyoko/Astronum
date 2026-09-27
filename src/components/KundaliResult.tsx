@@ -1,35 +1,82 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import type { KundaliChart } from "@/lib/astrology/types";
 import type { DashaPeriod } from "@/lib/astrology/dasha";
-import { SIGN_SANSKRIT, ASHTAKAVARGA_PLANETS, VARGA_KEYS, type VargaKey, type AshtakavargaPlanet } from "@/lib/astrology/constants";
+import { NAKSHATRAS, SIGNS, SIGN_SANSKRIT, ASHTAKAVARGA_PLANETS, VARGA_KEYS, type VargaKey, type AshtakavargaPlanet } from "@/lib/astrology/constants";
 import { SIGN_KEYNOTE, PLANET_KEYNOTE, HOUSE_SIGNIFICATION, VARGA_INFO } from "@/lib/astrology/content";
 import { analyzeBhavaStrength } from "@/lib/astrology/bhavaStrength";
+import { dignityColorClass } from "@/lib/astrology/dignity";
+import { signOffsetHouse } from "@/lib/astrology/math";
 import type { DivisionalChart } from "@/lib/astrology/types";
-import ChartGrid from "@/components/ChartGrid";
-import NorthIndianChart from "@/components/NorthIndianChart";
+import KundliChart, { type ChartPoint } from "@/components/KundliChart";
+import { MARKER_MEANING, WEAK_MARKERS, natalMarkers, planetMarkers, type Marker } from "@/lib/astrology/chartMarkers";
 import AshtakavargaGrid from "@/components/AshtakavargaGrid";
 import ShadbalaTable from "@/components/ShadbalaTable";
 import ChartDetail from "@/components/ChartDetail";
 import SegmentedControl from "@/components/SegmentedControl";
 import PrintReport from "@/components/PrintReport";
+import BasicDetails from "@/components/BasicDetails";
+import RemediesPanel from "@/components/RemediesPanel";
+import DashaExplorer from "@/components/DashaExplorer";
+import { LifeReportPanel, PlanetReadingsPanel, TransitsPanel } from "@/components/ReportPanels";
+import type { KundaliReport } from "@/lib/astrology/report";
+import { toBirthQuery } from "@/lib/birthParams";
+import YogaAnalysisPanel from "@/components/YogaAnalysisPanel";
+import { CareerPanel, HousesPanel, TimelinePanel } from "@/components/DeepReportPanels";
+import { CharaPanel, KpPanel, LifeSectorsPanel, VimshottariDetail, YoginiPanel } from "@/components/DashaSystemsPanels";
+import { nakshatraLord } from "@/lib/astrology/dasha";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 const TABS = [
   "Overview",
+  "Life Report",
+  "Planet Readings",
+  "Houses",
+  "Career",
+  "Life Timeline",
+  "Life Sectors",
   "D1 · Rasi Chart",
   "D9 · Navamsa",
   "More Vargas",
+  "Dashas",
+  "Yogini Dasha",
+  "Chara Dasha",
+  "KP System",
+  "Transits",
+  "Yogas & Doshas",
+  "Remedies",
   "Ashtakavarga",
   "Shadbala",
-  "Dashas",
-  "Yogas & Doshas",
   "House Lords",
 ] as const;
 type Tab = (typeof TABS)[number];
+
+/** URL-friendly names for deep links such as /kundali?tab=dashas. */
+export const TAB_SLUGS: Record<string, Tab> = {
+  overview: "Overview",
+  report: "Life Report",
+  planets: "Planet Readings",
+  houses: "Houses",
+  career: "Career",
+  timeline: "Life Timeline",
+  sectors: "Life Sectors",
+  yogini: "Yogini Dasha",
+  chara: "Chara Dasha",
+  kp: "KP System",
+  transits: "Transits",
+  rasi: "D1 · Rasi Chart",
+  navamsa: "D9 · Navamsa",
+  vargas: "More Vargas",
+  ashtakavarga: "Ashtakavarga",
+  shadbala: "Shadbala",
+  dashas: "Dashas",
+  yogas: "Yogas & Doshas",
+  remedies: "Remedies",
+  lords: "House Lords",
+};
 
 const MORE_VARGA_KEYS = VARGA_KEYS.filter((k) => k !== "D1" && k !== "D9");
 
@@ -41,15 +88,32 @@ function formatDateShort(d: Date | string): string {
   return new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "short" });
 }
 
-export default function KundaliResult({ chart }: { chart: KundaliChart }) {
-  const [tab, setTab] = useState<Tab>("Overview");
+export default function KundaliResult({
+  chart,
+  report,
+  initialTab,
+}: {
+  chart: KundaliChart;
+  report: KundaliReport | null;
+  initialTab?: string | null;
+}) {
+  const [tab, setTab] = useState<Tab>((initialTab && TAB_SLUGS[initialTab]) || "Overview");
   const [style, setStyle] = useState<"north" | "south">("north");
+  const tabStripRef = useRef<HTMLUListElement>(null);
+
+  // On phones the tabs are a horizontal strip; keep the active one visible (e.g. after a ?tab= deep link).
+  useEffect(() => {
+    const strip = tabStripRef.current;
+    const active = strip?.querySelector<HTMLElement>("[aria-current=page]");
+    if (!strip || !active || strip.scrollWidth <= strip.clientWidth) return;
+    strip.scrollTo({ left: active.offsetLeft - (strip.clientWidth - active.offsetWidth) / 2, behavior: "smooth" });
+  }, [tab]);
 
   return (
-    <div className="mt-20">
-      <div className="gold-divider print:hidden" />
+    <div className="mt-10">
+      <div className="h-px bg-border print:hidden" />
       <div className="print:hidden">
-        <h2 className="mt-14 text-center text-4xl leading-[1.05] font-bold tracking-tight text-cream md:text-6xl">
+        <h2 className="mt-10 text-center text-3xl leading-[1.05] font-bold tracking-tight text-cream md:text-5xl">
           {chart.input.name ? `${chart.input.name}'s` : "Your"} Birth Chart
         </h2>
         <p className="mt-4 text-center text-base text-muted">
@@ -58,40 +122,53 @@ export default function KundaliResult({ chart }: { chart: KundaliChart }) {
         </p>
 
         <div className="mt-6 flex justify-center">
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="rounded-full border border-gold/50 px-5 py-2 text-xs font-semibold text-gold-bright transition-colors hover:bg-gold/10"
-          >
-            Download PDF Report
-          </button>
-        </div>
-
-        <div className="mt-10 flex justify-center">
-          <div className="flex flex-wrap justify-center gap-1 rounded-full border border-border bg-ink-deep/90 p-1.5 shadow-lg">
-            {TABS.map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTab(t)}
-                className="relative rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap"
-              >
-                {tab === t && (
-                  <motion.span
-                    layoutId="active-tab-pill"
-                    className="absolute inset-0 rounded-full bg-gold"
-                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
-                  />
-                )}
-                <span className={`relative z-10 transition-colors ${tab === t ? "text-ink-deep" : "text-muted hover:text-cream"}`}>
-                  {t}
-                </span>
-              </button>
-            ))}
+          <div className="flex flex-wrap justify-center gap-2">
+            <a
+              href={`/api/kundali/pdf?${toBirthQuery(chart.input)}`}
+              className="rounded-full bg-gold px-5 py-2 text-xs font-semibold text-on-gold transition-colors hover:bg-gold-bright"
+            >
+              Download PDF Report
+            </a>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="rounded-full border border-gold/50 px-5 py-2 text-xs font-semibold text-gold-bright transition-colors hover:bg-gold/10"
+            >
+              Print
+            </button>
           </div>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-10 lg:grid lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-8">
+          <nav aria-label="Chart sections" className="lg:sticky lg:top-24 lg:self-start">
+            <ul ref={tabStripRef} className="scrollbar-none relative -mx-5 flex gap-1.5 overflow-x-auto px-5 pb-2 lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:rounded-2xl lg:border lg:border-border lg:bg-ink-deep/60 lg:p-2">
+              {TABS.map((t) => (
+                <li key={t} className="shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setTab(t)}
+                    aria-current={tab === t ? "page" : undefined}
+                    className="relative w-full rounded-full px-4 py-2 text-left text-xs font-semibold whitespace-nowrap lg:rounded-xl lg:py-2.5 lg:text-sm"
+                  >
+                    {tab === t && (
+                      <motion.span
+                        layoutId="active-tab-pill"
+                        className="absolute inset-0 rounded-full bg-gold lg:rounded-xl"
+                        transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                      />
+                    )}
+                    <span
+                      className={`relative z-10 transition-colors ${tab === t ? "text-on-gold" : "text-muted hover:text-cream"}`}
+                    >
+                      {t}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+        <div className="mt-6 min-w-0 lg:mt-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={tab}
@@ -101,9 +178,20 @@ export default function KundaliResult({ chart }: { chart: KundaliChart }) {
               transition={{ duration: 0.35, ease: EASE_OUT_EXPO }}
             >
               {tab === "Overview" && <OverviewTab chart={chart} />}
+              {tab === "Life Report" && <LifeReportPanel report={report} />}
+              {tab === "Planet Readings" && <PlanetReadingsPanel report={report} />}
+              {tab === "Houses" && <HousesPanel report={report} />}
+              {tab === "Career" && <CareerPanel report={report} />}
+              {tab === "Life Timeline" && <TimelinePanel report={report} />}
+              {tab === "Life Sectors" && <LifeSectorsPanel report={report} />}
+              {tab === "Yogini Dasha" && <YoginiPanel report={report} />}
+              {tab === "Chara Dasha" && <CharaPanel report={report} />}
+              {tab === "KP System" && <KpPanel report={report} />}
+              {tab === "Transits" && <TransitsPanel report={report} chart={chart} />}
               {tab === "D1 · Rasi Chart" && <RasiTab chart={chart} style={style} setStyle={setStyle} />}
               {tab === "D9 · Navamsa" && (
                 <VargaTab
+                  chart={chart}
                   title="D9"
                   blurb={VARGA_INFO.D9.blurb}
                   divisionalChart={chart.divisionalCharts.D9}
@@ -112,7 +200,7 @@ export default function KundaliResult({ chart }: { chart: KundaliChart }) {
                 />
               )}
               {tab === "More Vargas" && <MoreVargasTab chart={chart} style={style} setStyle={setStyle} />}
-              {tab === "Ashtakavarga" && <AshtakavargaTab chart={chart} />}
+              {tab === "Ashtakavarga" && <AshtakavargaTab chart={chart} style={style} setStyle={setStyle} />}
               {tab === "Shadbala" && (
                 <div>
                   <p className="mx-auto max-w-2xl text-center text-sm leading-relaxed text-muted">
@@ -125,11 +213,13 @@ export default function KundaliResult({ chart }: { chart: KundaliChart }) {
                   </div>
                 </div>
               )}
-              {tab === "Dashas" && <DashasTab chart={chart} />}
+              {tab === "Dashas" && <DashasTab chart={chart} report={report} />}
               {tab === "Yogas & Doshas" && <YogasDoshasTab chart={chart} />}
+              {tab === "Remedies" && <RemediesPanel chart={chart} />}
               {tab === "House Lords" && <HouseLordsTab chart={chart} />}
             </motion.div>
           </AnimatePresence>
+        </div>
         </div>
 
         <p className="mt-16 text-center text-xs text-muted">
@@ -215,6 +305,9 @@ function OverviewTab({ chart }: { chart: KundaliChart }) {
 
   return (
     <div className="grid gap-6 md:grid-cols-3">
+      <div className="md:col-span-3">
+        <BasicDetails chart={chart} />
+      </div>
       <SummaryCard title="Ascendant (Lagna)" sign={chart.ascendant.sign}>
         Your outward personality and life direction lean {SIGN_KEYNOTE[chart.ascendant.sign]}.
       </SummaryCard>
@@ -325,7 +418,7 @@ function OverviewTab({ chart }: { chart: KundaliChart }) {
 function SummaryCard({ title, sign, children }: { title: string; sign: string; children: React.ReactNode }) {
   return (
     <Card>
-      <h3 className="text-xs font-semibold tracking-wide text-muted uppercase">{title}</h3>
+      <h3 className="text-xs font-semibold text-muted">{title}</h3>
       <p className="mt-3 text-3xl font-bold tracking-tight text-gold-bright">{sign}</p>
       <p className="mt-3 text-sm leading-relaxed text-muted">{children}</p>
     </Card>
@@ -341,67 +434,55 @@ function RasiTab({
   style: "north" | "south";
   setStyle: (s: "north" | "south") => void;
 }) {
+  const [mode, setMode] = useState<"lagna" | "moon" | "chalit" | "lalkitab">("lagna");
+  const moon = chart.planets.find((p) => p.planet === "Moon")!;
+  const chalit = new Map(chart.chalitHouses.map((c) => [c.planet, c.house]));
+  // Lal Kitab keeps every planet in its natal house but fixes Aries as the 1st house.
+  const referenceSign = mode === "moon" ? moon.signIndex : mode === "lalkitab" ? 0 : chart.ascendant.signIndex;
+  const markers = natalMarkers(chart);
+  // North Indian draws by house, South Indian by sign. For Chalit and Lal Kitab, where a house isn't its sign,
+  // each planet is drawn in the sign that its house represents.
+  const shown: ChartPoint[] = chart.planets.map((p) => {
+    const house = mode === "moon" ? signOffsetHouse(p.signIndex, moon.signIndex) : mode === "chalit" ? chalit.get(p.planet)! : p.house;
+    const signIndex = mode === "chalit" || mode === "lalkitab" ? (referenceSign + house - 1) % 12 : p.signIndex;
+    return { ...p, house, signIndex, markers: markers[p.planet] };
+  });
+  const shifted = chart.planets.filter((p) => chalit.get(p.planet) !== p.house);
+
   return (
     <div>
-      <StyleToggle style={style} setStyle={setStyle} />
-      <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_1.2fr]">
-        {style === "north" ? (
-          <NorthIndianChart ascendantSignIndex={chart.ascendant.signIndex} planets={chart.planets} />
-        ) : (
-          <ChartGrid ascendantSignIndex={chart.ascendant.signIndex} planets={chart.planets} />
-        )}
+      <div className="flex flex-wrap justify-center gap-3">
+        <SegmentedControl
+          layoutId="rasi-mode-toggle"
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: "lagna", label: "Lagna" },
+            { value: "moon", label: "Chandra (Moon)" },
+            { value: "chalit", label: "Bhava Chalit" },
+            { value: "lalkitab", label: "Lal Kitab" },
+          ]}
+        />
+        <StyleToggle style={style} setStyle={setStyle} />
+      </div>
+      <p className="mx-auto mt-4 max-w-2xl text-center text-xs leading-relaxed text-muted">
+        {mode === "lagna" && "Houses counted from your Ascendant — the main birth chart."}
+        {mode === "moon" &&
+          `The Chandra Kundli counts houses from your Moon sign (${moon.sign}) and is read alongside the Lagna chart, especially for the mind and for transits.`}
+        {mode === "lalkitab" &&
+          "The Lal Kitab chart keeps each planet in its birth house but numbers the houses as fixed signs — the 1st house is always Aries, the 2nd Taurus, and so on. Lal Kitab readings and remedies are made from this chart."}
+        {mode === "chalit" &&
+          (shifted.length === 0
+            ? "Bhava Chalit places each planet by Sripati house cusps rather than by sign. In this chart every planet stays in the same house."
+            : `Bhava Chalit places each planet by Sripati house cusps rather than by sign. ${shifted
+                .map((p) => `${p.planet} moves from house ${p.house} to ${chalit.get(p.planet)}`)
+                .join("; ")}.`)}
+      </p>
+      <div className="mt-8 grid gap-8">
+        <KundliChart ascendantSignIndex={referenceSign} planets={shown} style={style} onStyleChange={setStyle} />
 
-        <div className="card-edge overflow-x-auto rounded-2xl">
-          <table className="w-full text-sm font-tabular">
-            <thead>
-              <tr className="border-b border-border text-left text-xs tracking-wide text-muted uppercase">
-                <th className="px-4 py-3">Planet</th>
-                <th className="px-4 py-3">Sign</th>
-                <th className="px-4 py-3">Degree</th>
-                <th className="px-4 py-3">House</th>
-                <th className="px-4 py-3">Nakshatra</th>
-                <th className="px-4 py-3">Dignity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {chart.planets.map((p) => (
-                <tr key={p.planet} className="border-b border-border/50 last:border-0">
-                  <td className="px-4 py-3 font-medium text-cream">
-                    <Link href={`/learn/planets#${p.planet}`} className="hover:text-gold-bright">
-                      {p.planet}
-                    </Link>
-                    {p.retrograde && <span className="ml-1 text-xs text-rose">(R)</span>}
-                  </td>
-                  <td className="px-4 py-3 text-muted">{p.sign}</td>
-                  <td className="px-4 py-3 text-muted">{p.degreeInSign.toFixed(2)}°</td>
-                  <td className="px-4 py-3 text-muted">{p.house}</td>
-                  <td className="px-4 py-3 text-muted">
-                    {p.nakshatra} <span className="text-xs">(pada {p.pada})</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {p.dignity ? (
-                      <span
-                        className={
-                          p.dignity === "Exalted" || p.dignity === "Moolatrikona"
-                            ? "text-gold-bright"
-                            : p.dignity === "Debilitated"
-                              ? "text-rose"
-                              : p.dignity === "Own Sign"
-                                ? "text-gold"
-                                : "text-muted"
-                        }
-                      >
-                        {p.dignity}
-                      </span>
-                    ) : (
-                      <span className="text-muted">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {mode === "chalit" && <BhavaTable chart={chart} />}
+        <PlanetTable chart={chart} />
       </div>
 
       <ChartDetail vargaKey="D1" ascendantSignIndex={chart.ascendant.signIndex} planets={chart.planets} shadbala={chart.shadbala} />
@@ -409,19 +490,154 @@ function RasiTab({
   );
 }
 
+function PlanetTable({ chart }: { chart: KundaliChart }) {
+  const markers = natalMarkers(chart);
+  const ascNakshatraIndex = Math.floor(chart.ascendant.siderealLongitude / (360 / 27));
+
+  return (
+    <div className="card-edge self-start overflow-x-auto rounded-2xl">
+      <table className="w-full text-sm font-tabular">
+        <thead>
+          <tr className="border-b border-border text-left text-xs whitespace-nowrap text-muted">
+            <th className="px-3 py-3">Planet</th>
+            <th className="px-3 py-3">Sign</th>
+            <th className="px-3 py-3">Degree</th>
+            <th className="px-3 py-3">Nakshatra</th>
+            <th className="px-3 py-3">Nak. lord</th>
+            <th className="px-3 py-3">House</th>
+            <th className="px-3 py-3">Dignity</th>
+          </tr>
+        </thead>
+        <tbody className="whitespace-nowrap">
+          <tr className="border-b border-border/50 bg-gold/5">
+            <td className="px-3 py-2.5 font-medium text-gold-bright">Ascendant</td>
+            <td className="px-3 py-2.5 text-muted">{chart.ascendant.sign}</td>
+            <td className="px-3 py-2.5 text-muted">{formatDms(chart.ascendant.degreeInSign)}</td>
+            <td className="px-3 py-2.5 text-muted">
+              {NAKSHATRAS[ascNakshatraIndex]}
+            </td>
+            <td className="px-3 py-2.5 text-muted">{nakshatraLord(ascNakshatraIndex)}</td>
+            <td className="px-3 py-2.5 text-muted">1</td>
+            <td className="px-3 py-2.5 text-muted">—</td>
+          </tr>
+          {chart.planets.map((p) => {
+            const marks = markers[p.planet];
+            return (
+              <tr key={p.planet} className="border-b border-border/50 last:border-0">
+                <td className="px-3 py-2.5 font-medium text-cream">
+                  <Link href={`/learn/planets#${p.planet}`} className="hover:text-gold-bright">
+                    {p.planet}
+                  </Link>
+                  {[...marks].map((m, i) => (
+                    <abbr
+                      key={i}
+                      title={MARKER_MEANING[m as Marker]}
+                      className={`ml-1 text-xs font-semibold no-underline ${WEAK_MARKERS.has(m as Marker) || m === "R" ? "text-rose" : "text-gold-bright"}`}
+                    >
+                      {m}
+                    </abbr>
+                  ))}
+                </td>
+                <td className="px-3 py-2.5 text-muted">{p.sign}</td>
+                <td className="px-3 py-2.5 text-muted">{formatDms(p.degreeInSign)}</td>
+                <td className="px-3 py-2.5 text-muted">
+                  {p.nakshatra} <span className="text-xs">({p.pada})</span>
+                </td>
+                <td className="px-3 py-2.5 text-muted">{nakshatraLord(p.nakshatraIndex)}</td>
+                <td className="px-3 py-2.5 text-muted">{p.house}</td>
+                <td className="px-3 py-2.5">
+                  {p.dignity ? (
+                    <span className={dignityColorClass(p.dignity)}>{p.dignity}</span>
+                  ) : (
+                    <span className="text-muted">—</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <p className="border-t border-border/50 px-3 py-2.5 text-xs text-muted">
+        <span className="text-gold-bright">↑</span> exalted, <span className="text-rose">↓</span> debilitated,{" "}
+        <span className="text-rose">R</span> retrograde, <span className="text-rose">C</span> combust,{" "}
+        <span className="text-gold-bright">V</span> vargottama. Nakshatra pada in brackets.
+      </p>
+    </div>
+  );
+}
+
+/** Sripati bhava cusps: where each house begins (Arambha), peaks (Madhya) and ends (Viram). */
+function BhavaTable({ chart }: { chart: KundaliChart }) {
+  const at = (lon: number) => {
+    const signIndex = Math.floor(lon / 30) % 12;
+    return `${SIGNS[signIndex]} ${formatDms(lon - signIndex * 30)}`;
+  };
+  return (
+    <div className="card-edge overflow-x-auto rounded-2xl">
+      <table className="w-full text-sm font-tabular">
+        <caption className="px-4 pt-4 text-left">
+          <span className="block font-semibold text-cream">Bhava Chalit cusps</span>
+          <span className="text-xs text-muted">
+            Each bhava runs from its Arambha (start, the sandhi or junction) through its Madhya (mid-point, the cusp) to
+            its Viram (end) — the next house&rsquo;s Arambha.
+          </span>
+        </caption>
+        <thead>
+          <tr className="border-b border-border text-left text-xs whitespace-nowrap text-muted">
+            <th className="px-4 py-3">Bhava</th>
+            <th className="px-4 py-3">Arambha (start)</th>
+            <th className="px-4 py-3">Madhya (mid)</th>
+            <th className="px-4 py-3">Viram (end)</th>
+            <th className="px-4 py-3">Planets</th>
+          </tr>
+        </thead>
+        <tbody className="whitespace-nowrap">
+          {chart.bhavas.map((b, i) => {
+            const next = chart.bhavas[(i + 1) % 12];
+            const inside = chart.chalitHouses.filter((c) => c.house === b.house).map((c) => c.planet);
+            return (
+              <tr key={b.house} className="border-b border-border/50 last:border-0">
+                <td className="px-4 py-2.5 font-medium text-cream">{b.house}</td>
+                <td className="px-4 py-2.5 text-muted">{at(b.start)}</td>
+                <td className="px-4 py-2.5 text-cream">{at(b.madhya)}</td>
+                <td className="px-4 py-2.5 text-muted">{at(next.start)}</td>
+                <td className="px-4 py-2.5 text-muted">{inside.join(", ") || "—"}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** 12.5083 → 12°30′30″ */
+function formatDms(deg: number): string {
+  const totalSeconds = Math.round(deg * 3600);
+  const d = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const sec = totalSeconds % 60;
+  return `${d}°${String(m).padStart(2, "0")}′${String(sec).padStart(2, "0")}″`;
+}
+
 function VargaTab({
+  chart,
   title,
   blurb,
   divisionalChart,
   style,
   setStyle,
 }: {
+  chart: KundaliChart;
   title: VargaKey;
   blurb: string;
   divisionalChart: DivisionalChart;
   style: "north" | "south";
   setStyle: (s: "north" | "south") => void;
 }) {
+  const inVarga = new Map(divisionalChart.planets.map((p) => [p.planet, p]));
+  const markers = planetMarkers(chart, (pl) => inVarga.get(pl)!.signIndex, (pl) => inVarga.get(pl)!.retrograde, { vargottama: title === "D9" });
+  const points: ChartPoint[] = divisionalChart.planets.map((p) => ({ ...p, markers: markers[p.planet] }));
   return (
     <div>
       <p className="mx-auto max-w-2xl text-center text-sm leading-relaxed text-muted">{blurb}</p>
@@ -429,16 +645,12 @@ function VargaTab({
         <StyleToggle style={style} setStyle={setStyle} />
       </div>
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_1.2fr]">
-        {style === "north" ? (
-          <NorthIndianChart ascendantSignIndex={divisionalChart.ascendant.signIndex} planets={divisionalChart.planets} />
-        ) : (
-          <ChartGrid ascendantSignIndex={divisionalChart.ascendant.signIndex} planets={divisionalChart.planets} />
-        )}
+        <KundliChart ascendantSignIndex={divisionalChart.ascendant.signIndex} planets={points} style={style} onStyleChange={setStyle} />
 
         <div className="card-edge overflow-x-auto rounded-2xl">
           <table className="w-full text-sm font-tabular">
             <thead>
-              <tr className="border-b border-border text-left text-xs tracking-wide text-muted uppercase">
+              <tr className="border-b border-border text-left text-xs text-muted">
                 <th className="px-4 py-3">Planet</th>
                 <th className="px-4 py-3">{title} Sign</th>
                 <th className="px-4 py-3">{title} House</th>
@@ -451,7 +663,7 @@ function VargaTab({
                     <Link href={`/learn/planets#${p.planet}`} className="hover:text-gold-bright">
                       {p.planet}
                     </Link>
-                    {p.retrograde && <span className="ml-1 text-xs text-rose">(R)</span>}
+                    {markers[p.planet] && <span className="ml-1.5 text-xs font-semibold text-gold-bright">{markers[p.planet]}</span>}
                   </td>
                   <td className="px-4 py-3 text-muted">{p.sign}</td>
                   <td className="px-4 py-3 text-muted">{p.house}</td>
@@ -496,6 +708,7 @@ function MoreVargasTab({
       </h3>
       <div className="mt-4">
         <VargaTab
+          chart={chart}
           title={selected}
           blurb={info.blurb}
           divisionalChart={chart.divisionalCharts[selected]}
@@ -507,7 +720,7 @@ function MoreVargasTab({
   );
 }
 
-function AshtakavargaTab({ chart }: { chart: KundaliChart }) {
+function AshtakavargaTab({ chart, style, setStyle }: { chart: KundaliChart; style: "north" | "south"; setStyle: (s: "north" | "south") => void }) {
   const [selected, setSelected] = useState<AshtakavargaPlanet | "Sarva">("Sarva");
   const bindus = selected === "Sarva" ? chart.ashtakavarga.sarva : chart.ashtakavarga.bhinna[selected];
 
@@ -526,13 +739,59 @@ function AshtakavargaTab({ chart }: { chart: KundaliChart }) {
           options={(["Sarva", ...ASHTAKAVARGA_PLANETS] as const).map((key) => ({ value: key, label: key }))}
         />
       </div>
-      <div className="mt-8">
+      <div className="mt-6">
+        <StyleToggle style={style} setStyle={setStyle} />
+      </div>
+      <div className="mt-6">
         <AshtakavargaGrid
           bindus={bindus}
           ascendantSignIndex={chart.ascendant.signIndex}
           label={selected === "Sarva" ? "Sarvashtakavarga" : `${selected} Bhinna`}
+          style={style}
         />
       </div>
+      <AshtakavargaHouseTable chart={chart} bindus={bindus} selected={selected} />
+    </div>
+  );
+}
+
+function AshtakavargaHouseTable({ chart, bindus, selected }: { chart: KundaliChart; bindus: number[]; selected: AshtakavargaPlanet | "Sarva" }) {
+  const sarva = selected === "Sarva";
+  const verdict = (n: number) => (sarva ? (n >= 30 ? "Strong" : n <= 24 ? "Weak" : "Average") : n >= 5 ? "Strong" : n <= 2 ? "Weak" : "Average");
+  return (
+    <div className="card-edge mx-auto mt-8 max-w-3xl overflow-x-auto rounded-2xl p-5">
+      <p className="text-sm text-muted">
+        {sarva
+          ? "Houses with 28 or more bindus give good results, and transits through them go well; below 25, the house and its transits need care."
+          : `${selected} gives good results when it transits a sign with 4 or more of its own bindus, and struggles in signs with 3 or fewer.`}
+      </p>
+      <table className="mt-3 w-full min-w-[28rem] text-left text-sm">
+        <thead className="text-xs text-muted">
+          <tr className="border-b border-border">
+            <th scope="col" className="py-2 pr-3 font-semibold">House</th>
+            <th scope="col" className="py-2 pr-3 font-semibold">Sign</th>
+            <th scope="col" className="py-2 pr-3 font-semibold">Bindus</th>
+            <th scope="col" className="py-2 pr-3 font-semibold">Verdict</th>
+            <th scope="col" className="py-2 font-semibold">Signifies</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: 12 }, (_, i) => {
+            const sign = (chart.ascendant.signIndex + i) % 12;
+            const n = bindus[sign];
+            const v = verdict(n);
+            return (
+              <tr key={i} className="border-b border-border/50 last:border-0">
+                <td className="py-2 pr-3 font-semibold text-cream">{i + 1}</td>
+                <td className="py-2 pr-3 text-muted">{SIGNS[sign]}</td>
+                <td className="font-tabular py-2 pr-3 text-cream">{n}</td>
+                <td className={`py-2 pr-3 font-semibold ${v === "Strong" ? "text-gold-bright" : v === "Weak" ? "text-rose" : "text-muted"}`}>{v}</td>
+                <td className="py-2 text-xs text-muted">{HOUSE_SIGNIFICATION[i + 1]}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -593,9 +852,13 @@ function ExpandableAntardashaRow({ period, isCurrent }: { period: DashaPeriod; i
   );
 }
 
-function DashasTab({ chart }: { chart: KundaliChart }) {
+function DashasTab({ chart, report }: { chart: KundaliChart; report: KundaliReport | null }) {
+  // The chart arrives as JSON, so match periods by start time rather than object identity.
+  const same = (a: DashaPeriod, b: DashaPeriod | null) => !!b && String(a.start) === String(b.start) && a.lord === b.lord;
   return (
     <div className="grid gap-6 md:grid-cols-2">
+      <DashaExplorer chart={chart} />
+      <VimshottariDetail report={report} />
       <Card>
         <h3 className="text-xl font-bold tracking-tight text-gold-bright">Vimshottari Mahadasha Timeline</h3>
         <p className="mt-2 text-xs text-muted">
@@ -603,7 +866,7 @@ function DashasTab({ chart }: { chart: KundaliChart }) {
         </p>
         <ul className="mt-5 text-sm">
           {chart.dashas.map((d, i) => (
-            <DashaRow key={i} period={d} isCurrent={d === chart.currentDasha} />
+            <DashaRow key={i} period={d} isCurrent={same(d, chart.currentDasha)} />
           ))}
         </ul>
       </Card>
@@ -618,7 +881,7 @@ function DashasTab({ chart }: { chart: KundaliChart }) {
           </p>
           <ul className="mt-5 text-sm">
             {chart.antardashas.map((d, i) => (
-              <ExpandableAntardashaRow key={i} period={d} isCurrent={d === chart.currentAntardasha} />
+              <ExpandableAntardashaRow key={i} period={d} isCurrent={same(d, chart.currentAntardasha)} />
             ))}
           </ul>
         </Card>
@@ -628,6 +891,7 @@ function DashasTab({ chart }: { chart: KundaliChart }) {
           <p className="mt-4 text-sm leading-relaxed text-muted">{chart.sadeSati.description}</p>
         </Card>
       </div>
+
     </div>
   );
 }
@@ -637,34 +901,40 @@ function YogasDoshasTab({ chart }: { chart: KundaliChart }) {
   const sortedDoshas = [...chart.doshas].sort((a, b) => Number(b.present) - Number(a.present));
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <Card>
-        <h3 className="text-xl font-bold tracking-tight text-gold-bright">Yogas</h3>
-        <ul className="mt-5 space-y-5">
-          {sortedYogas.map((y) => (
-            <li key={y.name}>
-              <p className="text-sm font-semibold text-cream">
-                {y.name} — <span className={y.present ? "text-gold-bright" : "text-muted"}>{y.present ? "Present" : "Not present"}</span>
-              </p>
-              <p className="mt-1.5 text-xs leading-relaxed text-muted">{y.description}</p>
-            </li>
-          ))}
-        </ul>
-      </Card>
+    <div className="space-y-6">
+      <YogaAnalysisPanel chart={chart} />
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <h3 className="text-xl font-bold tracking-tight text-gold-bright">Other classical yogas</h3>
+          <ul className="mt-5 space-y-5">
+            {sortedYogas.map((y) => (
+              <li key={y.name}>
+                <p className="text-sm font-semibold text-cream">
+                  {y.name} — <span className={y.present ? "text-gold-bright" : "text-muted"}>{y.present ? "Present" : "Not present"}</span>
+                </p>
+                <p className="mt-1.5 text-xs leading-relaxed text-muted">{y.description}</p>
+              </li>
+            ))}
+          </ul>
+        </Card>
 
-      <Card>
-        <h3 className="text-xl font-bold tracking-tight text-gold-bright">Doshas</h3>
-        <ul className="mt-5 space-y-5">
-          {sortedDoshas.map((d) => (
-            <li key={d.name}>
-              <p className="text-sm font-semibold text-cream">
-                {d.name} — <span className={d.present ? "text-rose" : "text-muted"}>{d.present ? "Present" : "Not present"}</span>
-              </p>
-              <p className="mt-1.5 text-xs leading-relaxed text-muted">{d.description}</p>
-            </li>
-          ))}
-        </ul>
-      </Card>
+        <Card>
+          <h3 className="text-xl font-bold tracking-tight text-gold-bright">Doshas</h3>
+          <ul className="mt-5 space-y-5">
+            {sortedDoshas.map((d) => (
+              <li key={d.name}>
+                <p className="text-sm font-semibold text-cream">
+                  {d.name} —{" "}
+                  <span className={d.present ? "text-rose" : d.cancelled ? "text-gold-bright" : "text-muted"}>
+                    {d.present ? "Present" : d.cancelled ? "Present but cancelled" : "Not present"}
+                  </span>
+                </p>
+                <p className="mt-1.5 text-xs leading-relaxed text-muted">{d.description}</p>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -679,7 +949,7 @@ function HouseLordsTab({ chart }: { chart: KundaliChart }) {
       <div className="mt-8 card-edge overflow-x-auto rounded-2xl">
         <table className="w-full text-sm font-tabular">
           <thead>
-            <tr className="border-b border-border text-left text-xs tracking-wide text-muted uppercase">
+            <tr className="border-b border-border text-left text-xs text-muted">
               <th className="px-4 py-3">House</th>
               <th className="px-4 py-3">Signifies</th>
               <th className="px-4 py-3">Sign</th>

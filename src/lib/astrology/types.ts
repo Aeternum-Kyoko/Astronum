@@ -1,6 +1,7 @@
 import type { AshtakavargaPlanet, PlanetName, SignName, VargaKey } from "./constants";
 import type { DashaPeriod } from "./dasha";
 import type { Dignity } from "./dignity";
+import type { MangalDoshaResult } from "./mangalDosha";
 
 export interface BirthInput {
   date: string; // YYYY-MM-DD
@@ -29,6 +30,8 @@ export interface PlanetPlacement {
 export interface Dosha {
   name: string;
   present: boolean;
+  /** Indicated by the base rule but neutralised by a classical cancellation. */
+  cancelled?: boolean;
   description: string;
 }
 
@@ -94,7 +97,13 @@ export interface KundaliChart {
     signIndex: number;
     degreeInSign: number;
   };
+  /** Sidereal longitude of the Midheaven (MC). */
+  midheaven: number;
   planets: PlanetPlacement[];
+  /** Each planet's Sripati bhava (Bhava Chalit house), which can differ from its whole-sign house. */
+  chalitHouses: { planet: PlanetName; house: number }[];
+  /** Sripati bhava cusps: each house's start (sandhi) and mid-point (madhya), as sidereal longitudes. */
+  bhavas: { house: number; start: number; madhya: number }[];
   divisionalCharts: Record<VargaKey, DivisionalChart>;
   houseLords: HouseLordPlacement[];
   ayanamsa: number;
@@ -106,6 +115,7 @@ export interface KundaliChart {
   currentPratyantardasha: DashaPeriod | null;
   pratyantardashas: DashaPeriod[];
   doshas: Dosha[];
+  mangalDosha: MangalDoshaResult;
   yogas: Yoga[];
   sadeSati: SadeSatiStatus;
   ashtakavarga: AshtakavargaResult;

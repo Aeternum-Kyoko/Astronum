@@ -1,16 +1,5 @@
 import type { Dignity } from "@/lib/astrology/dignity";
-
-const PLANET_ABBR: Record<string, string> = {
-  Sun: "Su",
-  Moon: "Mo",
-  Mars: "Ma",
-  Mercury: "Me",
-  Jupiter: "Ju",
-  Venus: "Ve",
-  Saturn: "Sa",
-  Rahu: "Ra",
-  Ketu: "Ke",
-};
+import { A, B, C, D, HOUSE_LABEL_ANCHORS, HOUSE_POLYGONS, P1, P2, P3, P4, PLANET_ABBR, polygonPoints } from "@/lib/chartGeometry";
 
 const DIGNITY_COLOR: Record<Dignity, string> = {
   Exalted: "var(--color-gold-bright)",
@@ -22,66 +11,12 @@ const DIGNITY_COLOR: Record<Dignity, string> = {
   "Neutral Sign": "var(--color-cream)",
 };
 
-// Square corners, edge midpoints, and diagonal half-midpoints used to build
-// the classic North Indian diamond: outer square + both corner-to-corner
-// diagonals + the diamond connecting edge midpoints. Houses 1/4/7/10 (the
-// kendras) are the four kites pointing out from the center; the rest are the
-// eight corner triangles.
-const A = [0, 0];
-const B = [400, 0];
-const C = [400, 400];
-const D = [0, 400];
-const O = [200, 200];
-const P1 = [200, 0];
-const P2 = [400, 200];
-const P3 = [200, 400];
-const P4 = [0, 200];
-const Q1 = [100, 100];
-const Q2 = [300, 100];
-const Q3 = [300, 300];
-const Q4 = [100, 300];
-
-// House 1 is always the top kite; from there houses are numbered
-// counter-clockwise (house 2 sits to the LEFT of house 1), which is the
-// standard direction for the North Indian chart format.
-const HOUSE_POLYGONS: number[][][] = [
-  [P1, Q2, O, Q1], // 1
-  [A, Q1, P1], // 2
-  [P4, A, Q1], // 3
-  [P4, Q1, O, Q4], // 4
-  [D, Q4, P4], // 5
-  [P3, D, Q4], // 6
-  [P3, Q4, O, Q3], // 7
-  [C, Q3, P3], // 8
-  [P2, C, Q3], // 9
-  [P2, Q3, O, Q2], // 10
-  [B, Q2, P2], // 11
-  [P1, B, Q2], // 12
-];
-
-const HOUSE_LABEL_ANCHORS: [number, number][] = [
-  [200, 58], // 1
-  [130, 46], // 2
-  [54, 100], // 3
-  [58, 200], // 4
-  [54, 300], // 5
-  [130, 356], // 6
-  [200, 344], // 7
-  [270, 356], // 8
-  [346, 300], // 9
-  [344, 200], // 10
-  [346, 100], // 11
-  [270, 46], // 12
-];
-
-function polygonPoints(polygon: number[][]): string {
-  return polygon.map(([x, y]) => `${x},${y}`).join(" ");
-}
-
 interface ChartPlanet {
   planet: string;
   house: number;
   retrograde: boolean;
+  /** Status marks (↑ ↓ R C V); defaults to "R" for retrograde planets. */
+  markers?: string;
   dignity?: Dignity | null;
   sign?: string;
   degreeInSign?: number;
@@ -106,8 +41,8 @@ export default function NorthIndianChart({
     <svg viewBox="0 0 400 400" className="mx-auto w-full max-w-md overflow-visible">
       <defs>
         <radialGradient id="nic-bg" cx="50%" cy="50%" r="75%">
-          <stop offset="0%" stopColor="#161d47" />
-          <stop offset="100%" stopColor="#0c0f26" />
+          <stop offset="0%" style={{ stopColor: "var(--chart-top)" }} />
+          <stop offset="100%" style={{ stopColor: "var(--chart-bottom)" }} />
         </radialGradient>
         <linearGradient id="nic-line" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="var(--color-gold-bright)" />
@@ -162,9 +97,13 @@ export default function NorthIndianChart({
                     .join(" · ")}
                 </title>
                 {PLANET_ABBR[p.planet] ?? p.planet.slice(0, 2)}
-                {p.retrograde && (
-                  <tspan fill="var(--color-rose)" fontSize="9" dy="-3">
-                    R
+                {(p.markers ?? (p.retrograde ? "R" : "")) && (
+                  <tspan fontSize="9" dy="-4">
+                    {[...(p.markers ?? (p.retrograde ? "R" : ""))].map((m, i) => (
+                      <tspan key={i} fill={m === "↓" || m === "C" || m === "R" ? "var(--color-rose)" : "var(--color-gold-bright)"}>
+                        {m}
+                      </tspan>
+                    ))}
                   </tspan>
                 )}
               </text>

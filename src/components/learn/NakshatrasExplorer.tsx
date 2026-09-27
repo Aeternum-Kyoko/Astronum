@@ -28,7 +28,7 @@ export default function NakshatrasExplorer() {
                 </h2>
                 <span className="text-xs text-muted">{n.rulingPlanet}</span>
               </div>
-              <p className="mt-1 text-xs tracking-wide text-muted uppercase">{n.degreeSpan}</p>
+              <p className="mt-1 text-xs text-muted">{n.degreeSpan}</p>
               <p className="mt-3 text-sm leading-relaxed text-cream">{n.keynote}</p>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted">
                 <p>

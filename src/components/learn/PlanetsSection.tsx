@@ -29,7 +29,7 @@ export default function PlanetsSection() {
 
               <div className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
                 <div>
-                  <p className="text-xs font-semibold tracking-wide text-muted uppercase">Dignity</p>
+                  <p className="text-xs font-semibold text-muted">Dignity</p>
                   <ul className="mt-2 space-y-1 text-cream">
                     <li>Exalted: {p.exaltationSign ?? "—"}</li>
                     <li>Debilitated: {p.debilitationSign ?? "—"}</li>
@@ -42,7 +42,7 @@ export default function PlanetsSection() {
                   </ul>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold tracking-wide text-muted uppercase">Relationships & Dasha</p>
+                  <p className="text-xs font-semibold text-muted">Relationships & Dasha</p>
                   <ul className="mt-2 space-y-1 text-cream">
                     <li>Friends: {p.friends.length ? p.friends.join(", ") : "—"}</li>
                     <li>Enemies: {p.enemies.length ? p.enemies.join(", ") : "—"}</li>
@@ -53,7 +53,7 @@ export default function PlanetsSection() {
               </div>
 
               <details className="mt-5 group">
-                <summary className="cursor-pointer text-xs font-semibold tracking-wide text-gold-bright uppercase">
+                <summary className="cursor-pointer text-xs font-semibold text-gold-bright">
                   {p.name} in each house
                 </summary>
                 <ol className="mt-3 space-y-2 text-sm">

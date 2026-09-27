@@ -63,7 +63,7 @@ export default function ChartDetail({
                 return (
                   <div key={h.house} className="card-edge rounded-2xl p-5">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-semibold tracking-wide text-muted uppercase">
+                      <p className="text-xs font-semibold text-muted">
                         House {h.house} · {h.sign}
                       </p>
                       {strength && (
@@ -87,7 +87,7 @@ export default function ChartDetail({
               <div className="mt-5 space-y-4">
                 {conjunctions.map((c, i) => (
                   <div key={i} className="card-edge rounded-2xl p-5">
-                    <p className="text-xs font-semibold tracking-wide text-gold-bright uppercase">{c.planets.join(" + ")}</p>
+                    <p className="text-xs font-semibold text-gold-bright">{c.planets.join(" + ")}</p>
                     <p className="mt-2 text-sm leading-relaxed text-cream">{c.narrative}</p>
                   </div>
                 ))}
@@ -105,7 +105,7 @@ export default function ChartDetail({
             {planetStrength.map((p) => (
               <div key={p.planet} className="card-edge rounded-2xl p-5">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold tracking-wide text-muted uppercase">
+                  <p className="text-xs font-semibold text-muted">
                     {p.planet} · House {p.house}
                   </p>
                   <span className={`text-xs font-semibold ${VERDICT_COLOR[p.verdict]}`}>{p.verdict}</span>

@@ -30,7 +30,7 @@ export default function HousesExplorer() {
               </div>
               <div className="mt-1 flex flex-wrap gap-1.5">
                 {h.classification.map((c) => (
-                  <span key={c} className="rounded-full border border-gold/30 px-2 py-0.5 text-[10px] tracking-wide text-gold-bright uppercase">
+                  <span key={c} className="rounded-full border border-gold/30 px-2 py-0.5 text-[10px] text-gold-bright">
                     {c}
                   </span>
                 ))}
