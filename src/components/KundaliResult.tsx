@@ -27,35 +27,26 @@ import { toBirthQuery } from "@/lib/birthParams";
 import YogaAnalysisPanel from "@/components/YogaAnalysisPanel";
 import { CareerPanel, HousesPanel, TimelinePanel } from "@/components/DeepReportPanels";
 import { CharaPanel, KpPanel, LifeSectorsPanel, VimshottariDetail, YoginiPanel } from "@/components/DashaSystemsPanels";
+import KundliSummary from "@/components/KundliSummary";
+import { LalKitabPanel, SpecialTablesPanel } from "@/components/AdvancedPanels";
 import { nakshatraLord } from "@/lib/astrology/dasha";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
-const TABS = [
-  "Overview",
-  "Life Report",
-  "Planet Readings",
-  "Houses",
-  "Career",
-  "Life Timeline",
-  "Life Sectors",
-  "D1 · Rasi Chart",
-  "D9 · Navamsa",
-  "More Vargas",
-  "Dashas",
-  "Yogini Dasha",
-  "Chara Dasha",
-  "KP System",
-  "Transits",
-  "Yogas & Doshas",
-  "Remedies",
-  "Ashtakavarga",
-  "Shadbala",
-  "House Lords",
+/** The kundli's sections, grouped so the page opens on a summary and each area is one tap away. */
+const GROUPS = [
+  { name: "Start", tabs: ["Summary", "Overview"] },
+  { name: "Predictions", tabs: ["Life Report", "Life Sectors", "Life Timeline", "Career", "Houses", "Planet Readings", "Transits"] },
+  { name: "Charts", tabs: ["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Ashtakavarga", "Shadbala", "House Lords"] },
+  { name: "Dashas", tabs: ["Dashas", "Yogini Dasha", "Chara Dasha"] },
+  { name: "Advanced", tabs: ["Yogas & Doshas", "KP System", "Lal Kitab", "Special Tables"] },
+  { name: "Guidance", tabs: ["Remedies"] },
 ] as const;
-type Tab = (typeof TABS)[number];
+type Tab = (typeof GROUPS)[number]["tabs"][number];
+const groupOf = (t: Tab) => GROUPS.find((g) => (g.tabs as readonly string[]).includes(t))!;
 
 /** URL-friendly names for deep links such as /kundali?tab=dashas. */
 export const TAB_SLUGS: Record<string, Tab> = {
+  summary: "Summary",
   overview: "Overview",
   report: "Life Report",
   planets: "Planet Readings",
@@ -76,6 +67,8 @@ export const TAB_SLUGS: Record<string, Tab> = {
   yogas: "Yogas & Doshas",
   remedies: "Remedies",
   lords: "House Lords",
+  lalkitab: "Lal Kitab",
+  tables: "Special Tables",
 };
 
 const MORE_VARGA_KEYS = VARGA_KEYS.filter((k) => k !== "D1" && k !== "D9");
@@ -97,7 +90,21 @@ export default function KundaliResult({
   report: KundaliReport | null;
   initialTab?: string | null;
 }) {
-  const [tab, setTab] = useState<Tab>((initialTab && TAB_SLUGS[initialTab]) || "Overview");
+  const [tab, setTabState] = useState<Tab>((initialTab && TAB_SLUGS[initialTab]) || "Summary");
+  const setTab = (t: Tab) => {
+    setTabState(t);
+    // Keep the section in the URL so it can be shared or bookmarked.
+    const slug = Object.keys(TAB_SLUGS).find((k) => TAB_SLUGS[k] === t);
+    if (slug) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", slug);
+      window.history.replaceState(null, "", url);
+    }
+  };
+  const go = (slug: string) => {
+    if (TAB_SLUGS[slug]) setTab(TAB_SLUGS[slug]);
+    document.getElementById("kundli-sections")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const [style, setStyle] = useState<"north" | "south">("north");
   const tabStripRef = useRef<HTMLUListElement>(null);
 
@@ -139,33 +146,62 @@ export default function KundaliResult({
           </div>
         </div>
 
-        <div className="mt-10 lg:grid lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-8">
+        <div id="kundli-sections" className="mt-10 scroll-mt-24 lg:grid lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-8">
           <nav aria-label="Chart sections" className="lg:sticky lg:top-24 lg:self-start">
-            <ul ref={tabStripRef} className="scrollbar-none relative -mx-5 flex gap-1.5 overflow-x-auto px-5 pb-2 lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:rounded-2xl lg:border lg:border-border lg:bg-ink-deep/60 lg:p-2">
-              {TABS.map((t) => (
-                <li key={t} className="shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setTab(t)}
-                    aria-current={tab === t ? "page" : undefined}
-                    className="relative w-full rounded-full px-4 py-2 text-left text-xs font-semibold whitespace-nowrap lg:rounded-xl lg:py-2.5 lg:text-sm"
-                  >
-                    {tab === t && (
-                      <motion.span
-                        layoutId="active-tab-pill"
-                        className="absolute inset-0 rounded-full bg-gold lg:rounded-xl"
-                        transition={{ type: "spring", stiffness: 420, damping: 32 }}
-                      />
-                    )}
-                    <span
-                      className={`relative z-10 transition-colors ${tab === t ? "text-on-gold" : "text-muted hover:text-cream"}`}
+            {/* Phones: a row of groups, then the sections in the chosen group. */}
+            <div className="lg:hidden">
+              <ul className="scrollbar-none -mx-5 flex gap-1.5 overflow-x-auto px-5 pb-2">
+                {GROUPS.map((g) => (
+                  <li key={g.name} className="shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setTab(g.tabs[0])}
+                      aria-pressed={groupOf(tab).name === g.name}
+                      className={`rounded-full border px-4 py-1.5 text-xs font-semibold ${groupOf(tab).name === g.name ? "border-gold bg-gold text-on-gold" : "border-border text-muted"}`}
+                    >
+                      {g.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <ul ref={tabStripRef} className="scrollbar-none -mx-5 mt-1 flex gap-1.5 overflow-x-auto px-5 pb-2">
+                {groupOf(tab).tabs.map((t) => (
+                  <li key={t} className="shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setTab(t)}
+                      aria-current={tab === t ? "page" : undefined}
+                      className={`rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap ${tab === t ? "bg-surface-raised text-cream ring-1 ring-gold/60" : "text-muted"}`}
                     >
                       {t}
-                    </span>
-                  </button>
-                </li>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {/* Desktop: grouped sidebar. */}
+            <div className="hidden lg:block lg:rounded-2xl lg:border lg:border-border lg:bg-ink-deep/60 lg:p-2">
+              {GROUPS.map((g) => (
+                <div key={g.name} className="mb-2 last:mb-0">
+                  <p className="px-3 pt-2 pb-1 text-[11px] font-semibold text-muted">{g.name}</p>
+                  <ul className="flex flex-col gap-0.5">
+                    {g.tabs.map((t) => (
+                      <li key={t}>
+                        <button
+                          type="button"
+                          onClick={() => setTab(t)}
+                          aria-current={tab === t ? "page" : undefined}
+                          className="relative w-full rounded-xl px-3 py-2 text-left text-sm font-semibold"
+                        >
+                          {tab === t && <motion.span layoutId="active-tab-pill" className="absolute inset-0 rounded-xl bg-gold" transition={{ type: "spring", stiffness: 420, damping: 32 }} />}
+                          <span className={`relative z-10 transition-colors ${tab === t ? "text-on-gold" : "text-muted hover:text-cream"}`}>{t}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
+            </div>
           </nav>
 
         <div className="mt-6 min-w-0 lg:mt-0">
@@ -177,7 +213,10 @@ export default function KundaliResult({
               exit={{ opacity: 0, y: -14 }}
               transition={{ duration: 0.35, ease: EASE_OUT_EXPO }}
             >
+              {tab === "Summary" && <KundliSummary chart={chart} report={report} go={go} style={style} setStyle={setStyle} />}
               {tab === "Overview" && <OverviewTab chart={chart} />}
+              {tab === "Lal Kitab" && <LalKitabPanel chart={chart} />}
+              {tab === "Special Tables" && <SpecialTablesPanel chart={chart} />}
               {tab === "Life Report" && <LifeReportPanel report={report} />}
               {tab === "Planet Readings" && <PlanetReadingsPanel report={report} />}
               {tab === "Houses" && <HousesPanel report={report} />}

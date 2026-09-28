@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { calculateKundali } from "@/lib/astrology/kundali";
+import { computePorutham } from "@/lib/astrology/porutham";
 import { compareManglik, computeGunaMilan, type CompatibilityResponse, type MatchPartner, type MatchResponse } from "@/lib/astrology/matching";
 import { birthInputSchema } from "@/lib/birthSchema";
 import { computeCompatibility } from "@/lib/astrology/compatibility";
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
       girl: partner(girl),
       match: computeGunaMilan(boyMoon, girlMoon),
       manglik: compareManglik(boy.mangalDosha, girl.mangalDosha),
+      porutham: computePorutham(boyMoon, girlMoon),
     };
     return NextResponse.json(body);
   } catch (err) {

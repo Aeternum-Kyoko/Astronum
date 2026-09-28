@@ -4,6 +4,7 @@ import { SIGNS, SIGN_GLYPHS } from "@/lib/astrology/constants";
 import { computeDailyTransits, horoscopeForSign, resolveHoroscopeDay, SIGN_SLUGS } from "@/lib/astrology/horoscope";
 import { BySignToggle, DayTabs, horoscopeHref, Stars, ToneBadge, type DayKey, type HoroscopeBy } from "@/components/HoroscopeParts";
 import KundliChart from "@/components/KundliChart";
+import ShareBar from "@/components/ShareBar";
 import { GOCHARA_GOOD } from "@/lib/astrology/transits";
 import { getDignity } from "@/lib/astrology/dignity";
 import { transitMarkers } from "@/lib/astrology/chartMarkers";
@@ -132,6 +133,15 @@ export function HoroscopeSignView({ locale, signIndex, day, by = "moon" }: { loc
           </div>
         </header>
         <p className="mt-4 text-sm text-muted">{t.byNote(by)}</p>
+        <div className="mt-4">
+          <ShareBar
+            url={horoscopeHref(lx(`/horoscope/${h.slug}`), dayKey, by)}
+            title={`${signName} horoscope`}
+            text={h.headline}
+            fileName={`${h.slug}-horoscope.png`}
+            imageUrl={`/api/share/horoscope?sign=${h.slug}${dayKey && dayKey !== "today" ? `&day=${dayKey}` : ""}${by === "sun" ? "&by=sun" : ""}`}
+          />
+        </div>
         {/* Weekly, monthly and yearly readings are English-only for now. */}
         {locale === "en" && <PeriodTabs slug={h.slug} active="daily" />}
 

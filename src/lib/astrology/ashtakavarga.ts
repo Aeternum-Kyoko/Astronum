@@ -4,8 +4,8 @@ import type { AshtakavargaResult, PlanetPlacement } from "./types";
 export { ASHTAKAVARGA_PLANETS };
 export type { AshtakavargaPlanet };
 
-type Contributor = AshtakavargaPlanet | "Ascendant";
-const CONTRIBUTORS: Contributor[] = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Ascendant"];
+export type Contributor = AshtakavargaPlanet | "Ascendant";
+export const CONTRIBUTORS: Contributor[] = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Ascendant"];
 
 /**
  * Classical Bhinnashtakavarga bindu tables (BPHS) — for each target planet,
@@ -18,7 +18,7 @@ const CONTRIBUTORS: Contributor[] = ["Sun", "Moon", "Mars", "Mercury", "Jupiter"
  * Mercury 54, Jupiter 56, Venus 52, Saturn 39; grand total 337) — the
  * standard self-check for a correctly-transcribed Ashtakavarga table.
  */
-const BAV_TABLES: Record<AshtakavargaPlanet, Record<Contributor, number[]>> = {
+export const BAV_TABLES: Record<AshtakavargaPlanet, Record<Contributor, number[]>> = {
   Sun: {
     Sun: [1, 2, 4, 7, 8, 9, 10, 11],
     Moon: [3, 6, 10, 11],

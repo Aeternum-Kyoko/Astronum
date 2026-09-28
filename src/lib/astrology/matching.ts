@@ -11,6 +11,8 @@ import type { CompatibilityResult, RelationshipType } from "./compatibility";
  * the North Indian convention used by mainstream kundli-matching software.
  */
 
+import type { PoruthamMatch } from "./porutham";
+
 export type MoonInput = Pick<PlanetPlacement, "signIndex" | "degreeInSign" | "nakshatraIndex" | "pada">;
 
 export interface KootaScore {
@@ -33,9 +35,9 @@ export interface MatchResult {
 
 const VARNA_RANK: Record<string, number> = { Shudra: 1, Vaishya: 2, Kshatriya: 3, Brahmin: 4 };
 
-const VASHYA_ORDER = ["Chatushpada", "Manava", "Jalachara", "Vanachara", "Keeta"];
+export const VASHYA_ORDER = ["Chatushpada", "Manava", "Jalachara", "Vanachara", "Keeta"];
 // Rows: boy's vashya, columns: girl's vashya (VASHYA_ORDER).
-const VASHYA_TABLE = [
+export const VASHYA_TABLE = [
   [2, 1, 1, 0.5, 1],
   [1, 2, 0.5, 0, 1],
   [1, 0.5, 2, 1, 1],
@@ -282,6 +284,8 @@ export interface MatchResponse {
   girl: MatchPartner;
   match: MatchResult;
   manglik: ManglikComparison;
+  /** The South Indian ten-porutham match for the same pair. */
+  porutham?: PoruthamMatch;
 }
 
 /** What /api/matching returns for romance, business and friendship. */

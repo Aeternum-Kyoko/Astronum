@@ -18,6 +18,7 @@ export async function generateMetadata({ params }: PageProps<"/horoscope/[sign]"
     title: t.metaSignTitle(name, SIGN_SANSKRIT[i]),
     description: t.metaSignDescription(name, SIGN_SANSKRIT[i]),
     alternates: { ...languageAlternates(`/horoscope/${SIGN_SLUGS[i]}`), canonical: `/horoscope/${SIGN_SLUGS[i]}` },
+    openGraph: { images: [{ url: `/api/share/horoscope?sign=${SIGN_SLUGS[i]}`, width: 1080, height: 1350 }] },
   };
 }
 

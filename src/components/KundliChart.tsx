@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import NorthIndianChart from "@/components/NorthIndianChart";
+import NorthIndianChart, { type ChartPick } from "@/components/NorthIndianChart";
+
+export type { ChartPick };
 import ChartGrid from "@/components/ChartGrid";
 import SegmentedControl from "@/components/SegmentedControl";
 import { MARKER_MEANING, type Marker } from "@/lib/astrology/chartMarkers";
@@ -35,6 +37,8 @@ export default function KundliChart({
   onStyleChange,
   toggleId,
   showLegend = true,
+  onPick,
+  selected,
 }: {
   ascendantSignIndex: number;
   planets: ChartPoint[];
@@ -43,6 +47,8 @@ export default function KundliChart({
   /** Unique per chart on the page; shows a North/South toggle above an uncontrolled chart. */
   toggleId?: string;
   showLegend?: boolean;
+  onPick?: (pick: ChartPick) => void;
+  selected?: ChartPick | null;
 }) {
   const [ownStyle, setOwnStyle] = useState<ChartStyle>("north");
   const style = controlledStyle ?? ownStyle;
@@ -65,9 +71,9 @@ export default function KundliChart({
         </div>
       )}
       {style === "north" ? (
-        <NorthIndianChart ascendantSignIndex={ascendantSignIndex} planets={planets} />
+        <NorthIndianChart ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} />
       ) : (
-        <ChartGrid ascendantSignIndex={ascendantSignIndex} planets={planets} />
+        <ChartGrid ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} />
       )}
       {showLegend && used.length > 0 && (
         <ul className="mx-auto mt-4 flex max-w-md flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted" aria-label="Chart symbols">

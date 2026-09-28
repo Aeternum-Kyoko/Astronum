@@ -26,6 +26,8 @@ export const KUNDLI_LINKS: NavItem[] = [
   { href: "/sade-sati", label: "Sade Sati Check", description: "Your Sade Sati and Dhaiya dates for life", labelHi: "साढ़े साती जाँच", descriptionHi: "जीवन भर की साढ़े साती और ढैया" },
   { href: "/nakshatra-finder", label: "Nakshatra Finder", description: "Your birth star, pada and name letters", labelHi: "नक्षत्र खोजें", descriptionHi: "जन्म नक्षत्र, पद और नामाक्षर" },
   { href: "/rectification", label: "Birth Time Rectification", description: "Find your exact birth time from life events", labelHi: "जन्म समय शोधन", descriptionHi: "जीवन की घटनाओं से सही जन्म समय" },
+  { href: "/prashna", label: "Prashna (Ask a Question)", description: "An answer from the chart of this moment — no birth time needed", labelHi: "प्रश्न कुंडली", descriptionHi: "इस क्षण की कुंडली से उत्तर — जन्म समय की ज़रूरत नहीं" },
+  { href: "/baby-names", label: "Baby Names", description: "Names by nakshatra and pada, with meanings", labelHi: "शिशु नाम", descriptionHi: "नक्षत्र और चरण के अनुसार नाम, अर्थ सहित" },
   { href: "/varshphal", label: "Varshphal", description: "Your annual solar-return chart", labelHi: "वर्षफल", descriptionHi: "आपकी वार्षिक कुंडली" },
   { href: "/learn/gemstones", label: "Gemstones", description: "Which navaratna suits which planet", labelHi: "रत्न", descriptionHi: "कौन सा रत्न किस ग्रह के लिए" },
 ];
@@ -38,6 +40,7 @@ export const HOROSCOPE_LINKS: NavItem[] = [
 
 export const PANCHANG_LINKS: NavItem[] = [
   { href: "/panchang", label: "Today's Panchang", description: "Tithi, nakshatra, Rahu Kaal and Choghadiya", labelHi: "आज का पंचांग", descriptionHi: "तिथि, नक्षत्र, राहु काल और चौघड़िया" },
+  { href: "/panchang/month", label: "Monthly Calendar", description: "Every day's tithi, nakshatra, festivals and special yogas", labelHi: "मासिक कैलेंडर", descriptionHi: "हर दिन की तिथि, नक्षत्र, त्योहार और विशेष योग" },
   { href: "/festivals", label: "Festival Calendar", description: "Festivals, Ekadashi and vrat dates", labelHi: "त्योहार कैलेंडर", descriptionHi: "त्योहार, एकादशी और व्रत की तिथियाँ" },
   { href: "/muhurat", label: "Shubh Muhurat", description: "Good days for marriage, griha pravesh and more", labelHi: "शुभ मुहूर्त", descriptionHi: "विवाह, गृह प्रवेश आदि के शुभ दिन" },
 ];

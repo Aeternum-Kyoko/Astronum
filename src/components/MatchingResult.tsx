@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ShareBar from "@/components/ShareBar";
 import type { MatchPartner, MatchResponse } from "@/lib/astrology/matching";
 
 const VERDICT_TEXT: Record<MatchResponse["match"]["verdict"], string> = {
@@ -16,7 +17,7 @@ const MANGLIK_LABEL: Record<MatchPartner["mangalDosha"]["status"], string> = {
 };
 
 export default function MatchingResult({ result }: { result: MatchResponse }) {
-  const { boy, girl, match, manglik } = result;
+  const { boy, girl, match, manglik, porutham } = result;
   const good = match.total >= 18;
 
   return (
@@ -105,6 +106,46 @@ export default function MatchingResult({ result }: { result: MatchResponse }) {
         </p>
         <p className="mt-2 text-sm leading-relaxed text-muted">{manglik.summary}</p>
       </section>
+
+      <div className="flex justify-center">
+        <ShareBar
+          url="/matching"
+          title="Our kundli match"
+          text={`${boy.name} & ${girl.name}: ${match.total}/${match.max} gunas`}
+          fileName="kundli-match.png"
+          imageUrl={`/api/share/match?${new URLSearchParams({ a: boy.name, b: girl.name, score: String(match.total), verdict: match.verdict, ...(porutham ? { porutham: String(porutham.good) } : {}) })}`}
+        />
+      </div>
+
+      {porutham && (
+        <section className="card-edge rounded-2xl p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-bold text-cream">Dasa Porutham (South Indian match)</h3>
+              <p className="mt-1 text-sm text-muted">The ten-porutham method used in Tamil Nadu, Kerala and Karnataka. Rajju and Vedha are decisive.</p>
+            </div>
+            <span className="text-right">
+              <span className={`block text-lg font-bold ${porutham.verdict === "Not recommended" ? "text-rose" : "text-gold-bright"}`}>{porutham.verdict}</span>
+              <span className="text-xs text-muted">{porutham.good} of 10</span>
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-cream">{porutham.summary}</p>
+          <ul className="mt-4 grid gap-2 md:grid-cols-2">
+            {porutham.poruthams.map((p) => (
+              <li key={p.name} className={`rounded-xl border p-3 text-sm ${p.critical ? "border-gold/40" : "border-border/70"}`}>
+                <span className="flex justify-between gap-2">
+                  <span className="font-semibold text-cream">
+                    {p.tamil}
+                    {p.critical && <span className="ml-1.5 text-[10px] text-gold-bright">decisive</span>}
+                  </span>
+                  <span className={`font-semibold ${p.result === "Good" ? "text-gold-bright" : p.result === "Bad" ? "text-rose" : "text-cream"}`}>{p.result === "Good" ? "Match" : p.result === "Bad" ? "No match" : "Average"}</span>
+                </span>
+                <span className="block text-xs text-muted">Checks {p.checks}. {p.detail}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="rounded-2xl border border-gold/30 bg-gold/5 p-6 text-center">
         <p className="text-sm leading-relaxed text-muted">

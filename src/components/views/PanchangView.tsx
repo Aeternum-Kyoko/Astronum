@@ -4,6 +4,8 @@ import PanchangControls from "@/components/PanchangControls";
 import { computeDailyPanchang, type ChoghadiyaSlot, type DailyPanchang, type HoraSlot, type PanchangLimb, type TimeSpan } from "@/lib/astrology/panchang";
 import { NAKSHATRAS, SIGNS } from "@/lib/astrology/constants";
 import { TARAS, CHANDRABALA_GOOD } from "@/lib/astrology/personalDaily";
+import { computePanchangExtras, type PanchangExtras } from "@/lib/astrology/panchangExtras";
+import RunningNow, { type RunningSlot } from "@/components/RunningNow";
 import { panchangHref, parsePanchangParams } from "@/lib/panchangUrl";
 import { getDictionary, type Dictionary } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
@@ -19,9 +21,11 @@ export default function PanchangView({ locale, params }: { locale: Locale; param
   const today = DateTime.now().setZone(location.timezone).toISODate()!;
 
   let panchang: DailyPanchang | null = null;
+  let extras: PanchangExtras | null = null;
   let error: string | null = null;
   try {
     panchang = computeDailyPanchang(date, location.latitude, location.longitude, location.timezone);
+    extras = computePanchangExtras(panchang, location.latitude, location.longitude);
   } catch (err) {
     error = err instanceof Error ? err.message : "Could not calculate the Panchang for this place and date.";
   }
@@ -44,6 +48,7 @@ export default function PanchangView({ locale, params }: { locale: Locale; param
             <DayLink href={dayLink(-1)}>{t.previous}</DayLink>
             {date !== today && <DayLink href={panchangHref(today, location, basePath)}>{t.todayButton}</DayLink>}
             <DayLink href={dayLink(1)}>{t.next}</DayLink>
+            {locale === "en" && <DayLink href={panchangHref(date, location, "/panchang/month")}>{t.monthView}</DayLink>}
           </nav>
         </header>
 
@@ -56,7 +61,7 @@ export default function PanchangView({ locale, params }: { locale: Locale; param
             {error}
           </p>
         ) : (
-          <PanchangBody p={panchang} fmt={fmt} isToday={date === today} t={t} locale={locale} />
+          <PanchangBody p={panchang} x={extras!} fmt={fmt} isToday={date === today} t={t} locale={locale} />
         )}
       </div>
     </section>
@@ -65,12 +70,14 @@ export default function PanchangView({ locale, params }: { locale: Locale; param
 
 function PanchangBody({
   p,
+  x,
   fmt,
   isToday,
   t,
   locale,
 }: {
   p: DailyPanchang;
+  x: PanchangExtras;
   fmt: (d: Date | null) => string;
   isToday: boolean;
   t: Dictionary["panchang"];
@@ -112,7 +119,11 @@ function PanchangBody({
         <section className="card-edge rounded-2xl p-6">
           <h2 className="text-lg font-bold text-gold-bright">{t.auspicious}</h2>
           <dl className="mt-3 text-sm">
+            <TimingRow label={t.brahma} value={span(x.brahmaMuhurta)} />
             <TimingRow label={t.abhijit} value={span(p.abhijit)} />
+            {x.amritKaal.map((a, i) => (
+              <TimingRow key={i} label={t.amritKaal} value={span(a)} />
+            ))}
           </dl>
           {p.vara.name === "Wednesday" && <p className="mt-3 text-xs text-muted">{t.noAbhijitWednesday}</p>}
         </section>
@@ -122,9 +133,55 @@ function PanchangBody({
             <TimingRow label={t.rahuKaal} value={span(p.rahuKaal)} />
             <TimingRow label={t.yamaganda} value={span(p.yamaganda)} />
             <TimingRow label={t.gulika} value={span(p.gulikaKaal)} />
+            {x.durmuhurtam.map((d, i) => (
+              <TimingRow key={`d${i}`} label={t.durmuhurtam} value={span(d)} />
+            ))}
+            {x.varjyam.map((v, i) => (
+              <TimingRow key={`v${i}`} label={t.varjyam} value={span(v)} />
+            ))}
           </dl>
         </section>
       </div>
+
+      {isToday && <RunningNow slots={runningSlots(p, x, locale)} title={t.runningNow} endsIn={t.endsIn("{t}")} />}
+
+      <section className="card-edge rounded-2xl p-6">
+        <h2 className="text-lg font-bold text-cream">{t.alertsTitle}</h2>
+        <p className="mt-1 text-xs text-muted">{t.alertsNote}</p>
+        <ul className="mt-4 space-y-3 text-sm">
+          {x.specialYogas.map((y, i) => (
+            <li key={`y${i}`} className="rounded-xl border border-gold/40 bg-gold/5 px-4 py-3">
+              <span className="font-semibold text-gold-bright">{y.name}</span> <span className="font-tabular text-muted">· {span(y)}</span>
+              <span className="block text-muted">{y.meaning}</span>
+            </li>
+          ))}
+          {x.panchaka && (
+            <li className="rounded-xl border border-rose/40 bg-rose/5 px-4 py-3">
+              <span className="font-semibold text-rose">{x.panchaka.kind === "Panchaka" ? t.panchaka : x.panchaka.kind}</span> <span className="font-tabular text-muted">· {span(x.panchaka)}</span>
+              <span className="block text-muted">{t.panchakaNote}</span>
+            </li>
+          )}
+          {x.gandaMoola && (
+            <li className="rounded-xl border border-rose/40 bg-rose/5 px-4 py-3">
+              <span className="font-semibold text-rose">{t.gandaMoola}</span> <span className="font-tabular text-muted">· {span(x.gandaMoola)} · {x.gandaMoola.nakshatra}</span>
+              <span className="block text-muted">{t.gandaMooloNote}</span>
+            </li>
+          )}
+          {x.bhadra.map((b, i) => (
+            <li key={`b${i}`} className={`rounded-xl border px-4 py-3 ${b.harmful ? "border-rose/40 bg-rose/5" : "border-border/70"}`}>
+              <span className={`font-semibold ${b.harmful ? "text-rose" : "text-cream"}`}>{t.bhadra}</span> <span className="font-tabular text-muted">· {span(b)}</span>
+              <span className="block text-muted">{t.bhadraNote(b.residence, b.harmful)}</span>
+            </li>
+          ))}
+          {x.vinchudo && (
+            <li className="rounded-xl border border-border/70 px-4 py-3">
+              <span className="font-semibold text-cream">{t.vinchudo}</span> <span className="font-tabular text-muted">· {span(x.vinchudo)}</span>
+              <span className="block text-muted">{t.vinchudoNote}</span>
+            </li>
+          )}
+          {!x.specialYogas.length && !x.panchaka && !x.gandaMoola && !x.bhadra.length && !x.vinchudo && <li className="text-muted">{t.noAlerts}</li>}
+        </ul>
+      </section>
 
       <section className="card-edge rounded-2xl p-6">
         <h2 className="text-lg font-bold text-cream">{t.choghadiya}</h2>
@@ -157,6 +214,42 @@ function PanchangBody({
             uses={t.horaUse}
           />
         </div>
+      </section>
+
+      <section className="card-edge rounded-2xl p-6">
+        <h2 className="text-lg font-bold text-cream">{t.gowriTitle}</h2>
+        <p className="mt-1 text-xs text-muted">{t.gowriNote}</p>
+        <div className="mt-5 grid gap-6 md:grid-cols-2">
+          {([
+            [t.day, x.gowri.day],
+            [t.night(DateTime.fromJSDate(p.nextSunrise, { zone: p.timezone }).setLocale(locale).toFormat("d LLL")), x.gowri.night],
+          ] as const).map(([title, slots]) => (
+            <div key={title}>
+              <h3 className="text-xs font-semibold text-muted">{title}</h3>
+              <ol className="mt-2 divide-y divide-border/50">
+                {slots.map((g) => (
+                  <li key={g.start.toISOString()} className="flex items-center justify-between gap-3 px-2 py-2 text-sm">
+                    <span className={`font-semibold ${g.good ? "text-gold-bright" : "text-rose"}`}>{g.name}</span>
+                    <span className="font-tabular text-muted">{span(g)}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="card-edge rounded-2xl p-6">
+        <h2 className="text-lg font-bold text-cream">{t.udayaLagna}</h2>
+        <p className="mt-1 text-xs text-muted">{t.udayaNote}</p>
+        <ol className="mt-4 grid gap-x-8 sm:grid-cols-2 lg:grid-cols-3">
+          {x.udayaLagna.map((u) => (
+            <li key={u.start.toISOString()} className="flex justify-between gap-3 border-b border-border/50 py-2 text-sm">
+              <span className="font-semibold text-cream">{term(locale, u.value)}</span>
+              <span className="font-tabular text-muted">{span(u)}</span>
+            </li>
+          ))}
+        </ol>
       </section>
 
       <StrengthToday p={p} t={t} locale={locale} />
@@ -348,4 +441,15 @@ function StrengthToday({ p, t, locale }: { p: DailyPanchang; t: Dictionary["panc
       </p>
     </section>
   );
+}
+
+/** The muhurta running now in each system, for the live countdown. */
+function runningSlots(p: DailyPanchang, x: PanchangExtras, locale: Locale): RunningSlot[] {
+  const iso = (d: Date) => d.toISOString();
+  return [
+    ...[...p.choghadiya.day, ...p.choghadiya.night].map((c) => ({ system: "Choghadiya", name: term(locale, c.name), start: iso(c.start), end: iso(c.end), tone: (c.quality === "Good" ? "good" : c.quality === "Inauspicious" ? "bad" : "neutral") as RunningSlot["tone"] })),
+    ...[...p.hora.day, ...p.hora.night].map((h) => ({ system: "Hora", name: term(locale, h.lord), start: iso(h.start), end: iso(h.end), tone: (["Jupiter", "Venus", "Mercury", "Moon"].includes(h.lord) ? "good" : "neutral") as RunningSlot["tone"] })),
+    ...[...x.gowri.day, ...x.gowri.night].map((g) => ({ system: "Gowri", name: g.name, start: iso(g.start), end: iso(g.end), tone: (g.good ? "good" : "bad") as RunningSlot["tone"] })),
+    ...[p.rahuKaal, p.yamaganda, p.gulikaKaal].map((r, i) => ({ system: "Kaal", name: ["Rahu Kaal", "Yamaganda", "Gulika Kaal"][i], start: iso(r.start), end: iso(r.end), tone: "bad" as const })),
+  ];
 }

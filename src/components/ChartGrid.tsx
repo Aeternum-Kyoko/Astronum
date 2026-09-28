@@ -1,5 +1,6 @@
 import { SIGN_SANSKRIT } from "@/lib/astrology/constants";
 import type { Dignity } from "@/lib/astrology/dignity";
+import type { ChartPick } from "@/components/NorthIndianChart";
 
 const PLANET_ABBR: Record<string, string> = {
   Sun: "Su",
@@ -47,9 +48,13 @@ interface GridPlanet {
 export default function ChartGrid({
   ascendantSignIndex,
   planets,
+  onPick,
+  selected,
 }: {
   ascendantSignIndex: number;
   planets: GridPlanet[];
+  onPick?: (pick: ChartPick) => void;
+  selected?: ChartPick | null;
 }) {
   const bySign = new Map<number, GridPlanet[]>();
   for (const p of planets) {
@@ -75,13 +80,15 @@ export default function ChartGrid({
 
           const occupants = bySign.get(signIndex) ?? [];
           const isAscendant = signIndex === ascendantSignIndex;
-
+          const house = ((signIndex - ascendantSignIndex + 12) % 12) + 1;
           return (
+            // Clicking a cell picks its house with the mouse; keyboard users pick houses from the detail panel's house list.
             <div
               key={`${r}-${c}`}
+              onClick={onPick ? () => onPick({ kind: "house", house }) : undefined}
               className={`flex flex-col items-center justify-center rounded-md border p-1 text-center transition-colors ${
                 isAscendant ? "border-gold bg-gold/10" : "border-border/60 bg-ink-deep/40"
-              }`}
+              } ${onPick ? "cursor-pointer hover:border-gold" : ""} ${selected?.kind === "house" && selected.house === house ? "ring-1 ring-gold" : ""}`}
             >
               <span className="text-[10px] text-muted">{SIGN_SANSKRIT[signIndex]}</span>
               <div className="mt-1 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
@@ -89,6 +96,23 @@ export default function ChartGrid({
                 {occupants.map((p) => (
                   <span
                     key={p.planet}
+                    {...(onPick
+                      ? {
+                          role: "button",
+                          tabIndex: 0,
+                          onClick: (e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            onPick({ kind: "planet", planet: p.planet });
+                          },
+                          onKeyDown: (e: React.KeyboardEvent) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onPick({ kind: "planet", planet: p.planet });
+                            }
+                          },
+                        }
+                      : {})}
                     title={[
                       p.planet,
                       p.degreeInSign !== undefined ? `${p.degreeInSign.toFixed(2)}°` : null,

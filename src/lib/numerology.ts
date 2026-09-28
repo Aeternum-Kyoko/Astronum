@@ -115,3 +115,137 @@ export const NUMBER_MEANINGS: Record<number, NumberMeaning> = {
     colours: "Red, coral",
   },
 };
+
+// ——— Friendly numbers ————————————————————————————————————————————
+
+/** Numbers that support each root number in Indian numerology (by the friendship of their ruling planets). */
+export const FRIENDLY: Record<number, number[]> = {
+  1: [1, 2, 3, 5, 6, 9],
+  2: [1, 2, 3, 5],
+  3: [1, 2, 3, 5, 7, 9],
+  4: [1, 5, 6, 7],
+  5: [1, 2, 3, 5, 6],
+  6: [1, 5, 6, 7, 9],
+  7: [1, 3, 4, 5, 6],
+  8: [3, 5, 6, 7],
+  9: [1, 2, 3, 5, 6, 9],
+};
+
+const suits = (n: number, moolankN: number, bhagyankN: number) => FRIENDLY[moolankN].includes(n) && FRIENDLY[bhagyankN].includes(n);
+
+// ——— Lo Shu grid —————————————————————————————————————————————————
+
+export const LO_SHU_LAYOUT = [
+  [4, 9, 2],
+  [3, 5, 7],
+  [8, 1, 6],
+];
+
+const PLANES: { name: string; numbers: number[]; meaning: string }[] = [
+  { name: "Mental plane", numbers: [4, 9, 2], meaning: "sharp memory, intellect and analysis" },
+  { name: "Emotional plane", numbers: [3, 5, 7], meaning: "emotional balance and intuition" },
+  { name: "Practical plane", numbers: [8, 1, 6], meaning: "practical skill, material success and organisation" },
+  { name: "Thought plane", numbers: [4, 3, 8], meaning: "planning and ideas" },
+  { name: "Will plane", numbers: [9, 5, 1], meaning: "determination and willpower" },
+  { name: "Action plane", numbers: [2, 7, 6], meaning: "turning ideas into action" },
+  { name: "Golden (Raj Yoga) plane", numbers: [4, 5, 6], meaning: "success, fame and prosperity" },
+  { name: "Property plane", numbers: [8, 5, 2], meaning: "property, wealth and stability" },
+];
+
+const MISSING_MEANING: Record<number, string> = {
+  1: "Communication and self-expression need effort.",
+  2: "Sensitivity and intuition may be low; patience helps.",
+  3: "Imagination and planning may need support.",
+  4: "Discipline and organisation don't come easily.",
+  5: "Emotional balance and flexibility need work.",
+  6: "Home and family responsibility may feel heavy.",
+  7: "Luck feels delayed; lessons come through experience.",
+  8: "Money management and attention to detail need care.",
+  9: "Ambition and humanitarian drive may need a push.",
+};
+
+export interface LoShu {
+  counts: Record<number, number>;
+  planes: { name: string; numbers: number[]; complete: boolean; meaning: string }[];
+  missing: { number: number; meaning: string }[];
+  repeated: { number: number; count: number }[];
+}
+
+/** Lo Shu grid from the birth date, with the Moolank and Bhagyank added as Indian numerology does. */
+export function loShu(date: string): LoShu {
+  const digits = date.replace(/\D/g, "").split("").map(Number).filter((d) => d > 0);
+  digits.push(moolank(date), bhagyank(date));
+  const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 };
+  for (const d of digits) counts[d]++;
+  return {
+    counts,
+    planes: PLANES.map((p) => ({ ...p, complete: p.numbers.every((n) => counts[n] > 0) })),
+    missing: Object.keys(counts).map(Number).filter((n) => counts[n] === 0).map((n) => ({ number: n, meaning: MISSING_MEANING[n] })),
+    repeated: Object.keys(counts).map(Number).filter((n) => counts[n] >= 3).map((n) => ({ number: n, count: counts[n] })),
+  };
+}
+
+// ——— Name correction ————————————————————————————————————————————————
+
+export interface NameSuggestion {
+  spelling: string;
+  compound: number;
+  digit: number;
+  change: string;
+}
+
+/** Small spelling changes that bring the name number into harmony with both Moolank and Bhagyank. */
+export function nameSuggestions(name: string, date: string, limit = 8): { current: { compound: number; digit: number; suits: boolean }; suggestions: NameSuggestion[] } {
+  const m = moolank(date);
+  const b = bhagyank(date);
+  const cur = nameNumber(name);
+  const first = name.trim().split(/\s+/)[0];
+  const rest = name.trim().slice(first.length);
+  const variants = new Map<string, string>();
+  const add = (v: string, change: string) => {
+    if (v.toLowerCase() !== first.toLowerCase() && !variants.has(v)) variants.set(v, change);
+  };
+  for (let i = 1; i < first.length; i++) {
+    const ch = first[i];
+    add(first.slice(0, i + 1) + ch + first.slice(i + 1), `double the "${ch}"`);
+    if ("aeiou".includes(ch.toLowerCase()) && first[i + 1] === ch) add(first.slice(0, i) + first.slice(i + 1), `drop one "${ch}"`);
+  }
+  for (const end of ["a", "h", "e", "i", "y"]) add(first + end, `add "${end}" at the end`);
+  for (let i = 1; i < first.length; i++) if ("aeiou".includes(first[i].toLowerCase())) add(first.slice(0, i) + first[i] + "a" + first.slice(i + 1), `add "a" after "${first[i]}"`);
+
+  const suggestions = [...variants.entries()]
+    .map(([v, change]) => ({ spelling: v + rest, change, ...nameNumber(v + rest) }))
+    .filter((s) => suits(s.digit, m, b) && s.digit !== 4 && s.digit !== 8)
+    .sort((x, y) => x.spelling.length - y.spelling.length)
+    .slice(0, limit);
+  return { current: { ...cur, suits: suits(cur.digit, m, b) }, suggestions };
+}
+
+// ——— Mobile number ——————————————————————————————————————————————————
+
+export interface MobileReading {
+  total: number;
+  digit: number;
+  suits: boolean;
+  notes: string[];
+  verdict: "Lucky" | "Neutral" | "Not ideal";
+}
+
+export function mobileNumerology(phone: string, date: string): MobileReading {
+  const digits = phone.replace(/\D/g, "").slice(-10).split("").map(Number);
+  const total = digits.reduce((a, d) => a + d, 0);
+  const digit = reduceToDigit(total);
+  const m = moolank(date);
+  const b = bhagyank(date);
+  const ok = suits(digit, m, b);
+  const notes = [`The digits add to ${total}, which reduces to ${digit} (${NUMBER_MEANINGS[digit].planet}).`];
+  notes.push(ok ? `${digit} is friendly to your Moolank ${m} and Bhagyank ${b}.` : `${digit} is not friendly to ${FRIENDLY[m].includes(digit) ? `your Bhagyank ${b}` : `your Moolank ${m}`}.`);
+  const zeros = digits.filter((d) => d === 0).length;
+  if (zeros >= 3) notes.push(`${zeros} zeros weaken the number's energy.`);
+  const eights = digits.filter((d) => d === 8).length;
+  if (eights >= 3) notes.push(`${eights} eights can bring delays and struggle.`);
+  const lastFour = digits.slice(-4);
+  if (lastFour.length === 4 && lastFour.every((d) => d === lastFour[0])) notes.push("The last four digits repeat one number — it strongly amplifies that number.");
+  const verdict: MobileReading["verdict"] = ok && zeros < 3 && eights < 3 ? "Lucky" : ok || digit === m || digit === b ? "Neutral" : "Not ideal";
+  return { total, digit, suits: ok, notes, verdict };
+}

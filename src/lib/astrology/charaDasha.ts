@@ -60,7 +60,7 @@ export function rashiDrishti(sign: number): number[] {
 }
 
 /** Scorpio and Aquarius have two lords; the stronger one (with more planets, else the more advanced) decides. */
-function lordOfSign(chart: KundaliChart, sign: number): PlanetName {
+export function lordOfSign(chart: KundaliChart, sign: number): PlanetName {
   const P = new Map(chart.planets.map((p) => [p.planet, p]));
   const pair: [PlanetName, PlanetName] | null = sign === 7 ? ["Mars", "Ketu"] : sign === 10 ? ["Saturn", "Rahu"] : null;
   if (!pair) return SIGN_LORDS[sign] as PlanetName;

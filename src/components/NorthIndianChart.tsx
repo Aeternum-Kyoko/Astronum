@@ -23,12 +23,26 @@ interface ChartPlanet {
   nakshatra?: string;
 }
 
+export type ChartPick = { kind: "planet"; planet: string } | { kind: "house"; house: number };
+
+const keyActivate = (fn: () => void) => (e: React.KeyboardEvent) => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    fn();
+  }
+};
+
 export default function NorthIndianChart({
   ascendantSignIndex,
   planets,
+  onPick,
+  selected,
 }: {
   ascendantSignIndex: number;
   planets: ChartPlanet[];
+  /** Makes houses and planets selectable (for a detail panel). */
+  onPick?: (pick: ChartPick) => void;
+  selected?: ChartPick | null;
 }) {
   const byHouse = new Map<number, ChartPlanet[]>();
   for (const p of planets) {
@@ -74,9 +88,19 @@ export default function NorthIndianChart({
           <g key={houseNumber}>
             <polygon
               points={polygonPoints(polygon)}
-              fill={isAscendant ? "rgba(212,175,106,0.10)" : "transparent"}
+              fill={selected?.kind === "house" && selected.house === houseNumber ? "rgba(212,175,106,0.22)" : isAscendant ? "rgba(212,175,106,0.10)" : "transparent"}
               stroke={isAscendant ? "rgba(212,175,106,0.4)" : "none"}
               strokeWidth={isAscendant ? 1.5 : 0}
+              {...(onPick
+                ? {
+                    role: "button",
+                    tabIndex: 0,
+                    "aria-label": `House ${houseNumber}`,
+                    className: "cursor-pointer outline-none hover:fill-[rgba(212,175,106,0.14)] focus-visible:stroke-[var(--color-gold-bright)]",
+                    onClick: () => onPick({ kind: "house", house: houseNumber }),
+                    onKeyDown: keyActivate(() => onPick({ kind: "house", house: houseNumber })),
+                  }
+                : {})}
             />
             <text x={ax} y={ay - 14} textAnchor="middle" fontSize="10.5" fill="var(--color-muted)" opacity="0.85">
               {signNumber}
@@ -90,6 +114,20 @@ export default function NorthIndianChart({
                 fontSize="13.5"
                 fontWeight="600"
                 fill={p.dignity ? DIGNITY_COLOR[p.dignity] : "var(--color-cream)"}
+                textDecoration={selected?.kind === "planet" && selected.planet === p.planet ? "underline" : undefined}
+                {...(onPick
+                  ? {
+                      role: "button",
+                      tabIndex: 0,
+                      "aria-label": p.planet,
+                      className: "cursor-pointer outline-none",
+                      onClick: (e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        onPick({ kind: "planet", planet: p.planet });
+                      },
+                      onKeyDown: keyActivate(() => onPick({ kind: "planet", planet: p.planet })),
+                    }
+                  : {})}
               >
                 <title>
                   {[p.planet, p.sign, p.degreeInSign !== undefined ? `${p.degreeInSign.toFixed(2)}°` : null, `House ${houseNumber}`, p.nakshatra, p.dignity, p.retrograde ? "Retrograde" : null]
