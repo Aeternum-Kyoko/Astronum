@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { findPlan } from "@/lib/consultationPlans";
+import { notifyConsultation } from "@/lib/consultationNotify";
+import { createRazorpayOrder, razorpayConfig } from "@/lib/razorpay";
 
 const bodySchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -13,6 +16,7 @@ const bodySchema = z.object({
   longitude: z.number().min(-180).max(180),
   timezone: z.string().min(1),
   message: z.string().trim().max(2000).optional(),
+  planId: z.string().max(40).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -23,7 +27,13 @@ export async function POST(req: NextRequest) {
   }
 
   const data = parsed.data;
-  await prisma.consultationRequest.create({
+  const razorpay = razorpayConfig();
+  const plan = razorpay ? findPlan(data.planId) : null;
+  if (razorpay && !plan) {
+    return NextResponse.json({ error: "Please choose a consultation plan." }, { status: 400 });
+  }
+
+  const booking = await prisma.consultationRequest.create({
     data: {
       name: data.name,
       email: data.email,
@@ -35,8 +45,32 @@ export async function POST(req: NextRequest) {
       longitude: data.longitude,
       timezone: data.timezone,
       message: data.message,
+      planId: plan?.id,
+      amountPaise: plan?.pricePaise,
+      paymentStatus: plan ? "unpaid" : "not_required",
     },
   });
 
-  return NextResponse.json({ ok: true });
+  if (!plan || !razorpay) {
+    await notifyConsultation(booking);
+    return NextResponse.json({ ok: true });
+  }
+
+  try {
+    // The amount always comes from the server-side plan, never from the client.
+    const order = await createRazorpayOrder(plan.pricePaise, booking.id, { booking: booking.id, plan: plan.id });
+    await prisma.consultationRequest.update({ where: { id: booking.id }, data: { razorpayOrderId: order.id } });
+    return NextResponse.json({
+      payment: {
+        keyId: razorpay.keyId,
+        orderId: order.id,
+        amount: plan.pricePaise,
+        description: `${plan.name} · ${plan.minutes} min`,
+        prefill: { name: data.name, email: data.email, contact: data.phone ?? "" },
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: "Could not start the payment. Please try again." }, { status: 502 });
+  }
 }

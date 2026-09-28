@@ -3,113 +3,85 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 
-const ROW_HEIGHT = 36;
-const VISIBLE_ROWS = 5;
-const PADDING = (ROW_HEIGHT * VISIBLE_ROWS - ROW_HEIGHT) / 2;
+type Meridiem = "AM" | "PM";
 
-const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1));
-const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
-const MERIDIEMS = ["AM", "PM"];
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
+const MINUTE_STEPS = Array.from({ length: 12 }, (_, i) => i * 5);
 
-function parseTime(value: string): { hour12: number; minute: number; meridiem: "AM" | "PM" } | null {
+function parseValue(value: string): { hour12: number; minute: number; meridiem: Meridiem } | null {
   const m = /^(\d{2}):(\d{2})$/.exec(value);
   if (!m) return null;
   const h24 = Number(m[1]);
-  const minute = Number(m[2]);
-  const meridiem: "AM" | "PM" = h24 >= 12 ? "PM" : "AM";
-  let hour12 = h24 % 12;
-  if (hour12 === 0) hour12 = 12;
-  return { hour12, minute, meridiem };
+  return { hour12: h24 % 12 === 0 ? 12 : h24 % 12, minute: Number(m[2]), meridiem: h24 >= 12 ? "PM" : "AM" };
 }
 
-function toValue(hour12: number, minute: number, meridiem: "AM" | "PM"): string {
-  let h24 = hour12 % 12;
-  if (meridiem === "PM") h24 += 12;
+function toValue(hour12: number, minute: number, meridiem: Meridiem): string {
+  const h24 = (hour12 % 12) + (meridiem === "PM" ? 12 : 0);
   return `${String(h24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+/** Formats typed digits progressively as HH:MM. */
+function maskTyped(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
+
+/**
+ * Reads typed HH:MM. Hours 1–12 use the AM/PM toggle; 0 or 13–23 are read as
+ * 24-hour time and set the toggle themselves. Returns null until complete and valid.
+ */
+function parseTyped(text: string, meridiem: Meridiem): { value: string; meridiem: Meridiem } | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(text);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const minute = Number(m[2]);
+  if (minute > 59 || h > 23) return null;
+  if (h === 0 || h > 12) {
+    const mer: Meridiem = h >= 12 ? "PM" : "AM";
+    return { value: `${String(h).padStart(2, "0")}:${String(minute).padStart(2, "0")}`, meridiem: mer };
+  }
+  return { value: toValue(h, minute, meridiem), meridiem };
 }
 
 function ClockGlyph() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.3" />
       <path d="M8 4.5V8l2.5 1.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   );
 }
 
-function WheelColumn({ items, index, onChange }: { items: string[]; index: number; onChange: (i: number) => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isProgrammatic = useRef(false);
-  const hasMounted = useRef(false);
-  const scrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const target = index * ROW_HEIGHT;
-    if (Math.abs(el.scrollTop - target) > 1) {
-      isProgrammatic.current = true;
-      el.scrollTo({ top: target, behavior: hasMounted.current ? "smooth" : "auto" });
-      window.setTimeout(() => {
-        isProgrammatic.current = false;
-      }, 300);
-    }
-    hasMounted.current = true;
-  }, [index]);
-
-  function handleScroll() {
-    if (isProgrammatic.current) return;
-    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
-    scrollTimeout.current = setTimeout(() => {
-      const el = ref.current;
-      if (!el) return;
-      const nearest = Math.max(0, Math.min(items.length - 1, Math.round(el.scrollTop / ROW_HEIGHT)));
-      if (nearest !== index) onChange(nearest);
-      else el.scrollTo({ top: nearest * ROW_HEIGHT, behavior: "smooth" });
-    }, 120);
-  }
-
-  return (
-    <div
-      ref={ref}
-      onScroll={handleScroll}
-      className="scrollbar-none snap-y snap-mandatory overflow-y-scroll"
-      style={{ height: ROW_HEIGHT * VISIBLE_ROWS, width: 56 }}
-    >
-      <div style={{ height: PADDING }} />
-      {items.map((label, i) => (
-        <button
-          key={label}
-          type="button"
-          onClick={() => onChange(i)}
-          className={`flex w-full snap-center items-center justify-center font-tabular text-base transition-colors ${
-            i === index ? "font-semibold text-gold-bright" : "text-muted/60"
-          }`}
-          style={{ height: ROW_HEIGHT }}
-        >
-          {label}
-        </button>
-      ))}
-      <div style={{ height: PADDING }} />
-    </div>
-  );
-}
-
+/** A time field you can type into (HH:MM, 12- or 24-hour) or fill from hour and minute grids. The value is 24-hour HH:mm. */
 export default function TimePicker({
   value,
   onChange,
-  placeholder = "Select a time",
+  placeholder = "HH:MM",
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
 }) {
-  const parsed = parseTime(value);
+  const parsed = parseValue(value);
+  const [meridiem, setMeridiem] = useState<Meridiem>(parsed?.meridiem ?? "AM");
+  const [text, setText] = useState(parsed ? `${String(parsed.hour12).padStart(2, "0")}:${String(parsed.minute).padStart(2, "0")}` : "");
   const [open, setOpen] = useState(false);
-  const [hour12, setHour12] = useState(parsed?.hour12 ?? 12);
-  const [minute, setMinute] = useState(parsed?.minute ?? 0);
-  const [meridiem, setMeridiem] = useState<"AM" | "PM">(parsed?.meridiem ?? "AM");
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Keep the text in step when the value is set from outside (a shared link).
+  const [lastValue, setLastValue] = useState(value);
+  if (value !== lastValue) {
+    setLastValue(value);
+    const p = parseValue(value);
+    if (p && value !== parseTyped(text, meridiem)?.value) {
+      setText(`${String(p.hour12).padStart(2, "0")}:${String(p.minute).padStart(2, "0")}`);
+      setMeridiem(p.meridiem);
+    }
+  }
+
+  const complete = /^\d{2}:\d{2}$/.test(text);
+  const invalid = complete && !parseTyped(text, meridiem);
 
   useEffect(() => {
     if (!open) return;
@@ -127,71 +99,114 @@ export default function TimePicker({
     };
   }, [open]);
 
-  function toggleOpen() {
-    if (!open) {
-      const p = parseTime(value);
-      if (p) {
-        setHour12(p.hour12);
-        setMinute(p.minute);
-        setMeridiem(p.meridiem);
+  function commit(nextText: string, nextMeridiem: Meridiem) {
+    const result = parseTyped(nextText, nextMeridiem);
+    if (result) {
+      setMeridiem(result.meridiem);
+      // Show 24-hour entries in 12-hour form once the toggle has taken over.
+      const p = parseValue(result.value)!;
+      if (Number(nextText.split(":")[0]) > 12 || nextText.startsWith("00")) {
+        setText(`${String(p.hour12).padStart(2, "0")}:${String(p.minute).padStart(2, "0")}`);
       }
     }
-    setOpen((o) => !o);
+    onChange(result?.value ?? "");
   }
 
-  const displayText = parsed ? `${parsed.hour12}:${String(parsed.minute).padStart(2, "0")} ${parsed.meridiem}` : "";
+  function pick(hour12: number, minute: number) {
+    const t = `${String(hour12).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    setText(t);
+    onChange(toValue(hour12, minute, meridiem));
+  }
+
+  const current = parseValue(value);
 
   return (
     <div className="relative" ref={containerRef}>
-      <button type="button" onClick={toggleOpen} className="input input-icon relative flex items-center text-left">
-        <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-muted">
-          <ClockGlyph />
-        </span>
-        <span className={displayText ? "text-cream" : "text-muted opacity-60"}>{displayText || placeholder}</span>
-      </button>
+      <div className="relative">
+        <input
+          type="text"
+          inputMode="numeric"
+          value={text}
+          onChange={(e) => {
+            const t = maskTyped(e.target.value);
+            setText(t);
+            commit(t, meridiem);
+          }}
+          placeholder={placeholder}
+          aria-invalid={invalid || undefined}
+          className={`input !pr-[6.5rem] font-tabular ${invalid ? "!border-rose" : ""}`}
+        />
+        <div className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-1">
+          <div role="group" aria-label="AM or PM" className="flex overflow-hidden rounded-lg border border-border text-[11px] font-semibold">
+            {(["AM", "PM"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={meridiem === m}
+                onClick={() => {
+                  setMeridiem(m);
+                  commit(text, m);
+                }}
+                className={`px-1.5 py-1 transition-colors ${meridiem === m ? "bg-gold text-on-gold" : "text-muted hover:text-cream"}`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            aria-label="Choose hour and minute"
+            aria-expanded={open}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-raised hover:text-gold-bright"
+          >
+            <ClockGlyph />
+          </button>
+        </div>
+      </div>
+      {invalid && <p className="mt-1 text-xs text-rose">Enter a time like 06:45.</p>}
 
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 420, damping: 32 }}
-            className="card-glass shadow-floating absolute z-20 mt-2 rounded-2xl p-3"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.15 }}
+            className="card-glass shadow-floating absolute right-0 z-30 mt-2 w-72 rounded-2xl p-4"
           >
-            <div className="relative flex justify-center">
-              <div className="pointer-events-none absolute inset-x-1 top-1/2 h-9 -translate-y-1/2 rounded-lg border border-gold/30 bg-gold/10" />
-              <WheelColumn
-                items={HOURS}
-                index={hour12 - 1}
-                onChange={(i) => {
-                  const h = i + 1;
-                  setHour12(h);
-                  onChange(toValue(h, minute, meridiem));
-                }}
-              />
-              <div className="flex items-center text-lg text-muted" style={{ height: ROW_HEIGHT * VISIBLE_ROWS }}>
-                :
-              </div>
-              <WheelColumn
-                items={MINUTES}
-                index={minute}
-                onChange={(i) => {
-                  setMinute(i);
-                  onChange(toValue(hour12, i, meridiem));
-                }}
-              />
-              <div style={{ width: 8 }} />
-              <WheelColumn
-                items={MERIDIEMS}
-                index={meridiem === "AM" ? 0 : 1}
-                onChange={(i) => {
-                  const m: "AM" | "PM" = i === 0 ? "AM" : "PM";
-                  setMeridiem(m);
-                  onChange(toValue(hour12, minute, m));
-                }}
-              />
+            <p className="text-xs text-muted">Hour</p>
+            <div className="mt-1.5 grid grid-cols-6 gap-1">
+              {HOURS.map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  aria-pressed={current?.hour12 === h}
+                  onClick={() => pick(h, current?.minute ?? 0)}
+                  className={`rounded-lg py-1.5 text-sm font-tabular transition-colors ${current?.hour12 === h ? "bg-gold font-semibold text-on-gold" : "text-cream hover:bg-surface-raised"}`}
+                >
+                  {h}
+                </button>
+              ))}
             </div>
+            <p className="mt-3 text-xs text-muted">Minute</p>
+            <div className="mt-1.5 grid grid-cols-6 gap-1">
+              {MINUTE_STEPS.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={current?.minute === m}
+                  onClick={() => pick(current?.hour12 ?? 12, m)}
+                  className={`rounded-lg py-1.5 text-sm font-tabular transition-colors ${current?.minute === m ? "bg-gold font-semibold text-on-gold" : "text-cream hover:bg-surface-raised"}`}
+                >
+                  {String(m).padStart(2, "0")}
+                </button>
+              ))}
+            </div>
+            <p className="mt-3 text-xs text-muted">For an exact minute, type it in the box — birth time matters to the minute.</p>
+            <button type="button" onClick={() => setOpen(false)} className="mt-3 w-full rounded-full bg-gold py-2 text-sm font-semibold text-on-gold hover:bg-gold-bright">
+              Done
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

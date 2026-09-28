@@ -1,8 +1,11 @@
 import type { KundaliChart } from "@/lib/astrology/types";
-import { VARGA_KEYS, ASHTAKAVARGA_PLANETS } from "@/lib/astrology/constants";
+import { VARGA_KEYS, ASHTAKAVARGA_PLANETS, type VargaKey } from "@/lib/astrology/constants";
+import { natalMarkers, planetMarkers } from "@/lib/astrology/chartMarkers";
 import { VARGA_INFO, HOUSE_SIGNIFICATION } from "@/lib/astrology/content";
 import { analyzeHouses, findConjunctions, type AnalyzablePlanet } from "@/lib/astrology/houseAnalysis";
 import NorthIndianChart from "@/components/NorthIndianChart";
+import { computeAvakahada, computeBirthPanchang } from "@/lib/astrology/birthDetails";
+import { computeRemedies, PLANET_REMEDIES } from "@/lib/astrology/remedies";
 
 function formatDate(d: Date | string): string {
   return new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
@@ -97,7 +100,7 @@ export default function PrintReport({ chart }: { chart: KundaliChart }) {
 
       <Section title="D1 &middot; Rasi Chart" breakBefore={false}>
         <div className="grid grid-cols-2 gap-6">
-          <NorthIndianChart ascendantSignIndex={chart.ascendant.signIndex} planets={chart.planets} />
+          <NorthIndianChart ascendantSignIndex={chart.ascendant.signIndex} planets={withMarks(chart.planets, natalMarkers(chart))} />
           <PlainTable
             head={["Planet", "Sign", "Degree", "House", "Nakshatra", "Dignity"]}
             rows={chart.planets.map((p) => [
@@ -118,7 +121,7 @@ export default function PrintReport({ chart }: { chart: KundaliChart }) {
           <div className="grid grid-cols-2 gap-6">
             <NorthIndianChart
               ascendantSignIndex={chart.divisionalCharts.D9.ascendant.signIndex}
-              planets={chart.divisionalCharts.D9.planets}
+              planets={withMarks(chart.divisionalCharts.D9.planets, vargaMarks(chart, "D9"))}
             />
             <PlainTable
               head={["Planet", "Sign", "House"]}
@@ -139,7 +142,7 @@ export default function PrintReport({ chart }: { chart: KundaliChart }) {
           <Section key={key} title={`${key} · ${info.title}`}>
             <p className="text-xs text-gray-700">{info.blurb}</p>
             <div className="mt-3 grid grid-cols-2 gap-6">
-              <NorthIndianChart ascendantSignIndex={varga.ascendant.signIndex} planets={varga.planets} />
+              <NorthIndianChart ascendantSignIndex={varga.ascendant.signIndex} planets={withMarks(varga.planets, vargaMarks(chart, key))} />
               <PlainTable
                 head={["Planet", "Sign", "House"]}
                 rows={varga.planets.map((p) => [p.planet + (p.retrograde ? " (R)" : ""), p.sign, p.house])}
@@ -218,11 +221,14 @@ export default function PrintReport({ chart }: { chart: KundaliChart }) {
         <ul className="mt-1 list-disc pl-5 text-xs">
           {chart.doshas.map((d) => (
             <li key={d.name}>
-              <span className="font-semibold">{d.name}</span> &mdash; {d.present ? "Present" : "Not present"}: {d.description}
+              <span className="font-semibold">{d.name}</span> &mdash; {d.present ? "Present" : d.cancelled ? "Present but cancelled" : "Not present"}: {d.description}
             </li>
           ))}
         </ul>
       </Section>
+
+      <BasicDetailsSection chart={chart} />
+      <RemediesSection chart={chart} />
 
       <Section title="House Lords">
         <PlainTable
@@ -238,4 +244,72 @@ export default function PrintReport({ chart }: { chart: KundaliChart }) {
       </Section>
     </div>
   );
+}
+
+function BasicDetailsSection({ chart }: { chart: KundaliChart }) {
+  const moon = chart.planets.find((p) => p.planet === "Moon")!;
+  const sun = chart.planets.find((p) => p.planet === "Sun")!;
+  const a = computeAvakahada(moon);
+  const p = computeBirthPanchang(sun.siderealLongitude, moon.siderealLongitude);
+  return (
+    <Section title="Avakahada Chakra &amp; Birth Panchang">
+      <PlainTable
+        head={["Detail", "Value"]}
+        rows={[
+          ["Rashi (Moon sign)", `${moon.sign} — lord ${a.signLord}`],
+          ["Nakshatra", `${moon.nakshatra}, pada ${moon.pada} — lord ${a.nakshatraLord}`],
+          ["Varna · Vashya", `${a.varna} · ${a.vashya}`],
+          ["Yoni · Gana · Nadi", `${a.yoni} · ${a.gana} · ${a.nadi}`],
+          ["Tithi", `${p.paksha} ${p.tithi}`],
+          ["Yoga · Karana", `${p.yoga} · ${p.karana}`],
+          ["Mangal Dosha", chart.mangalDosha.status === "present" ? `Present (${chart.mangalDosha.severity})` : chart.mangalDosha.status === "cancelled" ? "Present but cancelled" : "Not present"],
+        ]}
+      />
+    </Section>
+  );
+}
+
+function RemediesSection({ chart }: { chart: KundaliChart }) {
+  const { stones, support, doshas } = computeRemedies(chart);
+  return (
+    <Section title="Remedies">
+      {stones.length > 0 && (
+        <PlainTable
+          head={["Stone", "Gem", "Planet", "Metal · finger · day"]}
+          rows={stones.map((s) => {
+            const r = PLANET_REMEDIES[s.planet];
+            return [s.kind, s.gem, s.planet, `${r.metal} · ${r.finger} · ${r.day}`];
+          })}
+        />
+      )}
+      {support.length > 0 && (
+        <div className="mt-4">
+          <PlainTable
+            head={["Planet", "Why", "Mantra (108×)", "Charity"]}
+            rows={support.map((s) => [s.planet, s.reasons.join("; "), PLANET_REMEDIES[s.planet].mantra, PLANET_REMEDIES[s.planet].charity])}
+          />
+        </div>
+      )}
+      {doshas.map((d) => (
+        <div key={d.name} className="mt-3 text-xs">
+          <p className="font-semibold">{d.name}</p>
+          <ul className="list-disc pl-5">
+            {d.remedies.map((r) => (
+              <li key={r}>{r}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
+      <p className="mt-3 text-[10px]">Gemstones should be confirmed by an astrologer before wearing. Remedies are traditional practices, not medical or financial advice.</p>
+    </Section>
+  );
+}
+
+function withMarks<T extends { planet: string }>(planets: T[], marks: Record<string, string>): (T & { markers: string })[] {
+  return planets.map((p) => ({ ...p, markers: marks[p.planet] ?? "" }));
+}
+
+function vargaMarks(chart: KundaliChart, key: VargaKey): Record<string, string> {
+  const inVarga = new Map(chart.divisionalCharts[key].planets.map((p) => [p.planet, p]));
+  return planetMarkers(chart, (pl) => inVarga.get(pl)!.signIndex, (pl) => inVarga.get(pl)!.retrograde, { vargottama: key === "D9" });
 }

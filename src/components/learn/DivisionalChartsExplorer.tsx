@@ -23,12 +23,12 @@ export default function DivisionalChartsExplorer() {
           {filtered.map((v) => (
             <article key={v.key} id={v.key} className="card-edge scroll-mt-24 rounded-2xl p-6">
               <div className="flex items-baseline justify-between">
-                <h2 className="font-display text-xl text-gold-bright">
+                <h2 className="font-display text-xl text-cream">
                   {v.key} <span className="text-sm text-muted">· {v.title}</span>
                 </h2>
                 <span className="text-xs text-muted">÷{v.divisions}</span>
               </div>
-              <p className="mt-1 text-xs tracking-wide text-gold uppercase">{v.blurb}</p>
+              <p className="mt-1 text-xs text-gold">{v.blurb}</p>
               <p className="mt-3 text-sm leading-relaxed text-cream">{v.description}</p>
             </article>
           ))}

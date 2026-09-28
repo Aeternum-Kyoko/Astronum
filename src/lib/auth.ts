@@ -9,7 +9,7 @@ function secret(): string {
   return s;
 }
 
-function timingSafeEqual(a: string, b: string): boolean {
+export function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
@@ -22,7 +22,7 @@ function bytesToHex(bytes: ArrayBuffer): string {
     .join("");
 }
 
-async function hmac(payload: string): Promise<string> {
+export async function hmac(payload: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret()),

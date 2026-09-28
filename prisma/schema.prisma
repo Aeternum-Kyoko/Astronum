@@ -40,4 +40,67 @@ model ConsultationRequest {
   message    String?
   status     String   @default("pending")
   createdAt  DateTime @default(now())
+
+  // Paid bookings (Razorpay). paymentStatus: "not_required" | "unpaid" | "paid".
+  planId            String?
+  amountPaise       Int?
+  paymentStatus     String    @default("not_required")
+  razorpayOrderId   String?   @unique
+  razorpayPaymentId String?
+  paidAt            DateTime?
+}
+
+model User {
+  id             String               @id @default(cuid())
+  email          String               @unique
+  name           String
+  passwordHash   String
+  /// Bumped on password reset; sessions signed with an older version stop working.
+  sessionVersion Int                  @default(0)
+  createdAt      DateTime             @default(now())
+  charts         SavedChart[]
+  resetTokens    PasswordResetToken[]
+
+  // Email alerts, all off until the user opts in on /account.
+  notifyDaily       Boolean   @default(false)
+  notifyDasha       Boolean   @default(false)
+  notifyFestivals   Boolean   @default(false)
+  notifyTransits    Boolean   @default(false)
+  /// Lets an email's unsubscribe link work without signing in.
+  unsubscribeToken  String?   @unique
+  lastDailySentOn   String?   // YYYY-MM-DD, so a day is never sent twice
+  /// Keys of dasha/transit alerts already sent, comma-separated.
+  sentAlertKeys     String    @default("")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique // SHA-256 of the emailed token; the token itself is never stored
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Birth details only — charts are recomputed on open, so saved data never goes stale.
+model SavedChart {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  date      String // YYYY-MM-DD, local to the birth place
+  time      String // HH:mm
+  place     String
+  latitude  Float
+  longitude Float
+  timezone  String
+  /// Self, Spouse, Child, Parent, Sibling, Friend or Other.
+  relation  String   @default("Self")
+  /// The profile that fills in every tool and drives "Today for you".
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

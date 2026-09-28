@@ -101,7 +101,7 @@ export default function BlogEditor({ initial }: { initial?: InitialPost }) {
         </div>
 
         <div>
-          <span className="mb-1.5 block text-xs font-medium tracking-wide text-muted uppercase">Content</span>
+          <span className="mb-1.5 block text-xs font-medium text-muted">Content</span>
           {editor && <Toolbar editor={editor} />}
           <div className="mt-2 rounded-lg border border-border bg-ink-deep px-4 py-3">
             <EditorContent editor={editor} />
@@ -115,7 +115,7 @@ export default function BlogEditor({ initial }: { initial?: InitialPost }) {
         <button
           onClick={() => save(true)}
           disabled={saving}
-          className="rounded-full bg-gold px-6 py-2.5 text-sm font-semibold text-ink-deep hover:bg-gold-bright disabled:opacity-60"
+          className="rounded-full bg-gold px-6 py-2.5 text-sm font-semibold text-on-gold hover:bg-gold-bright disabled:opacity-60"
         >
           {saving ? "Saving…" : "Publish"}
         </button>
@@ -142,7 +142,7 @@ export default function BlogEditor({ initial }: { initial?: InitialPost }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-medium tracking-wide text-muted uppercase">{label}</span>
+      <span className="mb-1.5 block text-xs font-medium text-muted">{label}</span>
       {children}
     </label>
   );

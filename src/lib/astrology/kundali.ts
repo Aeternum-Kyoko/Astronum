@@ -13,6 +13,8 @@ import {
 import { getDignity } from "./dignity";
 import { computeHouseLords } from "./houseLords";
 import { detectYogas } from "./yogas";
+import { bhavaOf, sripatiBhavas } from "./bhavaChalit";
+import { analyzeMangalDosha, describeMangalDosha, type MangalDoshaResult } from "./mangalDosha";
 import { computeAllDivisionalCharts } from "./varga";
 import { computeAshtakavarga } from "./ashtakavarga";
 import { computeShadbala } from "./shadbala";
@@ -37,15 +39,12 @@ function placeOnZodiac(siderealLongitude: number) {
   };
 }
 
-function detectDoshas(planets: PlanetPlacement[]): Dosha[] {
-  const mars = planets.find((p) => p.planet === "Mars")!;
-  const mangalHouses = [1, 2, 4, 7, 8, 12];
+function detectDoshas(planets: PlanetPlacement[], mangalDosha: MangalDoshaResult): Dosha[] {
   const mangal: Dosha = {
     name: "Mangal Dosha (Kuja Dosha)",
-    present: mangalHouses.includes(mars.house),
-    description: mangalHouses.includes(mars.house)
-      ? `Mars falls in house ${mars.house} from the Ascendant, one of the positions classically associated with Mangal Dosha. This is traditionally weighed carefully in marriage matching.`
-      : "Mars is not placed in a house classically associated with Mangal Dosha from the Ascendant.",
+    present: mangalDosha.status === "present",
+    cancelled: mangalDosha.status === "cancelled",
+    description: describeMangalDosha(mangalDosha),
   };
 
   const rahu = planets.find((p) => p.planet === "Rahu")!;
@@ -159,10 +158,11 @@ export function calculateKundali(input: BirthInput): KundaliChart {
 
   const ayanamsa = lahiriAyanamsa(utcDate);
   const raw = computeRawPositions(utcDate);
-  const { ascendant: ascTropical } = computeAscendantAndMidheaven(utcDate, input.latitude, input.longitude);
+  const { ascendant: ascTropical, midheaven: mcTropical } = computeAscendantAndMidheaven(utcDate, input.latitude, input.longitude);
 
   const ascSidereal = normalizeDegrees(ascTropical - ayanamsa);
   const ascPlacement = placeOnZodiac(ascSidereal);
+  const mcSidereal = normalizeDegrees(mcTropical - ayanamsa);
 
   const nonRetrogradingBodies = new Set<PlanetName>(["Sun", "Moon", "Rahu", "Ketu"]);
 
@@ -197,13 +197,16 @@ export function calculateKundali(input: BirthInput): KundaliChart {
     now
   );
 
-  const doshas = detectDoshas(planets);
+  const mangalDosha = analyzeMangalDosha(ascPlacement.signIndex, planets);
+  const doshas = detectDoshas(planets, mangalDosha);
   const yogas = detectYogas(planets, ascPlacement.signIndex);
   const houseLords = computeHouseLords(ascPlacement.signIndex, planets);
   const divisionalCharts = computeAllDivisionalCharts(ascSidereal, planets);
   const ashtakavarga = computeAshtakavarga(ascPlacement.signIndex, planets);
   const shadbala = computeShadbala(planets, ascSidereal, divisionalCharts, utcDate, input.latitude, input.longitude);
   const sadeSati = computeSadeSati(moon.signIndex, now);
+  const bhavas = sripatiBhavas(ascSidereal, mcSidereal);
+  const chalitHouses = planets.map((p) => ({ planet: p.planet, house: bhavaOf(p.siderealLongitude, bhavas) }));
 
   return {
     input,
@@ -213,7 +216,10 @@ export function calculateKundali(input: BirthInput): KundaliChart {
       signIndex: ascPlacement.signIndex,
       degreeInSign: ascPlacement.degreeInSign,
     },
+    midheaven: mcSidereal,
     planets,
+    chalitHouses,
+    bhavas,
     divisionalCharts,
     houseLords,
     ayanamsa,
@@ -224,6 +230,7 @@ export function calculateKundali(input: BirthInput): KundaliChart {
     currentPratyantardasha,
     pratyantardashas: currentAntardasha?.subPeriods ?? [],
     doshas,
+    mangalDosha,
     yogas,
     sadeSati,
     ashtakavarga,

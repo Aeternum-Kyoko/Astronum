@@ -10,7 +10,7 @@ export default function ShadbalaTable({ shadbala }: { shadbala: ShadbalaResult[]
       <div className="card-edge overflow-x-auto rounded-2xl">
         <table className="w-full text-sm font-tabular">
           <thead>
-            <tr className="border-b border-border text-left text-xs tracking-wide text-muted uppercase">
+            <tr className="border-b border-border text-left text-xs text-muted">
               <th className="px-4 py-3">Planet</th>
               <th className="px-4 py-3">Sthana</th>
               <th className="px-4 py-3">Dig</th>

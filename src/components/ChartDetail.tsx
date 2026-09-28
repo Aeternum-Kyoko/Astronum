@@ -52,7 +52,7 @@ export default function ChartDetail({
       {view === "houses" ? (
         <>
           <div>
-            <h3 className="text-xl font-bold tracking-tight text-gold-bright">House-by-House</h3>
+            <h3 className="text-xl font-bold tracking-tight text-cream">House-by-House</h3>
             <p className="mt-2 text-sm text-muted">
               What each house is about, who rules it, where that lord actually sits, who occupies it directly, and
               how strong it reads overall.
@@ -63,7 +63,7 @@ export default function ChartDetail({
                 return (
                   <div key={h.house} className="card-edge rounded-2xl p-5">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-semibold tracking-wide text-muted uppercase">
+                      <p className="text-xs font-semibold text-muted">
                         House {h.house} · {h.sign}
                       </p>
                       {strength && (
@@ -79,7 +79,7 @@ export default function ChartDetail({
           </div>
 
           <div>
-            <h3 className="text-xl font-bold tracking-tight text-gold-bright">Conjunctions</h3>
+            <h3 className="text-xl font-bold tracking-tight text-cream">Conjunctions</h3>
             <p className="mt-2 text-sm text-muted">Planets sharing a sign blend their significations into one combined force.</p>
             {conjunctions.length === 0 ? (
               <p className="mt-4 text-sm text-muted">No two (or more) planets share a sign in this chart.</p>
@@ -87,7 +87,7 @@ export default function ChartDetail({
               <div className="mt-5 space-y-4">
                 {conjunctions.map((c, i) => (
                   <div key={i} className="card-edge rounded-2xl p-5">
-                    <p className="text-xs font-semibold tracking-wide text-gold-bright uppercase">{c.planets.join(" + ")}</p>
+                    <p className="text-xs font-semibold text-gold-bright">{c.planets.join(" + ")}</p>
                     <p className="mt-2 text-sm leading-relaxed text-cream">{c.narrative}</p>
                   </div>
                 ))}
@@ -97,7 +97,7 @@ export default function ChartDetail({
         </>
       ) : (
         <div>
-          <h3 className="text-xl font-bold tracking-tight text-gold-bright">Planet-by-Planet</h3>
+          <h3 className="text-xl font-bold tracking-tight text-cream">Planet-by-Planet</h3>
           <p className="mt-2 text-sm text-muted">
             Each planet&rsquo;s condition in this chart — dignity, house placement, and the aspects it gives and receives.
           </p>
@@ -105,7 +105,7 @@ export default function ChartDetail({
             {planetStrength.map((p) => (
               <div key={p.planet} className="card-edge rounded-2xl p-5">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold tracking-wide text-muted uppercase">
+                  <p className="text-xs font-semibold text-muted">
                     {p.planet} · House {p.house}
                   </p>
                   <span className={`text-xs font-semibold ${VERDICT_COLOR[p.verdict]}`}>{p.verdict}</span>

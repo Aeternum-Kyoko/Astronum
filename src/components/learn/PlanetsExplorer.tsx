@@ -24,17 +24,17 @@ export default function PlanetsExplorer() {
           {filtered.map((p) => (
             <article key={p.name} id={p.name} className="card-edge scroll-mt-24 rounded-3xl p-7 md:p-9">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="font-display text-2xl text-gold-bright">
+                <h2 className="font-display text-2xl text-cream">
                   {p.name} <span className="text-base text-muted">· {p.sanskrit}</span>
                 </h2>
-                <span className="text-xs tracking-wide text-muted uppercase">{p.nature}</span>
+                <span className="text-xs text-muted">{p.nature}</span>
               </div>
 
               <p className="mt-4 text-sm leading-relaxed text-cream">{p.significations}</p>
 
               <div className="mt-6 grid gap-4 text-sm md:grid-cols-2">
                 <div className="rounded-xl border border-border/60 bg-ink-deep/40 p-4">
-                  <p className="text-xs font-semibold tracking-wide text-muted uppercase">Dignity</p>
+                  <p className="text-xs font-semibold text-muted">Dignity</p>
                   <dl className="mt-2 space-y-1 text-muted">
                     <div>
                       <dt className="inline text-cream">Exalted:</dt> <dd className="inline">{p.exaltationSign ?? "Not assigned"}</dd>
@@ -58,7 +58,7 @@ export default function PlanetsExplorer() {
                 </div>
 
                 <div className="rounded-xl border border-border/60 bg-ink-deep/40 p-4">
-                  <p className="text-xs font-semibold tracking-wide text-muted uppercase">Relationships & Dasha</p>
+                  <p className="text-xs font-semibold text-muted">Relationships & Dasha</p>
                   <dl className="mt-2 space-y-1 text-muted">
                     <div>
                       <dt className="inline text-cream">Friends:</dt> <dd className="inline">{p.friends.join(", ") || "—"}</dd>
@@ -78,12 +78,12 @@ export default function PlanetsExplorer() {
               </div>
 
               <div className="mt-6">
-                <p className="text-xs font-semibold tracking-wide text-muted uppercase">{p.name} in each house</p>
+                <p className="text-xs font-semibold text-muted">{p.name} in each house</p>
                 <div className="mt-3 grid gap-2 md:grid-cols-2">
                   {p.inHouses.map((text, i) => (
                     <div key={i} className="rounded-lg border border-border/40 px-3 py-2 text-xs text-muted">
                       <span className="font-semibold text-gold-bright">House {i + 1}</span>{" "}
-                      <span className="text-muted/70">({HOUSE_SIGNIFICATION[i + 1]})</span> — {text}
+                      <span className="text-muted">({HOUSE_SIGNIFICATION[i + 1]})</span> — {text}
                     </div>
                   ))}
                 </div>

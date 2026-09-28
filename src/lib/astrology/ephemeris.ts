@@ -1,5 +1,5 @@
 import * as Astronomy from "astronomy-engine";
-import { normalizeDegrees } from "./ayanamsa";
+import { lahiriAyanamsa, normalizeDegrees } from "./ayanamsa";
 
 const TROPICAL_BODIES = {
   Sun: Astronomy.Body.Sun,
@@ -119,4 +119,49 @@ export function computeAscendantAndMidheaven(
   const midheaven = normalizeDegrees(Math.atan2(mcY, mcX) / rad);
 
   return { ascendant, midheaven };
+}
+
+/** Right ascension of the meridian and the true obliquity, in degrees — what house systems such as Placidus start from. */
+export function meridianAndObliquity(date: Date, longitude: number): { ramc: number; obliquity: number } {
+  const { trueObliquity, greenwichSiderealHours } = obliquityAndSiderealTime(date);
+  return { ramc: normalizeDegrees((greenwichSiderealHours + longitude / 15) * 15), obliquity: trueObliquity };
+}
+
+/** Sidereal (Lahiri) longitudes of just the Sun and Moon — the cheap subset Panchang calculations need, often many times over. */
+export function siderealSunMoon(date: Date): { sun: number; moon: number } {
+  const ayanamsa = lahiriAyanamsa(date);
+  return {
+    sun: normalizeDegrees(tropicalLongitude(Astronomy.Body.Sun, date) - ayanamsa),
+    moon: normalizeDegrees(tropicalLongitude(Astronomy.Body.Moon, date) - ayanamsa),
+  };
+}
+
+/**
+ * Next rise (direction +1) or set (−1) of the Sun or Moon after `after`, within
+ * `limitDays`, or null if none (polar day/night, or the Moon skipping a day).
+ */
+export function nextRiseSet(
+  body: "Sun" | "Moon",
+  direction: 1 | -1,
+  after: Date,
+  latitude: number,
+  longitude: number,
+  limitDays = 1
+): Date | null {
+  const observer = new Astronomy.Observer(latitude, longitude, 0);
+  const t = Astronomy.SearchRiseSet(Astronomy.Body[body], observer, direction, after, limitDays);
+  return t ? t.date : null;
+}
+
+export type TransitBody = keyof typeof TROPICAL_BODIES | "Rahu" | "Ketu";
+
+/** Sidereal (Lahiri) longitude of one body — much cheaper than computeRawPositions when scanning dates. */
+export function siderealLongitude(body: TransitBody, date: Date): number {
+  const tropical =
+    body === "Rahu"
+      ? meanLunarNodeLongitude(date)
+      : body === "Ketu"
+        ? normalizeDegrees(meanLunarNodeLongitude(date) + 180)
+        : tropicalLongitude(TROPICAL_BODIES[body], date);
+  return normalizeDegrees(tropical - lahiriAyanamsa(date));
 }

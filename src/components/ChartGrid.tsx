@@ -1,5 +1,7 @@
 import { SIGN_SANSKRIT } from "@/lib/astrology/constants";
 import type { Dignity } from "@/lib/astrology/dignity";
+import type { ChartPick } from "@/components/NorthIndianChart";
+import { PLANET_GLYPH } from "@/lib/chartGeometry";
 
 const PLANET_ABBR: Record<string, string> = {
   Sun: "Su",
@@ -36,6 +38,8 @@ interface GridPlanet {
   planet: string;
   signIndex: number;
   retrograde: boolean;
+  /** Status marks (↑ ↓ R C V); defaults to "R" for retrograde planets. */
+  markers?: string;
   dignity?: Dignity | null;
   house?: number;
   degreeInSign?: number;
@@ -45,9 +49,16 @@ interface GridPlanet {
 export default function ChartGrid({
   ascendantSignIndex,
   planets,
+  onPick,
+  selected,
+  glyphs = false,
 }: {
   ascendantSignIndex: number;
   planets: GridPlanet[];
+  onPick?: (pick: ChartPick) => void;
+  selected?: ChartPick | null;
+  /** Planet symbols (☉ ☽ ♂…) instead of two-letter names. */
+  glyphs?: boolean;
 }) {
   const bySign = new Map<number, GridPlanet[]>();
   for (const p of planets) {
@@ -57,14 +68,16 @@ export default function ChartGrid({
   }
 
   return (
-    <div className="mx-auto grid aspect-square w-full max-w-md grid-cols-4 grid-rows-4 gap-1.5 rounded-xl border border-gold/30 bg-gradient-to-br from-surface to-ink-deep p-1.5 shadow-[0_0_18px_rgba(212,175,106,0.10)]">
+    <div className="chart-draw mx-auto grid aspect-square w-full max-w-md grid-cols-4 grid-rows-4 gap-1 rounded-[14px] border border-gold/60 bg-[radial-gradient(circle_at_50%_45%,var(--chart-top),var(--chart-bottom))] p-1.5 shadow-[inset_0_0_0_5px_var(--chart-bottom),inset_0_0_0_6px_color-mix(in_oklab,var(--color-border),transparent_20%)]" role="img" aria-label="Birth chart, South Indian style">
       {GRID_SIGNS.map((row, r) =>
         row.map((signIndex, c) => {
           if (signIndex === null) {
             if (r === 1 && c === 1) {
               return (
                 <div key="center" className="col-span-2 row-span-2 flex items-center justify-center">
-                  <span className="font-display text-3xl text-gold/40">ॐ</span>
+                  <span className="font-display text-4xl text-gold/30" aria-hidden="true">
+                    ॐ
+                  </span>
                 </div>
               );
             }
@@ -73,20 +86,40 @@ export default function ChartGrid({
 
           const occupants = bySign.get(signIndex) ?? [];
           const isAscendant = signIndex === ascendantSignIndex;
-
+          const house = ((signIndex - ascendantSignIndex + 12) % 12) + 1;
           return (
+            // Clicking a cell picks its house with the mouse; keyboard users pick houses from the detail panel's house list.
             <div
               key={`${r}-${c}`}
-              className={`flex flex-col items-center justify-center rounded-md border p-1 text-center transition-colors ${
-                isAscendant ? "border-gold bg-gold/10" : "border-border/60 bg-ink-deep/40"
-              }`}
+              onClick={onPick ? () => onPick({ kind: "house", house }) : undefined}
+              data-haptic={onPick ? "selection" : undefined}
+              className={`relative flex flex-col items-center justify-center rounded-lg border p-1 text-center transition-colors ${
+                isAscendant ? "border-gold/70 bg-[radial-gradient(circle_at_50%_30%,color-mix(in_oklab,var(--color-gold)_16%,transparent),transparent_70%)]" : "border-border/40 bg-ink-deep/25"
+              } ${onPick ? "cursor-pointer hover:border-gold/70" : ""} ${selected?.kind === "house" && selected.house === house ? "ring-1 ring-gold" : ""}`}
             >
-              <span className="text-[10px] text-muted">{SIGN_SANSKRIT[signIndex]}</span>
+              <span className="chart-fade text-[10px] text-muted/80">{SIGN_SANSKRIT[signIndex]}</span>
               <div className="mt-1 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
-                {isAscendant && <span className="text-[10px] font-semibold text-gold-bright">Asc</span>}
+                {isAscendant && <span className="chart-fade text-[10px] font-semibold text-gold-bright">Lagna</span>}
                 {occupants.map((p) => (
                   <span
                     key={p.planet}
+                    {...(onPick
+                      ? {
+                          role: "button",
+                          tabIndex: 0,
+                          onClick: (e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            onPick({ kind: "planet", planet: p.planet });
+                          },
+                          onKeyDown: (e: React.KeyboardEvent) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onPick({ kind: "planet", planet: p.planet });
+                            }
+                          },
+                        }
+                      : {})}
                     title={[
                       p.planet,
                       p.degreeInSign !== undefined ? `${p.degreeInSign.toFixed(2)}°` : null,
@@ -97,10 +130,16 @@ export default function ChartGrid({
                     ]
                       .filter(Boolean)
                       .join(" · ")}
-                    className={`text-xs font-semibold ${p.dignity ? DIGNITY_COLOR[p.dignity] : "text-cream"}`}
+                    className={`chart-fade text-[13px] font-semibold ${p.dignity ? DIGNITY_COLOR[p.dignity] : "text-cream"} ${glyphs ? "text-[15px]" : ""}`}
+                    style={glyphs ? { fontFamily: "'Noto Sans Symbols 2','Segoe UI Symbol','Apple Symbols',serif" } : undefined}
                   >
-                    {PLANET_ABBR[p.planet]}
-                    {p.retrograde && <sup className="text-rose">R</sup>}
+                    {glyphs ? PLANET_GLYPH[p.planet] : PLANET_ABBR[p.planet]}
+                    {p.degreeInSign !== undefined && <span className="ml-px text-[9px] font-normal text-muted tabular-nums">{Math.floor(p.degreeInSign)}°</span>}
+                    {[...(p.markers ?? (p.retrograde ? "R" : ""))].map((m, i) => (
+                      <sup key={i} className={m === "↓" || m === "C" || m === "R" ? "text-rose" : "text-gold-bright"}>
+                        {m}
+                      </sup>
+                    ))}
                   </span>
                 ))}
               </div>

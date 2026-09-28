@@ -15,12 +15,13 @@ export default function SegmentedControl<T extends string>({
   layoutId: string;
 }) {
   return (
-    <div className="inline-flex flex-wrap justify-center gap-1 rounded-full border border-border bg-ink-deep/90 p-1">
+    <div className="glass relative inline-flex flex-wrap justify-center gap-1 rounded-full p-1">
       {options.map((opt) => (
         <button
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
+          aria-pressed={value === opt.value}
           className="relative rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap"
         >
           {value === opt.value && (
@@ -30,7 +31,7 @@ export default function SegmentedControl<T extends string>({
               transition={{ type: "spring", stiffness: 450, damping: 32 }}
             />
           )}
-          <span className={`relative z-10 transition-colors ${value === opt.value ? "text-ink-deep" : "text-muted hover:text-cream"}`}>
+          <span className={`relative z-10 transition-colors ${value === opt.value ? "text-on-gold" : "text-muted hover:text-cream"}`}>
             {opt.label}
           </span>
         </button>

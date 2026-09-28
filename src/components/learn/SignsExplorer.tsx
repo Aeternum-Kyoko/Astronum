@@ -23,12 +23,12 @@ export default function SignsExplorer() {
           {filtered.map((s) => (
             <article key={s.name} id={s.name} className="card-edge scroll-mt-24 rounded-2xl p-6">
               <div className="flex items-baseline justify-between">
-                <h2 className="font-display text-xl text-gold-bright">
+                <h2 className="font-display text-xl text-cream">
                   {s.name} <span className="text-sm text-muted">· {s.sanskrit}</span>
                 </h2>
                 <span className="text-xs text-muted">{s.rulingPlanet}</span>
               </div>
-              <p className="mt-1 text-xs tracking-wide text-muted uppercase">
+              <p className="mt-1 text-xs text-muted">
                 {s.element} · {s.quality}
               </p>
               <p className="mt-3 text-sm leading-relaxed text-cream">{s.description}</p>
