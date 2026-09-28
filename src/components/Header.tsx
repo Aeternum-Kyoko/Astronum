@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { addTransitionType, startTransition, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "motion/react";
 import MoonMark from "@/components/MoonMark";
 import ThemeToggle from "@/components/ThemeToggle";
 import AccountButton from "@/components/AccountButton";
-import { PRIMARY_NAV, SECONDARY_LINKS, isActivePath, isGroup, type NavGroup, type NavItem } from "@/lib/nav";
+import { PRIMARY_NAV, isActivePath, isGroup, type NavGroup, type NavItem } from "@/lib/nav";
 import { localizeHref, switchLocaleHref, type Locale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 
@@ -17,16 +17,26 @@ export default function Header({ locale }: { locale: Locale }) {
   const itemLabel = (i: NavItem) => (hi && i.labelHi) || i.label;
   const itemDesc = (i: NavItem) => (hi && i.descriptionHi) || i.description;
   const href = (path: string) => localizeHref(locale, path);
-  const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
   const lastY = useRef(0);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { scrollY } = useScroll();
   const pathname = usePathname();
+  const router = useRouter();
+  const plainPath0 = hi ? pathname?.replace(/^\/hi(?=\/|$)/, "") || "/" : pathname;
+  // The tab bar's destinations are top-level screens; everywhere else gets a back button on phones.
+  const isRootPath = ["/", "/kundali", "/horoscope", "/panchang"].includes(plainPath0 ?? "/");
+  function goBack() {
+    startTransition(() => {
+      addTransitionType("nav-back");
+      if (window.history.length > 1) router.back();
+      else router.push(href("/"));
+    });
+  }
 
   useMotionValueEvent(scrollY, "change", (y) => {
-    if (open || menu) return;
+    if (menu) return;
     const goingDown = y > lastY.current;
     setHidden(goingDown && y > 120);
     lastY.current = y;
@@ -36,7 +46,6 @@ export default function Header({ locale }: { locale: Locale }) {
   const [lastPath, setLastPath] = useState(pathname);
   if (pathname !== lastPath) {
     setLastPath(pathname);
-    setOpen(false);
     setMenu(null);
   }
 
@@ -65,13 +74,22 @@ export default function Header({ locale }: { locale: Locale }) {
     <motion.header
       animate={{ y: hidden ? "-100%" : "0%" }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="sticky top-0 z-50 border-b border-border/60 bg-ink-deep/90 backdrop-blur print:hidden"
+      className="sticky top-0 z-50 border-b border-border/60 bg-ink-deep/90 pt-[env(safe-area-inset-top)] backdrop-blur print:hidden"
     >
       <div className="relative mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
-        <Link href={href("/")} className="flex items-center gap-2.5">
-          <MoonMark />
-          <span className="font-display text-xl font-semibold text-cream">Astronum</span>
-        </Link>
+        <div className="flex items-center gap-1">
+          {!isRootPath && (
+            <button type="button" onClick={goBack} data-haptic="light" aria-label={hi ? "वापस" : "Back"} className="-ml-2 flex h-10 w-10 items-center justify-center rounded-full text-cream active:bg-surface lg:hidden">
+              <svg width="11" height="18" viewBox="0 0 11 18" aria-hidden="true">
+                <path d="M9 2 2 9l7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          )}
+          <Link href={href("/")} transitionTypes={["tab"]} className="flex items-center gap-2.5">
+            <MoonMark />
+            <span className="font-display text-xl font-semibold text-cream">Astronum</span>
+          </Link>
+        </div>
 
         <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Main">
           {PRIMARY_NAV.map((entry) => {
@@ -124,22 +142,9 @@ export default function Header({ locale }: { locale: Locale }) {
           </Link>
         </nav>
 
+        {/* Phones: settings, language and every section live in the tab bar's More sheet. */}
         <div className="flex items-center gap-2 lg:hidden">
-          <a href={switchHref} hrefLang={hi ? "en" : "hi"} lang={hi ? "en" : "hi"} className="rounded-full border border-border px-3 py-1.5 text-xs text-muted">
-            {hi ? "EN" : "हिं"}
-          </a>
-          <ThemeToggle />
           <AccountButton label={t.signIn} />
-          <button
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-cream"
-            onClick={() => setOpen((v) => !v)}
-            aria-label="Toggle menu"
-            aria-expanded={open}
-          >
-            <svg width="18" height="14" viewBox="0 0 18 14" fill="none" aria-hidden="true">
-              <path d="M1 1h16M1 7h16M1 13h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </button>
         </div>
 
         <AnimatePresence>
@@ -176,46 +181,6 @@ export default function Header({ locale }: { locale: Locale }) {
         </AnimatePresence>
       </div>
 
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.nav
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="max-h-[75vh] overflow-y-auto border-t border-border/60 px-5 lg:hidden"
-            aria-label="Mobile"
-          >
-            <div className="flex flex-col gap-1 py-4">
-              {PRIMARY_NAV.map((entry) =>
-                isGroup(entry) ? (
-                  <div key={entry.label} className="mt-2">
-                    <p className="px-3 text-xs font-semibold text-gold-bright">{hi ? entry.labelHi : entry.label}</p>
-                    <div className="mt-1 grid grid-cols-2 gap-1">
-                      {entry.items.map((item) => (
-                        <Link key={item.href} href={href(item.href)} className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-surface hover:text-gold-bright">
-                          {itemLabel(item)}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <Link key={entry.href} href={href(entry.href)} className="rounded-lg px-3 py-2.5 text-sm text-muted hover:bg-surface hover:text-gold-bright">
-                    {itemLabel(entry)}
-                  </Link>
-                )
-              )}
-              <div className="mt-2 grid grid-cols-2 gap-1 border-t border-border/60 pt-3">
-                {SECONDARY_LINKS.map((link) => (
-                  <Link key={link.href} href={href(link.href)} className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-surface hover:text-gold-bright">
-                    {itemLabel(link)}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </motion.nav>
-        )}
-      </AnimatePresence>
     </motion.header>
   );
 }

@@ -86,6 +86,7 @@ export default function ChartGrid({
             <div
               key={`${r}-${c}`}
               onClick={onPick ? () => onPick({ kind: "house", house }) : undefined}
+              data-haptic={onPick ? "selection" : undefined}
               className={`flex flex-col items-center justify-center rounded-md border p-1 text-center transition-colors ${
                 isAscendant ? "border-gold bg-gold/10" : "border-border/60 bg-ink-deep/40"
               } ${onPick ? "cursor-pointer hover:border-gold" : ""} ${selected?.kind === "house" && selected.house === house ? "ring-1 ring-gold" : ""}`}

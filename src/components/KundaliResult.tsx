@@ -28,6 +28,7 @@ import YogaAnalysisPanel from "@/components/YogaAnalysisPanel";
 import { CareerPanel, HousesPanel, TimelinePanel } from "@/components/DeepReportPanels";
 import { CharaPanel, KpPanel, LifeSectorsPanel, VimshottariDetail, YoginiPanel } from "@/components/DashaSystemsPanels";
 import KundliSummary from "@/components/KundliSummary";
+import { haptic } from "@/lib/haptics";
 import { LalKitabPanel, SpecialTablesPanel } from "@/components/AdvancedPanels";
 import { nakshatraLord } from "@/lib/astrology/dasha";
 
@@ -101,6 +102,32 @@ export default function KundaliResult({
       window.history.replaceState(null, "", url);
     }
   };
+  // Swipe left or right on a phone to move between sections, like pages in an app.
+  const ORDER = GROUPS.flatMap((g) => g.tabs) as Tab[];
+  const touch = useRef<{ x: number; y: number; t: number } | null>(null);
+  function onTouchStart(e: React.TouchEvent) {
+    const target = e.target as Element;
+    // Leave gestures alone inside horizontally scrolling tables, charts' own controls and form fields.
+    if (target.closest(".overflow-x-auto, input, select, textarea, [data-no-swipe]")) {
+      touch.current = null;
+      return;
+    }
+    touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+  }
+  function onTouchEnd(e: React.TouchEvent) {
+    const start = touch.current;
+    touch.current = null;
+    if (!start) return;
+    const dx = e.changedTouches[0].clientX - start.x;
+    const dy = e.changedTouches[0].clientY - start.y;
+    if (Math.abs(dx) < 70 || Math.abs(dy) > 45 || Date.now() - start.t > 600) return;
+    const i = ORDER.indexOf(tab);
+    const next = ORDER[i + (dx < 0 ? 1 : -1)];
+    if (!next) return;
+    haptic("selection");
+    setTab(next);
+  }
+
   const go = (slug: string) => {
     if (TAB_SLUGS[slug]) setTab(TAB_SLUGS[slug]);
     document.getElementById("kundli-sections")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -204,7 +231,7 @@ export default function KundaliResult({
             </div>
           </nav>
 
-        <div className="mt-6 min-w-0 lg:mt-0">
+        <div className="mt-6 min-w-0 lg:mt-0" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
           <AnimatePresence mode="wait">
             <motion.div
               key={tab}

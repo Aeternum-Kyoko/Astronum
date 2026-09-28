@@ -289,3 +289,88 @@ html[lang="hi"] * {
     margin: 14mm;
   }
 }
+
+/* ——— App feel on phones ——————————————————————————————————————————— */
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (pointer: coarse) {
+  /* Instant taps (no double-tap-zoom delay) and a gentle press-down on controls. */
+  a,
+  button,
+  [role="button"],
+  summary,
+  label {
+    touch-action: manipulation;
+  }
+  button:not(:disabled):active,
+  [role="button"]:active,
+  a.rounded-full:active {
+    transform: scale(0.97);
+    transition: transform 80ms ease-out;
+  }
+  /* App chrome isn't text to select. */
+  nav[aria-label="Quick"],
+  header {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* Installed app: no browser rubber-band behind the fixed chrome. */
+@media (display-mode: standalone) {
+  html,
+  body {
+    overscroll-behavior-y: none;
+  }
+}
+
+/* Page transitions (see PageTransition). */
+::view-transition-old(.tab-fade) {
+  animation: 120ms ease-out both vt-fade reverse;
+}
+::view-transition-new(.tab-fade) {
+  animation: 180ms ease-out 60ms both vt-fade;
+}
+::view-transition-old(.nav-forward) {
+  --vt-offset: -48px;
+  animation: 140ms ease-in both vt-fade reverse, 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both vt-slide reverse;
+}
+::view-transition-new(.nav-forward) {
+  --vt-offset: 48px;
+  animation: 200ms ease-out 100ms both vt-fade, 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both vt-slide;
+}
+::view-transition-old(.nav-back) {
+  --vt-offset: 48px;
+  animation: 140ms ease-in both vt-fade reverse, 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both vt-slide reverse;
+}
+::view-transition-new(.nav-back) {
+  --vt-offset: -48px;
+  animation: 200ms ease-out 100ms both vt-fade, 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both vt-slide;
+}
+@keyframes vt-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes vt-slide {
+  from {
+    transform: translateX(var(--vt-offset));
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

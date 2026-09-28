@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { SiteBody, SiteHead } from "@/components/SiteShell";
 import { anek } from "@/lib/fonts";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
@@ -12,8 +12,20 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
+  appleWebApp: { capable: true, title: "Astronum", statusBarStyle: "black-translucent" },
+  formatDetection: { telephone: false },
   openGraph: { type: "website", siteName: SITE_NAME, locale: "en_IN" },
   twitter: { card: "summary_large_image" },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#0e1733" },
+    { media: "(prefers-color-scheme: light)", color: "#edefea" },
+  ],
 };
 
 export default function EnglishRootLayout({ children }: LayoutProps<"/">) {

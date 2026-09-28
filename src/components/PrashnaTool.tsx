@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import PlaceInput, { type PlaceSuggestion } from "@/components/PlaceInput";
+import { haptic } from "@/lib/haptics";
 import { PRASHNA_TOPICS, type PrashnaResult, type PrashnaTopic } from "@/lib/astrology/prashnaTopics";
 
 export default function PrashnaTool() {
@@ -25,6 +26,7 @@ export default function PrashnaTool() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Something went wrong.");
       setResult(json);
+      haptic(json.answer === "Unlikely" ? "warning" : "success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {

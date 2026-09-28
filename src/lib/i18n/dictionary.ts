@@ -18,7 +18,7 @@ const en = {
     noteTitle: "A note on this site",
     note: "Kundali charts here are generated for guidance and self-reflection. They are not a substitute for professional medical, legal, or financial advice.",
     rights: "All rights reserved.",
-    tabs: { home: "Home", kundli: "Kundli", matching: "Matching", panchang: "Panchang", horoscope: "Horoscope" },
+    tabs: { home: "Home", kundli: "Kundli", matching: "Matching", panchang: "Panchang", horoscope: "Horoscope", more: "More" },
   },
   home: {
     heroTitle: "The sky, exactly as it is.",
@@ -267,7 +267,7 @@ const hi: Dictionary = {
     noteTitle: "इस साइट के बारे में",
     note: "यहाँ बनी कुंडलियाँ मार्गदर्शन और आत्म-चिंतन के लिए हैं। ये चिकित्सा, कानूनी या वित्तीय सलाह का विकल्प नहीं हैं।",
     rights: "सर्वाधिकार सुरक्षित।",
-    tabs: { home: "होम", kundli: "कुंडली", matching: "मिलान", panchang: "पंचांग", horoscope: "राशिफल" },
+    tabs: { home: "होम", kundli: "कुंडली", matching: "मिलान", panchang: "पंचांग", horoscope: "राशिफल", more: "और" },
   },
   home: {
     heroTitle: "आकाश, ठीक वैसा जैसा है।",

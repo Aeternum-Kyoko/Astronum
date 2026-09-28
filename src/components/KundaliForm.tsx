@@ -14,6 +14,7 @@ import PlaceInput, { type PlaceSuggestion } from "@/components/PlaceInput";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import SaveChartButton from "@/components/SaveChartButton";
 import ProfileChips from "@/components/ProfileChips";
+import { haptic } from "@/lib/haptics";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 const MIN_LOADING_MS = 1600;
@@ -80,10 +81,12 @@ export default function KundaliForm() {
       }
       setChart(data.chart);
       setReport(data.report);
+      haptic("success");
       // Reflect the chart in the URL so it can be bookmarked or shared.
       router.replace(`/kundali?${toBirthQuery(params)}`, { scroll: false });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
+      haptic("error");
     } finally {
       setLoading(false);
     }

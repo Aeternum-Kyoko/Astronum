@@ -21,6 +21,7 @@ export default function SegmentedControl<T extends string>({
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
+          aria-pressed={value === opt.value}
           className="relative rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap"
         >
           {value === opt.value && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { haptic } from "@/lib/haptics";
 
 /**
  * Share and save-as-image buttons. "Share" uses the phone's share sheet
@@ -39,11 +40,14 @@ export default function ShareBar({
       const file = blob ? new File([blob], fileName, { type: "image/png" }) : null;
       if (file && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ title, text, url: fullUrl(), files: [file] });
+        haptic("success");
       } else if (navigator.share) {
         await navigator.share({ title, text, url: fullUrl() });
+        haptic("success");
       } else {
         await navigator.clipboard.writeText(fullUrl());
         setStatus("Link copied");
+        haptic("success");
       }
     } catch (err) {
       if ((err as Error).name !== "AbortError") setStatus("Couldn't share — the link is in the address bar");
@@ -60,6 +64,7 @@ export default function ShareBar({
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 2000);
       setStatus("Image saved");
+      haptic("success");
     } catch {
       setStatus("Couldn't create the image");
     }

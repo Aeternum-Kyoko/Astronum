@@ -1,6 +1,8 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import MobileTabBar from "@/components/MobileTabBar";
+import AppChrome from "@/components/AppChrome";
+import PageTransition from "@/components/PageTransition";
 import MotionProvider from "@/components/MotionProvider";
 import JsonLd from "@/components/JsonLd";
 import { THEME_INIT_SCRIPT } from "@/components/ThemeToggle";
@@ -28,10 +30,13 @@ export function SiteHead() {
 /** The page chrome around every page, in the layout's language. */
 export function SiteBody({ locale, children }: { locale: Locale; children: React.ReactNode }) {
   return (
-    <body className="min-h-full flex flex-col bg-ink pb-16 text-cream lg:pb-0 print:pb-0">
+    <body className="min-h-full flex flex-col bg-ink pb-[calc(4rem+env(safe-area-inset-bottom))] text-cream lg:pb-0 print:pb-0">
       <MotionProvider>
+        <AppChrome />
         <Header locale={locale} />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1">
+          <PageTransition>{children}</PageTransition>
+        </main>
         <Footer locale={locale} />
         <MobileTabBar locale={locale} />
       </MotionProvider>

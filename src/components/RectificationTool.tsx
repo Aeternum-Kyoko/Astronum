@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import DatePicker from "@/components/DatePicker";
 import TimePicker from "@/components/TimePicker";
+import { haptic } from "@/lib/haptics";
 import PlaceInput, { type PlaceSuggestion } from "@/components/PlaceInput";
 import { toBirthQuery } from "@/lib/birthParams";
 import { EVENT_KEYS, EVENT_KINDS, type CandidateRun, type EventKind } from "@/lib/astrology/rectificationEvents";
@@ -50,6 +51,7 @@ export default function RectificationTool() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Something went wrong.");
       setResult(json);
+      haptic("success");
       setOpen(0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
