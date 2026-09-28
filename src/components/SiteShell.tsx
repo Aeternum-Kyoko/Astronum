@@ -5,7 +5,8 @@ import AppChrome from "@/components/AppChrome";
 import PageTransition from "@/components/PageTransition";
 import MotionProvider from "@/components/MotionProvider";
 import JsonLd from "@/components/JsonLd";
-import { THEME_INIT_SCRIPT } from "@/components/ThemeToggle";
+import { THEME_INIT_SCRIPT } from "@/lib/themeScript";
+import { DISPLAY_INIT_SCRIPT } from "@/lib/displayPrefs";
 import type { Locale } from "@/lib/i18n/locale";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 
@@ -21,7 +22,7 @@ const SITE_JSON_LD = {
 export function SiteHead() {
   return (
     <>
-      <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT + DISPLAY_INIT_SCRIPT }} />
       <JsonLd data={SITE_JSON_LD} />
     </>
   );
@@ -30,7 +31,7 @@ export function SiteHead() {
 /** The page chrome around every page, in the layout's language. */
 export function SiteBody({ locale, children }: { locale: Locale; children: React.ReactNode }) {
   return (
-    <body className="min-h-full flex flex-col bg-ink pb-[calc(4rem+env(safe-area-inset-bottom))] text-cream lg:pb-0 print:pb-0">
+    <body className="min-h-full flex flex-col bg-ink pb-[calc(5.25rem+env(safe-area-inset-bottom))] text-cream lg:pb-0 print:pb-0">
       <MotionProvider>
         <AppChrome />
         <Header locale={locale} />

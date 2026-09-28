@@ -1,5 +1,6 @@
 "use client";
 
+import SectionSkeleton from "@/components/SectionSkeleton";
 import { useState } from "react";
 import type { KundaliReport } from "@/lib/astrology/report";
 import type { KundaliChart } from "@/lib/astrology/types";
@@ -23,7 +24,7 @@ function Stars({ rating }: { rating: number }) {
 }
 
 function Missing() {
-  return <p className="text-center text-sm text-muted">Regenerate the chart to see this section.</p>;
+  return <SectionSkeleton />;
 }
 
 export function LifeReportPanel({ report }: { report: KundaliReport | null }) {

@@ -15,7 +15,7 @@ export default function SegmentedControl<T extends string>({
   layoutId: string;
 }) {
   return (
-    <div className="inline-flex flex-wrap justify-center gap-1 rounded-full border border-border bg-ink-deep/90 p-1">
+    <div className="glass relative inline-flex flex-wrap justify-center gap-1 rounded-full p-1">
       {options.map((opt) => (
         <button
           key={opt.value}

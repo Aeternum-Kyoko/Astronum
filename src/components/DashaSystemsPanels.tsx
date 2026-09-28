@@ -1,5 +1,6 @@
 "use client";
 
+import SectionSkeleton from "@/components/SectionSkeleton";
 import { useState } from "react";
 import type { KundaliReport } from "@/lib/astrology/report";
 import type { MahaInterpretation } from "@/lib/astrology/dashaInterpretation";
@@ -18,7 +19,7 @@ const dms = (lon: number) => {
 };
 
 function Missing() {
-  return <p className="text-center text-sm text-muted">Regenerate the chart to see this section.</p>;
+  return <SectionSkeleton />;
 }
 
 function H({ children }: { children: React.ReactNode }) {

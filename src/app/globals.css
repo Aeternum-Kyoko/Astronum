@@ -30,6 +30,10 @@
   --floating-shadow: rgba(3, 6, 18, 0.6);
   --chart-top: #142043;
   --chart-bottom: #0e1733;
+  /* Liquid Glass: highlight on the top edge, darker rim around it (iOS 27). */
+  --glass-hi: rgba(255, 255, 255, 0.2);
+  --glass-rim: rgba(0, 0, 0, 0.34);
+  --glass-shine: rgba(255, 255, 255, 0.16);
   color-scheme: dark;
 }
 
@@ -53,6 +57,9 @@
   --floating-shadow: rgba(14, 23, 51, 0.18);
   --chart-top: #fbfbf9;
   --chart-bottom: #edefea;
+  --glass-hi: rgba(255, 255, 255, 0.85);
+  --glass-rim: rgba(14, 23, 51, 0.16);
+  --glass-shine: rgba(255, 255, 255, 0.55);
   color-scheme: light;
 }
 
@@ -372,5 +379,85 @@ html {
   ::view-transition-old(*),
   ::view-transition-new(*) {
     animation: none !important;
+  }
+}
+
+/* Skeleton shimmer: a soft band of light moving across placeholders. */
+.skeleton {
+  background: linear-gradient(100deg, var(--color-surface-raised) 30%, color-mix(in oklab, var(--color-surface-raised), var(--color-cream) 10%) 50%, var(--color-surface-raised) 70%);
+  background-size: 300% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* ——— Liquid Glass (floating chrome only: bars, sheet, segmented controls) ——— */
+
+:root {
+  --text-scale: 1;
+  --glass-tint: 0.63;
+  --glass-lx: 50%;
+  --glass-ly: -20%;
+}
+
+html {
+  font-size: calc(100% * var(--text-scale));
+}
+
+.glass {
+  isolation: isolate;
+  background: color-mix(in oklab, var(--color-ink-deep) calc(var(--glass-tint) * 100%), transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(185%);
+  backdrop-filter: blur(20px) saturate(185%);
+  box-shadow:
+    inset 0 1px 0 var(--glass-hi),
+    inset 0 -1px 0 color-mix(in oklab, var(--glass-rim), transparent 40%),
+    0 0 0 1px var(--glass-rim),
+    0 10px 32px -12px rgba(0, 0, 0, 0.35);
+}
+/* The specular highlight: a soft light that follows a finger or the phone's tilt. */
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(90% 160% at var(--glass-lx) var(--glass-ly), var(--glass-shine), transparent 55%);
+  transition: background-position 120ms linear;
+}
+/* iOS 27: when text scrolls beneath a floating bar, the bar turns uniform so it stays readable. */
+.glass[data-solid="true"] {
+  background: color-mix(in oklab, var(--color-ink-deep) 96%, transparent);
+}
+.glass-sheet {
+  background: color-mix(in oklab, var(--color-ink-deep) 90%, transparent);
+}
+/* Refraction (Chromium only, turned on from script where it's supported and the device can afford it). */
+html.glass-refract .glass-lens {
+  -webkit-backdrop-filter: url(#liquid-refract) blur(18px) saturate(185%);
+  backdrop-filter: url(#liquid-refract) blur(18px) saturate(185%);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-sheet,
+  html.glass-refract .glass-lens {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--color-ink-deep);
+  }
+  .glass::before {
+    display: none;
   }
 }

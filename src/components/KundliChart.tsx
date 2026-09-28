@@ -5,6 +5,7 @@ import NorthIndianChart, { type ChartPick } from "@/components/NorthIndianChart"
 
 export type { ChartPick };
 import ChartGrid from "@/components/ChartGrid";
+import ZoomableChart from "@/components/ZoomableChart";
 import SegmentedControl from "@/components/SegmentedControl";
 import { MARKER_MEANING, type Marker } from "@/lib/astrology/chartMarkers";
 import type { Dignity } from "@/lib/astrology/dignity";
@@ -70,11 +71,15 @@ export default function KundliChart({
           />
         </div>
       )}
-      {style === "north" ? (
-        <NorthIndianChart ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} />
-      ) : (
-        <ChartGrid ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} />
-      )}
+      <div className="mx-auto max-w-md">
+        <ZoomableChart>
+          {style === "north" ? (
+            <NorthIndianChart ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} />
+          ) : (
+            <ChartGrid ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} />
+          )}
+        </ZoomableChart>
+      </div>
       {showLegend && used.length > 0 && (
         <ul className="mx-auto mt-4 flex max-w-md flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted" aria-label="Chart symbols">
           {used.map((m) => (

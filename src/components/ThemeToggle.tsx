@@ -1,14 +1,11 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { THEME_STORAGE_KEY } from "@/lib/themeScript";
 
-const STORAGE_KEY = "astronum-theme";
+const STORAGE_KEY = THEME_STORAGE_KEY;
 
 type Theme = "light" | "dark";
-
-// Runs in <head> before first paint so the page never flashes the wrong theme.
-// The saved choice wins; otherwise follow the OS preference.
-export const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem("${STORAGE_KEY}");if(t!=="light"&&t!=="dark"){t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"}document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme="dark"}})();`;
 
 function subscribe(onChange: () => void) {
   const observer = new MutationObserver(onChange);

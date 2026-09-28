@@ -12,6 +12,7 @@ import { computeDailyPanchang } from "@/lib/astrology/panchang";
 import { computePanchangExtras } from "@/lib/astrology/panchangExtras";
 import { observancesForYear } from "@/lib/astrology/festivals";
 import { toBirthQuery } from "@/lib/birthParams";
+import PullToRefresh from "@/components/PullToRefresh";
 
 export const metadata: Metadata = { title: "Today for you", robots: { index: false } };
 
@@ -76,6 +77,7 @@ export default async function TodayPage() {
   const hard = mine.day.steps.filter((s) => s.points < 0).sort((a, b) => a.points - b.points)[0];
 
   return (
+    <PullToRefresh>
     <section className="mx-auto max-w-6xl px-5 py-14 md:py-20">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -212,5 +214,6 @@ export default async function TodayPage() {
         </section>
       )}
     </section>
+    </PullToRefresh>
   );
 }

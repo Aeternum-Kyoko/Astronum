@@ -1,6 +1,6 @@
 import { Document, Page, Text, View, StyleSheet, Svg, Polygon, Line, Rect, Text as SvgText } from "@react-pdf/renderer";
 import type { KundaliChart } from "@/lib/astrology/types";
-import type { KundaliReport } from "@/lib/astrology/report";
+import type { FullReport as KundaliReport } from "@/lib/astrology/report";
 import type { RemedyPlan } from "@/lib/astrology/remedies";
 import { PLANET_REMEDIES } from "@/lib/astrology/remedies";
 import { computeAvakahada, computeBirthPanchang } from "@/lib/astrology/birthDetails";

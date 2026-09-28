@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { calculateKundali } from "@/lib/astrology/kundali";
-import { buildReport } from "@/lib/astrology/report";
+import { buildCoreReport } from "@/lib/astrology/report";
 import { birthInputSchema } from "@/lib/birthSchema";
 
 export async function POST(req: NextRequest) {
@@ -12,7 +12,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const chart = calculateKundali(parsed.data);
-    return NextResponse.json({ chart, report: buildReport(chart) });
+    // Heavy sections (timeline, KP…) load per tab from /api/kundali/sections, so the chart appears fast.
+    return NextResponse.json({ chart, report: buildCoreReport(chart) });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Could not calculate chart" },

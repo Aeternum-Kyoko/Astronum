@@ -11,6 +11,7 @@ import { isActivePath, isGroup, PRIMARY_NAV, SECONDARY_LINKS } from "@/lib/nav";
 import { localizeHref, switchLocaleHref, type Locale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 import { haptic, hapticsEnabled, setHapticsEnabled } from "@/lib/haptics";
+import { DEFAULT_PREFS, readPrefs, TEXT_SIZES, writePrefs, type DisplayPrefs } from "@/lib/displayPrefs";
 
 const TABS = [
   { href: "/", key: "home" as const, icon: "M2.5 7.5 8 3l5.5 4.5V13a.5.5 0 0 1-.5.5H10v-4H6v4H3a.5.5 0 0 1-.5-.5V7.5Z" },
@@ -50,7 +51,7 @@ export default function MobileTabBar({ locale }: { locale: Locale }) {
 
   return (
     <>
-      <nav aria-label="Quick" className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-ink-deep/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden print:hidden">
+      <nav aria-label="Quick" className="glass glass-lens fixed inset-x-3 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-50 rounded-[1.75rem] lg:hidden print:hidden">
         <ul className="grid grid-cols-5">
           {TABS.map((tab) => {
             const href = localizeHref(locale, tab.href);
@@ -63,7 +64,18 @@ export default function MobileTabBar({ locale }: { locale: Locale }) {
                   aria-current={active ? "page" : undefined}
                   className={`relative flex flex-col items-center gap-0.5 pt-2 pb-2 text-[11px] font-medium transition-colors select-none ${active ? "text-gold-bright" : "text-muted"}`}
                 >
-                  {active && <motion.span layoutId="tabbar-pill" className="absolute top-1 h-8 w-14 rounded-full bg-gold/15" transition={{ type: "spring", stiffness: 500, damping: 38 }} />}
+                  {active && (
+                    // The pill slides between tabs, then squashes and settles like a drop of liquid.
+                    <motion.span layoutId="tabbar-pill" className="absolute top-1.5 h-8 w-14" transition={{ type: "spring", stiffness: 520, damping: 34 }}>
+                      <motion.span
+                        key={tab.key}
+                        className="block h-full w-full rounded-full bg-gold/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]"
+                        initial={{ scaleX: 1.35, scaleY: 0.78 }}
+                        animate={{ scaleX: 1, scaleY: 1 }}
+                        transition={{ type: "spring", stiffness: 420, damping: 14 }}
+                      />
+                    </motion.span>
+                  )}
                   <span className="relative">
                     <Icon d={tab.icon} active={active} />
                   </span>
@@ -180,6 +192,7 @@ function MoreSheet({ locale, close, pathname }: { locale: Locale; close: () => v
               className="h-6 w-11 cursor-pointer appearance-none rounded-full bg-border transition-colors before:block before:h-5 before:w-5 before:translate-x-0.5 before:translate-y-0.5 before:rounded-full before:bg-cream before:transition-transform checked:bg-gold checked:before:translate-x-[1.35rem]"
             />
           </li>
+          <DisplaySettings hi={hi} />
           {install !== "installed" && install !== "unavailable" && (
             <li className="px-4 py-3">
               <button
@@ -216,5 +229,90 @@ function MoreSheet({ locale, close, pathname }: { locale: Locale; close: () => v
         </li>
       </ul>
     </div>
+  );
+}
+
+function useDisplayPrefs(): DisplayPrefs {
+  const raw = useSyncExternalStore(
+    (cb) => {
+      window.addEventListener("display-prefs", cb);
+      return () => window.removeEventListener("display-prefs", cb);
+    },
+    () => JSON.stringify(readPrefs()),
+    () => JSON.stringify(DEFAULT_PREFS)
+  );
+  return JSON.parse(raw);
+}
+
+/** Text size, glass transparency (iOS 27's slider) and tilt-to-move-light. */
+function DisplaySettings({ hi }: { hi: boolean }) {
+  const prefs = useDisplayPrefs();
+  const set = (patch: Partial<DisplayPrefs>) => writePrefs({ ...prefs, ...patch });
+
+  async function toggleTilt(on: boolean) {
+    // iPhone asks once for motion access; it has to come from this tap.
+    const Req = (window as unknown as { DeviceOrientationEvent?: { requestPermission?: () => Promise<string> } }).DeviceOrientationEvent;
+    if (on && Req?.requestPermission) {
+      const answer = await Req.requestPermission().catch(() => "denied");
+      if (answer !== "granted") return;
+    }
+    set({ tilt: on });
+    if (on) haptic("success");
+  }
+
+  return (
+    <>
+      <li className="px-4 py-3">
+        <p className="text-cream">{hi ? "अक्षर का आकार" : "Text size"}</p>
+        <div className="mt-2 grid grid-cols-4 gap-1 rounded-full bg-ink-deep p-1" role="radiogroup" aria-label={hi ? "अक्षर का आकार" : "Text size"}>
+          {TEXT_SIZES.map((t) => (
+            <button
+              key={t.value}
+              type="button"
+              role="radio"
+              aria-checked={prefs.textScale === t.value}
+              onClick={() => set({ textScale: t.value })}
+              className={`rounded-full py-1.5 text-sm font-semibold ${prefs.textScale === t.value ? "bg-gold text-on-gold" : "text-muted"}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </li>
+      <li className="px-4 py-3">
+        <label htmlFor="glass-slider" className="flex justify-between text-cream">
+          <span>{hi ? "ग्लास" : "Glass"}</span>
+          <span className="text-xs text-muted">{prefs.glass < 34 ? (hi ? "साफ़" : "Clear") : prefs.glass > 66 ? (hi ? "गहरा" : "Tinted") : hi ? "संतुलित" : "Balanced"}</span>
+        </label>
+        <input
+          id="glass-slider"
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={prefs.glass}
+          onChange={(e) => set({ glass: Number(e.target.value) })}
+          onPointerUp={() => haptic("selection")}
+          className="mt-2 w-full accent-[var(--color-gold)]"
+        />
+        <span className="flex justify-between text-[11px] text-muted" aria-hidden="true">
+          <span>{hi ? "साफ़" : "Clear"}</span>
+          <span>{hi ? "गहरा" : "Tinted"}</span>
+        </span>
+      </li>
+      <li className="flex items-center justify-between px-4 py-3">
+        <label htmlFor="tilt-toggle" className="text-cream">
+          {hi ? "झुकाने पर रोशनी" : "Light follows tilt"}
+        </label>
+        <input
+          id="tilt-toggle"
+          type="checkbox"
+          role="switch"
+          checked={prefs.tilt}
+          onChange={(e) => void toggleTilt(e.target.checked)}
+          className="h-6 w-11 cursor-pointer appearance-none rounded-full bg-border transition-colors before:block before:h-5 before:w-5 before:translate-x-0.5 before:translate-y-0.5 before:rounded-full before:bg-cream before:transition-transform checked:bg-gold checked:before:translate-x-[1.35rem]"
+        />
+      </li>
+    </>
   );
 }

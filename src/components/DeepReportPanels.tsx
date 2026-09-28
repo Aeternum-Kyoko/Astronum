@@ -1,5 +1,6 @@
 "use client";
 
+import SectionSkeleton from "@/components/SectionSkeleton";
 import { useState } from "react";
 import type { KundaliReport } from "@/lib/astrology/report";
 import type { HouseReading } from "@/lib/astrology/houseReadings";
@@ -12,7 +13,7 @@ const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 
 const ageLabel = (a: number) => (a < 1 ? `${Math.max(0, Math.round(a * 12))} mo` : `${Math.floor(a)}`);
 
 function Missing() {
-  return <p className="text-center text-sm text-muted">Regenerate the chart to see this section.</p>;
+  return <SectionSkeleton />;
 }
 
 const VERDICT_CLASS = { Strong: "text-gold-bright", Balanced: "text-cream", Weak: "text-rose" } as const;

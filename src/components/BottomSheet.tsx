@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { AnimatePresence, motion, useDragControls, type PanInfo } from "motion/react";
+import { AnimatePresence, motion, useDragControls, useMotionValue, useTransform, type PanInfo } from "motion/react";
 import { haptic } from "@/lib/haptics";
 
 /**
@@ -11,6 +11,10 @@ import { haptic } from "@/lib/haptics";
 export default function BottomSheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   const panel = useRef<HTMLDivElement>(null);
   const drag = useDragControls();
+  // As the sheet is pulled down, its top corners round out and it narrows a touch — a liquid give.
+  const dragY = useMotionValue(0); // how far the sheet is pulled down, fed from onDrag
+  const radius = useTransform(dragY, [0, 260], [32, 56]);
+  const squeeze = useTransform(dragY, [0, 260], [1, 0.965]);
 
   useEffect(() => {
     if (!open) return;
@@ -44,6 +48,7 @@ export default function BottomSheet({ open, onClose, title, children }: { open: 
   }, [open, onClose]);
 
   function onDragEnd(_: unknown, info: PanInfo) {
+    dragY.set(0);
     if (info.offset.y > 120 || info.velocity.y > 600) {
       haptic("light");
       onClose();
@@ -68,7 +73,9 @@ export default function BottomSheet({ open, onClose, title, children }: { open: 
             aria-modal="true"
             aria-label={title}
             tabIndex={-1}
-            className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-hidden rounded-t-3xl border-t border-border bg-ink-deep pb-[env(safe-area-inset-bottom)] shadow-[0_-20px_60px_rgba(0,0,0,0.45)] outline-none"
+            className="glass glass-sheet absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-hidden pb-[env(safe-area-inset-bottom)] outline-none"
+            style={{ borderTopLeftRadius: radius, borderTopRightRadius: radius, scaleX: squeeze }}
+            onDrag={(_, info) => dragY.set(Math.max(0, info.offset.y))}
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}

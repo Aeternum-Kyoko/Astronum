@@ -22,7 +22,7 @@ import BasicDetails from "@/components/BasicDetails";
 import RemediesPanel from "@/components/RemediesPanel";
 import DashaExplorer from "@/components/DashaExplorer";
 import { LifeReportPanel, PlanetReadingsPanel, TransitsPanel } from "@/components/ReportPanels";
-import type { KundaliReport } from "@/lib/astrology/report";
+import type { HeavySection, KundaliReport } from "@/lib/astrology/report";
 import { toBirthQuery } from "@/lib/birthParams";
 import YogaAnalysisPanel from "@/components/YogaAnalysisPanel";
 import { CareerPanel, HousesPanel, TimelinePanel } from "@/components/DeepReportPanels";
@@ -44,6 +44,19 @@ const GROUPS = [
 ] as const;
 type Tab = (typeof GROUPS)[number]["tabs"][number];
 const groupOf = (t: Tab) => GROUPS.find((g) => (g.tabs as readonly string[]).includes(t))!;
+
+/** The heavy report sections each tab needs. */
+const TAB_SECTIONS: Partial<Record<Tab, HeavySection[]>> = {
+  Summary: ["timeline", "dashaDetail", "houses", "sectors", "career"],
+  Houses: ["houses"],
+  Career: ["career"],
+  "Life Timeline": ["timeline"],
+  "Life Sectors": ["sectors"],
+  Dashas: ["dashaDetail"],
+  "Yogini Dasha": ["yogini"],
+  "Chara Dasha": ["chara"],
+  "KP System": ["kp"],
+};
 
 /** URL-friendly names for deep links such as /kundali?tab=dashas. */
 export const TAB_SLUGS: Record<string, Tab> = {
@@ -86,10 +99,13 @@ export default function KundaliResult({
   chart,
   report,
   initialTab,
+  loadSections,
 }: {
   chart: KundaliChart;
   report: KundaliReport | null;
   initialTab?: string | null;
+  /** Fetches heavy report sections on demand; sections a tab needs load when it opens. */
+  loadSections?: (sections: HeavySection[]) => void;
 }) {
   const [tab, setTabState] = useState<Tab>((initialTab && TAB_SLUGS[initialTab]) || "Summary");
   const setTab = (t: Tab) => {
@@ -127,6 +143,12 @@ export default function KundaliResult({
     haptic("selection");
     setTab(next);
   }
+
+  // Load each tab's heavy sections when it's opened (the summary also prefetches what its cards show).
+  useEffect(() => {
+    const need = TAB_SECTIONS[tab];
+    if (need?.length && report) loadSections?.(need);
+  }, [tab, report, loadSections]);
 
   const go = (slug: string) => {
     if (TAB_SLUGS[slug]) setTab(TAB_SLUGS[slug]);

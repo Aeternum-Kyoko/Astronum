@@ -35,7 +35,10 @@ export default function Header({ locale }: { locale: Locale }) {
     });
   }
 
+  const [solid, setSolid] = useState(false);
   useMotionValueEvent(scrollY, "change", (y) => {
+    // iOS 27: once content scrolls under the bar, the bar becomes uniform so text stays legible.
+    setSolid(y > 8);
     if (menu) return;
     const goingDown = y > lastY.current;
     setHidden(goingDown && y > 120);
@@ -74,7 +77,8 @@ export default function Header({ locale }: { locale: Locale }) {
     <motion.header
       animate={{ y: hidden ? "-100%" : "0%" }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="sticky top-0 z-50 border-b border-border/60 bg-ink-deep/90 pt-[env(safe-area-inset-top)] backdrop-blur print:hidden"
+      data-solid={solid ? "true" : undefined}
+      className="glass sticky top-0 z-50 pt-[env(safe-area-inset-top)] print:hidden"
     >
       <div className="relative mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
         <div className="flex items-center gap-1">

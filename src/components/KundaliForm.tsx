@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import type { KundaliChart } from "@/lib/astrology/types";
-import type { KundaliReport } from "@/lib/astrology/report";
+import type { HeavySection, KundaliReport } from "@/lib/astrology/report";
 import { fromBirthQuery, toBirthQuery, type BirthParams } from "@/lib/birthParams";
 import KundaliResult from "@/components/KundaliResult";
 import KundaliIntro from "@/components/KundaliIntro";
@@ -14,6 +14,7 @@ import PlaceInput, { type PlaceSuggestion } from "@/components/PlaceInput";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import SaveChartButton from "@/components/SaveChartButton";
 import ProfileChips from "@/components/ProfileChips";
+import { listCharts, loadChart, saveChart, type StoredChart } from "@/lib/offlineCharts";
 import { haptic } from "@/lib/haptics";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -50,6 +51,32 @@ export default function KundaliForm() {
   const [error, setError] = useState<string | null>(null);
   const [chart, setChart] = useState<KundaliChart | null>(null);
   const [report, setReport] = useState<KundaliReport | null>(null);
+  const pending = useRef(new Set<HeavySection>());
+  const [offlineFrom, setOfflineFrom] = useState<number | null>(null);
+
+  // Keep the latest version (with any sections loaded since) on this device for offline use.
+  useEffect(() => {
+    if (chart && report && !offlineFrom) void saveChart(chart.input, chart, report);
+  }, [chart, report, offlineFrom]);
+
+  /** Fetch the heavy report sections a tab needs, once each, and merge them in. */
+  async function loadSections(sections: HeavySection[]) {
+    if (!chart) return;
+    const missing = sections.filter((s) => !(report && s in report) && !pending.current.has(s));
+    if (!missing.length) return;
+    missing.forEach((s) => pending.current.add(s));
+    try {
+      const res = await fetch("/api/kundali/sections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ birth: chart.input, sections: missing }),
+      });
+      const data = await res.json();
+      if (res.ok) setReport((r) => (r ? { ...r, ...data.sections } : r));
+    } finally {
+      missing.forEach((s) => pending.current.delete(s));
+    }
+  }
   const anchorRef = useRef<HTMLDivElement>(null);
   const autoLoaded = useRef(false);
   // Home-page tool tiles link to e.g. /kundali?tab=dashas; open the result on that section.
@@ -81,12 +108,22 @@ export default function KundaliForm() {
       }
       setChart(data.chart);
       setReport(data.report);
+      setOfflineFrom(null);
       haptic("success");
       // Reflect the chart in the URL so it can be bookmarked or shared.
       router.replace(`/kundali?${toBirthQuery(params)}`, { scroll: false });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      haptic("error");
+      // No connection: open the copy kept on this device, if there is one.
+      const stored = err instanceof TypeError ? await loadChart(params) : null;
+      if (stored) {
+        setChart(stored.chart);
+        setReport(stored.report);
+        setOfflineFrom(stored.savedAt);
+        haptic("warning");
+      } else {
+        setError(err instanceof TypeError ? "You're offline, and this kundli isn't saved on this device yet." : err instanceof Error ? err.message : "Something went wrong");
+        haptic("error");
+      }
     } finally {
       setLoading(false);
     }
@@ -137,6 +174,7 @@ export default function KundaliForm() {
             <KundaliIntro />
             <div className="mt-10">
               <ProfileChips onPick={(p) => void generate({ name: p.name, date: p.date, time: p.time, place: p.place, latitude: p.latitude, longitude: p.longitude, timezone: p.timezone })} />
+              <RecentCharts onPick={(input) => void generate(input)} />
             </div>
             <div className="mt-8">
               <form
@@ -216,7 +254,12 @@ export default function KundaliForm() {
             transition={{ duration: 0.7, ease: EASE_OUT_EXPO }}
           >
             <ProfileHeader chart={chart} onEdit={editChart} />
-            <KundaliResult chart={chart} report={report} initialTab={initialTab} />
+            {offlineFrom && (
+              <p role="status" className="mx-auto mt-6 max-w-2xl rounded-xl border border-gold/40 bg-gold/5 px-4 py-2.5 text-center text-sm text-cream">
+                You&rsquo;re offline — showing the copy saved on this device on {new Date(offlineFrom).toLocaleString()}.
+              </p>
+            )}
+            <KundaliResult chart={chart} report={report} initialTab={initialTab} loadSections={loadSections} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -339,5 +382,32 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="mb-2 block text-xs font-semibold text-muted">{label}</span>
       {children}
     </label>
+  );
+}
+
+/** Kundlis opened on this device before — they open even offline. */
+function RecentCharts({ onPick }: { onPick: (input: BirthParams) => void }) {
+  const [recent, setRecent] = useState<StoredChart[]>([]);
+  useEffect(() => {
+    let alive = true;
+    void listCharts().then((list) => alive && setRecent(list));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  if (!recent.length) return null;
+  return (
+    <div className="mt-5 text-center">
+      <p className="text-xs font-semibold text-muted">Recently opened on this device</p>
+      <ul className="mt-2 flex flex-wrap justify-center gap-2">
+        {recent.map((r) => (
+          <li key={r.key}>
+            <button type="button" onClick={() => onPick(r.input)} className="rounded-full border border-border px-4 py-2 text-sm text-cream hover:border-gold">
+              {r.input.name} <span className="text-xs text-muted">· {r.input.date}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
