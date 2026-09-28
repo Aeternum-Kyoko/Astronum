@@ -23,7 +23,6 @@ import RemediesPanel from "@/components/RemediesPanel";
 import DashaExplorer from "@/components/DashaExplorer";
 import { LifeReportPanel, PlanetReadingsPanel, TransitsPanel } from "@/components/ReportPanels";
 import type { HeavySection, KundaliReport } from "@/lib/astrology/report";
-import { toBirthQuery } from "@/lib/birthParams";
 import YogaAnalysisPanel from "@/components/YogaAnalysisPanel";
 import { CareerPanel, HousesPanel, TimelinePanel } from "@/components/DeepReportPanels";
 import { CharaPanel, KpPanel, LifeSectorsPanel, VimshottariDetail, YoginiPanel } from "@/components/DashaSystemsPanels";
@@ -166,36 +165,9 @@ export default function KundaliResult({
   }, [tab]);
 
   return (
-    <div className="mt-10">
-      <div className="h-px bg-border print:hidden" />
+    <div>
       <div className="print:hidden">
-        <h2 className="mt-10 text-center text-3xl leading-[1.05] font-bold tracking-tight text-cream md:text-5xl">
-          {chart.input.name ? `${chart.input.name}'s` : "Your"} Birth Chart
-        </h2>
-        <p className="mt-4 text-center text-base text-muted">
-          Ascendant: <span className="text-gold-bright">{chart.ascendant.sign}</span> ·{" "}
-          {chart.ascendant.degreeInSign.toFixed(2)}° · Ayanamsa {chart.ayanamsa.toFixed(2)}°
-        </p>
-
-        <div className="mt-6 flex justify-center">
-          <div className="flex flex-wrap justify-center gap-2">
-            <a
-              href={`/api/kundali/pdf?${toBirthQuery(chart.input)}`}
-              className="rounded-full bg-gold px-5 py-2 text-xs font-semibold text-on-gold transition-colors hover:bg-gold-bright"
-            >
-              Download PDF Report
-            </a>
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="rounded-full border border-gold/50 px-5 py-2 text-xs font-semibold text-gold-bright transition-colors hover:bg-gold/10"
-            >
-              Print
-            </button>
-          </div>
-        </div>
-
-        <div id="kundli-sections" className="mt-10 scroll-mt-24 lg:grid lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-8">
+        <div id="kundli-sections" className="scroll-mt-24 lg:grid lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-8">
           <nav aria-label="Chart sections" className="lg:sticky lg:top-24 lg:self-start">
             {/* Phones: a row of groups, then the sections in the chosen group. */}
             <div className="lg:hidden">
@@ -407,7 +379,7 @@ function OverviewTab({ chart }: { chart: KundaliChart }) {
       </SummaryCard>
 
       <Card className="md:col-span-3">
-        <h3 className="text-xl font-bold tracking-tight text-gold-bright">Where You Are Now</h3>
+        <h3 className="text-xl font-bold tracking-tight text-cream">Where You Are Now</h3>
         {chart.currentDasha ? (
           <p className="mt-4 text-base leading-relaxed text-muted">
             You are running <span className="text-cream">{chart.currentDasha.lord} Mahadasha</span>
@@ -444,7 +416,7 @@ function OverviewTab({ chart }: { chart: KundaliChart }) {
       </Card>
 
       <Card className="md:col-span-3">
-        <h3 className="text-xl font-bold tracking-tight text-gold-bright">Planet Strength</h3>
+        <h3 className="text-xl font-bold tracking-tight text-cream">Planet Strength</h3>
         <p className="mt-2 text-sm text-muted">
           Each planet&rsquo;s Shadbala rupas against what it classically needs to act at full strength.
         </p>
@@ -474,7 +446,7 @@ function OverviewTab({ chart }: { chart: KundaliChart }) {
       </Card>
 
       <Card>
-        <h3 className="text-xl font-bold tracking-tight text-gold-bright">Yogas Present</h3>
+        <h3 className="text-xl font-bold tracking-tight text-cream">Yogas Present</h3>
         {presentYogas.length === 0 ? (
           <p className="mt-4 text-sm text-muted">None of the classical combinations checked are present in this chart.</p>
         ) : (
@@ -487,7 +459,7 @@ function OverviewTab({ chart }: { chart: KundaliChart }) {
       </Card>
 
       <Card className="md:col-span-2">
-        <h3 className="text-xl font-bold tracking-tight text-gold-bright">Doshas Flagged</h3>
+        <h3 className="text-xl font-bold tracking-tight text-cream">Doshas Flagged</h3>
         {presentDoshas.length === 0 ? (
           <p className="mt-4 text-sm text-muted">None of the doshas checked are indicated in this chart.</p>
         ) : (
@@ -789,7 +761,7 @@ function MoreVargasTab({
           options={MORE_VARGA_KEYS.map((key) => ({ value: key, label: key }))}
         />
       </div>
-      <h3 className="mt-6 text-center text-lg font-semibold text-gold-bright">
+      <h3 className="mt-6 text-center text-lg font-semibold text-cream">
         <Link href={`/learn/divisional-charts#${selected}`} className="hover:text-gold">
           {selected} · {info.title}
         </Link>
@@ -948,7 +920,7 @@ function DashasTab({ chart, report }: { chart: KundaliChart; report: KundaliRepo
       <DashaExplorer chart={chart} />
       <VimshottariDetail report={report} />
       <Card>
-        <h3 className="text-xl font-bold tracking-tight text-gold-bright">Vimshottari Mahadasha Timeline</h3>
+        <h3 className="text-xl font-bold tracking-tight text-cream">Vimshottari Mahadasha Timeline</h3>
         <p className="mt-2 text-xs text-muted">
           The 120-year Vimshottari cycle, starting from your Moon&rsquo;s nakshatra at birth.
         </p>
@@ -961,7 +933,7 @@ function DashasTab({ chart, report }: { chart: KundaliChart; report: KundaliRepo
 
       <div className="space-y-6">
         <Card>
-          <h3 className="text-xl font-bold tracking-tight text-gold-bright">
+          <h3 className="text-xl font-bold tracking-tight text-cream">
             Antardashas within {chart.currentDasha?.lord ?? "—"} Mahadasha
           </h3>
           <p className="mt-2 text-xs text-muted">
@@ -975,7 +947,7 @@ function DashasTab({ chart, report }: { chart: KundaliChart; report: KundaliRepo
         </Card>
 
         <Card>
-          <h3 className="text-xl font-bold tracking-tight text-gold-bright">Sade Sati</h3>
+          <h3 className="text-xl font-bold tracking-tight text-cream">Sade Sati</h3>
           <p className="mt-4 text-sm leading-relaxed text-muted">{chart.sadeSati.description}</p>
         </Card>
       </div>
@@ -993,7 +965,7 @@ function YogasDoshasTab({ chart }: { chart: KundaliChart }) {
       <YogaAnalysisPanel chart={chart} />
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
-          <h3 className="text-xl font-bold tracking-tight text-gold-bright">Other classical yogas</h3>
+          <h3 className="text-xl font-bold tracking-tight text-cream">Other classical yogas</h3>
           <ul className="mt-5 space-y-5">
             {sortedYogas.map((y) => (
               <li key={y.name}>
@@ -1007,7 +979,7 @@ function YogasDoshasTab({ chart }: { chart: KundaliChart }) {
         </Card>
 
         <Card>
-          <h3 className="text-xl font-bold tracking-tight text-gold-bright">Doshas</h3>
+          <h3 className="text-xl font-bold tracking-tight text-cream">Doshas</h3>
           <ul className="mt-5 space-y-5">
             {sortedDoshas.map((d) => (
               <li key={d.name}>

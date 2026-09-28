@@ -117,7 +117,7 @@ function PanchangBody({
 
       <div className="grid gap-4 md:grid-cols-2">
         <section className="card-edge rounded-2xl p-6">
-          <h2 className="text-lg font-bold text-gold-bright">{t.auspicious}</h2>
+          <h2 className="text-lg font-bold text-cream">{t.auspicious}</h2>
           <dl className="mt-3 text-sm">
             <TimingRow label={t.brahma} value={span(x.brahmaMuhurta)} />
             <TimingRow label={t.abhijit} value={span(p.abhijit)} />

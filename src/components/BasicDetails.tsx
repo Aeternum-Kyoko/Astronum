@@ -70,7 +70,7 @@ export default function BasicDetails({ chart }: { chart: KundaliChart }) {
 function DetailTable({ title, rows, note }: { title: string; rows: [string, string][]; note?: string }) {
   return (
     <section className="card-edge rounded-2xl p-5">
-      <h3 className="text-sm font-semibold text-gold-bright">{title}</h3>
+      <h3 className="text-sm font-semibold text-cream">{title}</h3>
       <dl className="mt-3 divide-y divide-border/50 text-sm">
         {rows.map(([label, value]) => (
           <div key={label} className="flex justify-between gap-4 py-2">

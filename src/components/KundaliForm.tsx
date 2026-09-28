@@ -11,9 +11,8 @@ import KundaliIntro from "@/components/KundaliIntro";
 import DatePicker from "@/components/DatePicker";
 import TimePicker from "@/components/TimePicker";
 import PlaceInput, { type PlaceSuggestion } from "@/components/PlaceInput";
-import CopyLinkButton from "@/components/CopyLinkButton";
-import SaveChartButton from "@/components/SaveChartButton";
 import ProfileChips from "@/components/ProfileChips";
+import KundliHeader from "@/components/KundliHeader";
 import { listCharts, loadChart, saveChart, type StoredChart } from "@/lib/offlineCharts";
 import { haptic } from "@/lib/haptics";
 
@@ -192,13 +191,15 @@ export default function KundaliForm() {
                     />
                   </Field>
 
-                  <div className="grid grid-cols-2 gap-5">
-                    <Field label="Date of birth">
-                      <DatePicker value={date} onChange={setDate} />
-                    </Field>
-                    <Field label="Time of birth">
-                      <TimePicker value={time} onChange={setTime} />
-                    </Field>
+                  <div className="@container">
+                    <div className="grid gap-5 @sm:grid-cols-2">
+                      <Field label="Date of birth">
+                        <DatePicker value={date} onChange={setDate} />
+                      </Field>
+                      <Field label="Time of birth">
+                        <TimePicker value={time} onChange={setTime} />
+                      </Field>
+                    </div>
                   </div>
 
                   <div className="md:col-span-2">
@@ -253,7 +254,7 @@ export default function KundaliForm() {
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.7, ease: EASE_OUT_EXPO }}
           >
-            <ProfileHeader chart={chart} onEdit={editChart} />
+            <KundliHeader chart={chart} onEdit={editChart} />
             {offlineFrom && (
               <p role="status" className="mx-auto mt-6 max-w-2xl rounded-xl border border-gold/40 bg-gold/5 px-4 py-2.5 text-center text-sm text-cream">
                 You&rsquo;re offline — showing the copy saved on this device on {new Date(offlineFrom).toLocaleString()}.
@@ -303,76 +304,6 @@ function LoadingCard() {
         ))}
       </ul>
     </div>
-  );
-}
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function formatDateDisplay(iso: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  if (!m) return iso;
-  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
-}
-
-function formatTimeDisplay(hhmm: string): string {
-  const m = /^(\d{2}):(\d{2})$/.exec(hhmm);
-  if (!m) return hhmm;
-  const h = Number(m[1]);
-  const minute = m[2];
-  const period = h >= 12 ? "PM" : "AM";
-  let h12 = h % 12;
-  if (h12 === 0) h12 = 12;
-  return `${h12}:${minute} ${period}`;
-}
-
-function ProfileHeader({ chart, onEdit }: { chart: KundaliChart; onEdit: () => void }) {
-  const { name, date, time, place } = chart.input;
-  return (
-    <div className="card-edge mb-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl p-5">
-      <div className="flex items-center gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-gold-bright to-gold font-display text-lg font-bold text-on-gold">
-          {getInitials(name)}
-        </div>
-        <div>
-          <p className="font-display text-lg text-cream">{name}</p>
-          <p className="text-xs text-muted">
-            {formatDateDisplay(date)} · {formatTimeDisplay(time)}
-            {place ? ` · ${place}` : ""}
-          </p>
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <SaveChartButton input={chart.input} />
-        <CopyLinkButton />
-        <button
-          type="button"
-          onClick={onEdit}
-          className="flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-semibold text-cream transition-colors hover:border-gold hover:text-gold-bright"
-        >
-          <EditIcon />
-          Edit Chart
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function EditIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <path
-        d="M11.5 2.5a1.5 1.5 0 0 1 2 2L5 13l-3 1 1-3 8.5-8.5Z"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
 

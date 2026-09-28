@@ -3,6 +3,7 @@ import { DateTime } from "luxon";
 import { prisma } from "@/lib/db";
 import SkyDial, { skyNow } from "@/components/SkyDial";
 import QuickKundaliForm from "@/components/QuickKundaliForm";
+import ToolIcon from "@/components/icons/ToolIcon";
 import { NAKSHATRAS, SIGNS, SIGN_SANSKRIT } from "@/lib/astrology/constants";
 import { tithiIndex, tithiName } from "@/lib/astrology/birthDetails";
 import { observancesForYear } from "@/lib/astrology/festivals";
@@ -59,11 +60,12 @@ export default async function HomeView({ locale }: { locale: Locale }) {
     <>
       {/* Hero: always the night sky, whatever the page theme. */}
       <section className="theme-night relative overflow-hidden">
-        <div className="mx-auto max-w-6xl px-5 pt-16 pb-20 text-center md:pt-24">
+        <div className="mx-auto max-w-6xl px-5 pt-10 pb-16 text-center sm:pt-16 md:pt-24 md:pb-20">
           <h1 className="mx-auto max-w-4xl text-5xl leading-[0.95] font-semibold text-cream sm:text-6xl md:text-8xl">{t.heroTitle}</h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted md:text-xl">{t.heroBody}</p>
+          <p className="mx-auto mt-5 max-w-xs text-lg leading-snug text-muted sm:hidden">{t.heroShort}</p>
+          <p className="mx-auto mt-6 hidden max-w-2xl text-lg leading-relaxed text-muted sm:block md:text-xl">{t.heroBody}</p>
 
-          <SkyDial sky={sky} className="mx-auto mt-12 w-full max-w-[600px]" />
+          <SkyDial sky={sky} className="mx-auto mt-8 w-full max-w-[600px] sm:mt-12" />
 
           <p className="mx-auto mt-8 max-w-xl text-base text-cream md:text-lg">{t.heroNow(moonSign, nakshatra, tithiLabel)}</p>
           <p className="mt-1 text-sm text-muted">{t.updated(now.toFormat("h:mm a"))}</p>
@@ -81,7 +83,7 @@ export default async function HomeView({ locale }: { locale: Locale }) {
 
       {/* Make a kundli */}
       <section id="kundli-form" className="scroll-mt-20 border-b border-border">
-        <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 md:grid-cols-[1fr_minmax(0,440px)] md:items-center md:py-28">
+        <div className="mx-auto grid max-w-6xl gap-12 px-5 py-14 md:grid-cols-[1fr_minmax(0,440px)] md:items-center md:py-28">
           <div>
             <h2 className="text-4xl leading-none font-semibold text-cream md:text-6xl">{t.formTitle}</h2>
             <p className="mt-5 max-w-md text-lg leading-relaxed text-muted">{t.formBody}</p>
@@ -99,35 +101,41 @@ export default async function HomeView({ locale }: { locale: Locale }) {
       </section>
 
       {/* The instrument catalogue */}
-      <section className="mx-auto max-w-6xl px-5 py-20 md:py-28">
+      <section className="mx-auto max-w-6xl px-5 py-14 md:py-28">
         <h2 className="text-4xl leading-none font-semibold text-cream md:text-6xl">{t.toolsTitle}</h2>
         <p className="mt-4 text-lg text-muted">{t.toolsBody}</p>
-        <ul className="mt-12">
+        <ul className="mt-10 md:mt-12">
           {TOOLS.map((tool) => {
             const [title, body] = d.tools[tool.key];
             return (
               <li key={tool.key}>
-                <div className="scale-rule" aria-hidden="true" />
+                <div className="scale-rule hidden md:block" aria-hidden="true" />
                 <Link
                   href={href(tool.href)}
-                  className="group grid gap-1 py-6 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,1fr)] md:items-baseline md:gap-8"
+                  className="group grid grid-cols-[2.75rem_minmax(0,1fr)] items-center gap-x-4 border-t border-border/50 py-4 md:grid-cols-[2.75rem_minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,1fr)] md:items-baseline md:gap-x-8 md:border-0 md:py-6"
                 >
-                  <span className="text-2xl font-semibold text-cream transition-colors group-hover:text-gold-bright md:text-3xl" style={{ fontVariationSettings: '"wdth" 82' }}>
+                  <span className="row-span-2 flex h-11 w-11 items-center justify-center self-center rounded-full border border-border/70 text-gold-bright transition-colors group-hover:border-gold md:row-span-1 md:self-baseline md:translate-y-2.5">
+                    <ToolIcon name={tool.key} className="h-[1.35rem] w-[1.35rem]" />
+                  </span>
+                  <span className="text-xl font-semibold text-cream transition-colors group-hover:text-gold-bright md:text-3xl" style={{ fontVariationSettings: '"wdth" 82' }}>
                     {title}
                   </span>
-                  <span className="text-base text-muted">{body}</span>
-                  <span className="text-sm font-medium text-gold-bright md:text-right">{live[tool.key] ?? ""}</span>
+                  <span className="text-sm text-muted md:text-base">
+                    {body}
+                    {live[tool.key] && <span className="mt-0.5 block font-medium text-gold-bright md:hidden">{live[tool.key]}</span>}
+                  </span>
+                  <span className="hidden text-sm font-medium text-gold-bright md:block md:text-right">{live[tool.key] ?? ""}</span>
                 </Link>
               </li>
             );
           })}
-          <li className="scale-rule" aria-hidden="true" />
+          <li className="scale-rule hidden md:block" aria-hidden="true" />
         </ul>
       </section>
 
       {/* Horoscope by sign, set as type */}
       <section className="border-y border-border bg-surface">
-        <div className="mx-auto max-w-6xl px-5 py-20 md:py-24">
+        <div className="mx-auto max-w-6xl px-5 py-14 md:py-24">
           <h2 className="text-3xl leading-none font-semibold text-cream md:text-5xl">{t.zodiacTitle}</h2>
           <ul className="mt-10 grid grid-cols-2 gap-x-8 gap-y-1 sm:grid-cols-3 lg:grid-cols-4">
             {SIGNS.map((sign) => (
@@ -147,7 +155,7 @@ export default async function HomeView({ locale }: { locale: Locale }) {
       </section>
 
       {/* Why it can be trusted */}
-      <section className="mx-auto max-w-6xl px-5 py-20 md:py-28">
+      <section className="mx-auto max-w-6xl px-5 py-14 md:py-28">
         <h2 className="max-w-3xl text-4xl leading-none font-semibold text-cream md:text-6xl">{t.builtTitle}</h2>
         <div className="mt-14 grid gap-10 md:grid-cols-3">
           {t.facts.map((f) => (
@@ -161,7 +169,7 @@ export default async function HomeView({ locale }: { locale: Locale }) {
 
       {/* The astrologer */}
       <section className="theme-night">
-        <div className="mx-auto max-w-4xl px-5 py-20 text-center md:py-28">
+        <div className="mx-auto max-w-4xl px-5 py-14 text-center md:py-28">
           <h2 className="text-4xl leading-none font-semibold text-cream md:text-6xl">{t.guidanceTitle}</h2>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted">{t.guidanceBody}</p>
           <Link href="/about" className="mt-8 inline-block font-medium text-gold-bright underline-offset-4 hover:underline">
@@ -171,19 +179,19 @@ export default async function HomeView({ locale }: { locale: Locale }) {
       </section>
 
       {posts.length > 0 && (
-        <section className="mx-auto max-w-6xl px-5 py-20 md:py-28">
+        <section className="mx-auto max-w-6xl px-5 py-14 md:py-28">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <h2 className="text-3xl leading-none font-semibold text-cream md:text-5xl">{t.blogTitle}</h2>
             <Link href="/blog" className="font-medium text-gold-bright underline-offset-4 hover:underline">
               {t.viewAll}
             </Link>
           </div>
-          <ul className="mt-10 grid gap-10 md:grid-cols-3">
+          <ul className={`mt-10 grid gap-10 ${posts.length === 1 ? "max-w-2xl" : "md:grid-cols-3"}`}>
             {posts.map((post) => (
               <li key={post.id} className="border-t border-border pt-6">
                 <Link href={`/blog/${post.slug}`} className="group block">
                   <p className="text-sm text-gold-bright">{post.category}</p>
-                  <h3 className="mt-2 text-2xl leading-tight font-semibold text-cream group-hover:text-gold-bright">{post.title}</h3>
+                  <h3 className="mt-2 text-2xl leading-tight font-semibold text-cream group-hover:text-cream">{post.title}</h3>
                   <p className="mt-3 line-clamp-3 leading-relaxed text-muted">{post.excerpt}</p>
                 </Link>
               </li>
@@ -193,7 +201,7 @@ export default async function HomeView({ locale }: { locale: Locale }) {
       )}
 
       <section className="border-t border-border">
-        <div className="mx-auto max-w-4xl px-5 py-20 text-center md:py-28">
+        <div className="mx-auto max-w-4xl px-5 py-14 text-center md:py-28">
           <h2 className="text-4xl leading-none font-semibold text-cream md:text-6xl">{t.ctaTitle}</h2>
           <p className="mx-auto mt-6 max-w-xl text-lg text-muted">{t.ctaBody}</p>
           <Link

@@ -73,7 +73,7 @@ export default function PrashnaTool() {
             Asked {new Date(result.askedAt).toLocaleString()} · Lagna {result.chart.ascendant} · Moon in {result.chart.moonSign} ({result.chart.moonNakshatra})
           </p>
           <p className="mt-4 text-cream">{result.advice}</p>
-          <h3 className="mt-6 text-sm font-semibold text-gold-bright">How the answer was reached</h3>
+          <h3 className="mt-6 text-sm font-semibold text-cream">How the answer was reached</h3>
           <ul className="mt-2 space-y-2 text-sm">
             {result.factors.map((f) => (
               <li key={f.name} className="rounded-xl border border-border/70 px-4 py-3">

@@ -175,13 +175,15 @@ export default function ConsultationForm({ plans }: { plans: ConsultationPlan[] 
         <Field label="Phone (optional)">
           <input value={phone} onChange={(e) => setPhone(e.target.value)} className="input" autoComplete="tel" />
         </Field>
-        <div className="grid grid-cols-2 gap-5">
-          <Field label="Date of birth">
-            <DatePicker value={birthDate} onChange={setBirthDate} />
-          </Field>
-          <Field label="Time of birth">
-            <TimePicker value={birthTime} onChange={setBirthTime} />
-          </Field>
+        <div className="@container">
+          <div className="grid gap-5 @sm:grid-cols-2">
+            <Field label="Date of birth">
+              <DatePicker value={birthDate} onChange={setBirthDate} />
+            </Field>
+            <Field label="Time of birth">
+              <TimePicker value={birthTime} onChange={setBirthTime} />
+            </Field>
+          </div>
         </div>
         <div className="md:col-span-2">
           <Field label="Place of birth">

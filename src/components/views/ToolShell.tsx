@@ -35,24 +35,29 @@ export default async function ToolShell({
   const profiles = birth ? [] : await getProfiles();
   return (
     <section className="relative">
-      <div className="relative mx-auto max-w-5xl px-5 py-14 md:py-20">
-        <header className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold text-gold-bright">{eyebrow}</p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-cream md:text-5xl">{title}</h1>
-          <p className="mt-4 text-base leading-relaxed text-muted">{intro}</p>
-        </header>
+      <div className={`relative mx-auto max-w-5xl px-5 ${birth ? "py-8 md:py-14" : "py-14 md:py-20"}`}>
         {birth ? (
-          <div className="mt-10">
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-surface/60 px-5 py-3 text-sm">
-              <span className="text-muted">
-                <span className="font-semibold text-cream">{birth.name}</span> · {birth.date} · {birth.time} · {birth.place}
-              </span>
-              <Link href={path} className="text-xs font-semibold text-gold-bright hover:text-gold">
-                Change details
-              </Link>
+          // With a result on screen, the page title steps back so the reading comes first.
+          <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-border/50 pb-5">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-cream md:text-3xl">{eyebrow}</h1>
+              <p className="mt-1 text-sm text-muted">
+                {[birth.name, birth.date, birth.time, birth.place].filter(Boolean).join(", ")}
+              </p>
             </div>
-            {children}
-          </div>
+            <Link href={path} className="text-sm font-semibold text-cream underline decoration-gold/60 underline-offset-4 hover:decoration-gold">
+              Change details
+            </Link>
+          </header>
+        ) : (
+          <header className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-semibold text-gold-bright">{eyebrow}</p>
+            <h1 className="mt-3 text-4xl font-bold tracking-tight text-cream md:text-5xl">{title}</h1>
+            <p className="mt-4 text-base leading-relaxed text-muted">{intro}</p>
+          </header>
+        )}
+        {birth ? (
+          <div className="mt-8">{children}</div>
         ) : (
           <div className="mx-auto mt-10 max-w-md">
             {profiles.length > 0 && (

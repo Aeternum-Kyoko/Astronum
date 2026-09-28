@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DateTime } from "luxon";
+import ScoreArc from "@/components/ScoreArc";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getProfiles, type Profile } from "@/lib/profiles";
 import { calculateKundali } from "@/lib/astrology/kundali";
@@ -16,7 +17,6 @@ import PullToRefresh from "@/components/PullToRefresh";
 
 export const metadata: Metadata = { title: "Today for you", robots: { index: false } };
 
-const stars = (n: number) => "★".repeat(n) + "☆".repeat(5 - n);
 
 function dayFor(p: Profile, now: Date) {
   const chart = calculateKundali(p);
@@ -91,13 +91,15 @@ export default async function TodayPage() {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <section className="card-edge rounded-3xl p-7">
-          <p className="text-sm text-muted">
-            {me.name} · {me.relation}
-          </p>
-          <p className="mt-2 text-4xl text-gold-bright" role="img" aria-label={`${mine.day.stars} out of 5`}>
-            {stars(mine.day.stars)}
-          </p>
-          <p className="mt-1 text-sm text-muted">Score {mine.day.score}/100</p>
+          <div className="flex items-center gap-6">
+            <ScoreArc score={mine.day.score} size={112} />
+            <div>
+              <p className="text-sm text-muted">
+                {me.name}, {me.relation}
+              </p>
+              <p className="mt-1 text-2xl leading-tight font-bold text-cream">{mine.day.stars >= 4 ? "A strong day" : mine.day.stars === 3 ? "A balanced day" : "A day to go gently"}</p>
+            </div>
+          </div>
           <ul className="mt-4 space-y-2 text-sm">
             <li>
               <span className={`font-semibold ${mine.day.tarabala.tara.good ? "text-gold-bright" : "text-rose"}`}>{mine.day.tarabala.tara.name} tara</span>
@@ -198,9 +200,10 @@ export default async function TodayPage() {
                   <p className="font-semibold text-cream">
                     {p.name} <span className="text-xs font-normal text-muted">· {p.relation}</span>
                   </p>
-                  <p className="mt-1 text-2xl text-gold-bright" role="img" aria-label={`${d.day.stars} out of 5`}>
-                    {stars(d.day.stars)}
-                  </p>
+                  <div className="mt-3 flex items-center gap-3">
+                    <ScoreArc score={d.day.score} size={56} label="" />
+                    <span className="text-sm text-cream">{d.day.stars >= 4 ? "A strong day" : d.day.stars === 3 ? "A balanced day" : "A day to go gently"}</span>
+                  </div>
                   <p className="text-xs text-muted">
                     {d.day.tarabala.tara.name} tara · {d.running.slice(0, 2).map((x) => x.lord).join("–")} dasha{d.chart.sadeSati.active ? " · Sade Sati" : ""}
                   </p>

@@ -23,7 +23,7 @@ export default function HousesExplorer() {
           {filtered.map((h) => (
             <article key={h.house} id={`house-${h.house}`} className="card-edge scroll-mt-24 rounded-2xl p-6">
               <div className="flex items-baseline justify-between">
-                <h2 className="font-display text-xl text-gold-bright">
+                <h2 className="font-display text-xl text-cream">
                   House {h.house} <span className="text-sm text-muted">· {h.sanskritName}</span>
                 </h2>
                 <span className="text-xs text-muted">{h.karaka.join(", ")}</span>

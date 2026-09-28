@@ -15,6 +15,19 @@ export const PLANET_ABBR: Record<string, string> = {
   Ketu: "Ke",
 };
 
+/** Traditional planet symbols; Rahu and Ketu use the lunar node signs. */
+export const PLANET_GLYPH: Record<string, string> = {
+  Sun: "☉",
+  Moon: "☽",
+  Mars: "♂",
+  Mercury: "☿",
+  Jupiter: "♃",
+  Venus: "♀",
+  Saturn: "♄",
+  Rahu: "☊",
+  Ketu: "☋",
+};
+
 // Square corners, edge midpoints, and diagonal half-midpoints used to build
 // the classic North Indian diamond: outer square + both corner-to-corner
 // diagonals + the diamond connecting edge midpoints. Houses 1/4/7/10 (the

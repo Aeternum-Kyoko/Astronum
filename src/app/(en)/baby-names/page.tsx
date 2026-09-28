@@ -78,7 +78,7 @@ export default async function BabyNamesPage({ searchParams }: PageProps<"/baby-n
             </p>
             {groups.map((g) => (
               <section key={g.syllable} className="card-edge rounded-2xl p-6">
-                <h2 className="text-lg font-bold text-gold-bright">Names starting with &ldquo;{g.syllable}&rdquo;</h2>
+                <h2 className="text-lg font-bold text-cream">Names starting with &ldquo;{g.syllable}&rdquo;</h2>
                 {g.names.length ? (
                   <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {g.names.map((x) => (

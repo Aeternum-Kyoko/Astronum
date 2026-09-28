@@ -61,7 +61,7 @@ export function FestivalYearView({ locale, year, type }: { locale: Locale; year:
       <div className="mt-8 space-y-8">
         {[...byMonth.entries()].map(([month, list]) => (
           <section key={month}>
-            <h2 className="text-lg font-bold text-gold-bright">{DateTime.fromISO(`${month}-01`).setLocale(locale).toFormat("LLLL yyyy")}</h2>
+            <h2 className="text-lg font-bold text-cream">{DateTime.fromISO(`${month}-01`).setLocale(locale).toFormat("LLLL yyyy")}</h2>
             <ul className="mt-3 divide-y divide-border/50 rounded-2xl border border-border/70 bg-surface/60">
               {list.map((o) => {
                 const d = DateTime.fromISO(o.date).setLocale(locale);

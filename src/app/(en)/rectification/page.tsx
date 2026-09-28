@@ -27,7 +27,7 @@ export default function RectificationPage() {
 
         <div className="mt-12 grid gap-6 md:grid-cols-2">
           <section className="card-edge rounded-2xl p-6">
-            <h2 className="text-lg font-bold text-gold-bright">How it works</h2>
+            <h2 className="text-lg font-bold text-cream">How it works</h2>
             <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-muted">
               <li>Every minute in your window becomes a candidate birth time, and a full chart is cast for each.</li>
               <li>For each event, we find the Mahadasha, Antardasha and Pratyantardasha running on that date. A small change in birth time moves the Moon, which moves every dasha date — so only the right time puts the right lords on your events.</li>
@@ -37,7 +37,7 @@ export default function RectificationPage() {
             </ol>
           </section>
           <section className="card-edge rounded-2xl p-6">
-            <h2 className="text-lg font-bold text-gold-bright">Getting a reliable answer</h2>
+            <h2 className="text-lg font-bold text-cream">Getting a reliable answer</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-muted">
               <li>Use events with exact dates from documents — a wedding card, a joining letter, a child&rsquo;s birth certificate.</li>
               <li>Mix kinds of events. Three different kinds separate candidates far better than three of the same.</li>
@@ -49,7 +49,7 @@ export default function RectificationPage() {
         </div>
 
         <section className="card-edge mt-6 rounded-2xl p-6">
-          <h2 className="text-lg font-bold text-gold-bright">What each event looks for</h2>
+          <h2 className="text-lg font-bold text-cream">What each event looks for</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[34rem] text-left text-sm">
               <thead className="text-xs text-muted">

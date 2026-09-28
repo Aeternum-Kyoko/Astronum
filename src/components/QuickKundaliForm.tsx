@@ -54,13 +54,15 @@ export default function QuickKundaliForm({ copy, target = "/kundali" }: { copy: 
             autoComplete="name"
           />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={copy.date}>
-            <DatePicker value={date} onChange={setDate} />
-          </Field>
-          <Field label={copy.time}>
-            <TimePicker value={time} onChange={setTime} />
-          </Field>
+        <div className="@container">
+          <div className="grid gap-3 @sm:grid-cols-2">
+            <Field label={copy.date}>
+              <DatePicker value={date} onChange={setDate} />
+            </Field>
+            <Field label={copy.time}>
+              <TimePicker value={time} onChange={setTime} />
+            </Field>
+          </div>
         </div>
         <Field label={copy.place}>
           <PlaceInput selected={place} onSelect={setPlace} showTimezone={false} placeholder={copy.placePlaceholder} />

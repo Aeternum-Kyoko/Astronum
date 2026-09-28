@@ -4,6 +4,7 @@ import { DateTime } from "luxon";
 import ToolShell, { birthFromParams } from "@/components/views/ToolShell";
 import KundliChart from "@/components/KundliChart";
 import { Stars } from "@/components/HoroscopeParts";
+import ScoreArc from "@/components/ScoreArc";
 import { calculateKundali } from "@/lib/astrology/kundali";
 import { computeDailyTransits, resolveHoroscopeDay } from "@/lib/astrology/horoscope";
 import { personalDay, HOUSE_TOPIC, TARAS } from "@/lib/astrology/personalDaily";
@@ -70,12 +71,14 @@ export default async function PersonalHoroscopePage({ searchParams }: PageProps<
           </div>
         </nav>
 
-        <section className="card-edge rounded-3xl p-7 md:p-9">
-          <p className="text-sm font-semibold text-gold-bright">{DateTime.fromISO(date).toFormat("cccc, d LLLL yyyy")}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-4">
-            <h2 className="text-3xl font-bold text-cream md:text-4xl">{tone}</h2>
-            <Stars rating={day.stars} size="text-2xl" label={`${day.stars} out of 5`} />
-            <span className="font-tabular rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-sm font-semibold text-gold-bright">{day.score}/100</span>
+        <section className="card-edge rounded-3xl p-5 sm:p-7 md:p-9">
+          <div className="flex items-center gap-6 md:gap-8">
+            <ScoreArc score={day.score} size={112} />
+            <div>
+              <p className="text-sm font-semibold text-gold-bright">{DateTime.fromISO(date).toFormat("cccc, d LLLL yyyy")}</p>
+              <h2 className="mt-1.5 text-3xl leading-tight font-bold text-cream md:text-4xl">{tone}</h2>
+              <Stars rating={day.stars} size="text-base" label={`${day.stars} out of 5`} />
+            </div>
           </div>
           <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted">
             Today&rsquo;s Moon passes through {SIGNS[transits.moonSignIndex]} ({transits.moonNakshatra}), your {ordinal(day.moonHouseFromLagna)} house from the Lagna, so{" "}
@@ -137,12 +140,12 @@ export default async function PersonalHoroscopePage({ searchParams }: PageProps<
 
         <div className="grid gap-4 md:grid-cols-2">
           <section className="card-edge rounded-2xl p-6">
-            <h3 className="text-lg font-bold text-gold-bright">Today&rsquo;s planets from your Lagna</h3>
+            <h3 className="text-lg font-bold text-cream">Today&rsquo;s planets from your Lagna</h3>
             <p className="mt-1 mb-5 text-sm text-muted">Your {chart.ascendant.sign} ascendant as the 1st house. Houses show which part of life each planet touches.</p>
             <KundliChart ascendantSignIndex={chart.ascendant.signIndex} planets={chartPoints(chart.ascendant.signIndex)} toggleId="personal-lagna" />
           </section>
           <section className="card-edge rounded-2xl p-6">
-            <h3 className="text-lg font-bold text-gold-bright">Today&rsquo;s planets from your Moon</h3>
+            <h3 className="text-lg font-bold text-cream">Today&rsquo;s planets from your Moon</h3>
             <p className="mt-1 mb-5 text-sm text-muted">Your {moon.sign} Moon as the 1st house. Gochara judges good and bad transits from here.</p>
             <KundliChart ascendantSignIndex={moon.signIndex} planets={chartPoints(moon.signIndex)} toggleId="personal-moon" />
           </section>

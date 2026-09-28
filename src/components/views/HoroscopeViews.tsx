@@ -245,7 +245,7 @@ function WhyThisReading({ locale, signIndex, transits, h }: { locale: Locale; si
   return (
     <div className="mt-6 space-y-4">
       <section className="card-edge rounded-2xl p-6">
-        <h2 className="text-lg font-bold text-gold-bright">{t.chartTitle}</h2>
+        <h2 className="text-lg font-bold text-cream">{t.chartTitle}</h2>
         <p className="mt-1 mb-5 text-sm text-muted">{t.chartNote(signName)}</p>
         <div className="mx-auto max-w-md">
           <KundliChart ascendantSignIndex={signIndex} planets={points} toggleId="daily-rashi-style" />
@@ -253,7 +253,7 @@ function WhyThisReading({ locale, signIndex, transits, h }: { locale: Locale; si
       </section>
 
       <section className="card-edge rounded-2xl p-6">
-        <h2 className="text-lg font-bold text-gold-bright">{t.whyTitle}</h2>
+        <h2 className="text-lg font-bold text-cream">{t.whyTitle}</h2>
         <p className="mt-1 text-sm text-muted">{t.whyIntro(signName)}</p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[30rem] text-left text-sm">

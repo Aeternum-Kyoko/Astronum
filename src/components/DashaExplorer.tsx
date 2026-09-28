@@ -61,7 +61,7 @@ export default function DashaExplorer({ chart }: { chart: KundaliChart }) {
     <section className="card-edge rounded-2xl p-6 md:col-span-2">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-xl font-bold text-gold-bright">Vimshottari explorer</h3>
+          <h3 className="text-xl font-bold text-cream">Vimshottari explorer</h3>
           <p className="mt-1 max-w-xl text-sm text-muted">Drill from the Mahadasha down to the Prana dasha — the finest level, timed to the minute.</p>
         </div>
         <button type="button" onClick={() => setPath(running.slice(0, MAX_DEPTH - 1))} className="rounded-full bg-gold px-4 py-2 text-xs font-semibold text-on-gold hover:bg-gold-bright">

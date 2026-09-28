@@ -37,7 +37,7 @@ export default async function BlogIndexPage() {
               className="card-edge group rounded-2xl p-6 transition-transform hover:-translate-y-1"
             >
               <p className="text-xs font-medium text-gold-bright">{post.category}</p>
-              <h2 className="mt-3 font-display text-xl text-cream group-hover:text-gold-bright">
+              <h2 className="mt-3 font-display text-xl text-cream group-hover:text-cream">
                 {post.title}
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-muted line-clamp-3">{post.excerpt}</p>

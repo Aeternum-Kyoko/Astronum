@@ -39,7 +39,7 @@ export default function LearnHubPage() {
           {CATEGORIES.map((c) => (
               <Link key={c.href} href={c.href} className="card-edge group block h-full rounded-2xl p-6 transition-transform hover:-translate-y-1">
                 <p className="text-xs font-semibold text-gold">{c.count}</p>
-                <h2 className="mt-2 font-display text-xl text-cream group-hover:text-gold-bright">{c.title}</h2>
+                <h2 className="mt-2 font-display text-xl text-cream group-hover:text-cream">{c.title}</h2>
                 <p className="mt-3 text-sm leading-relaxed text-muted">{c.blurb}</p>
               </Link>
           ))}

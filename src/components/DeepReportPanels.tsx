@@ -118,7 +118,7 @@ function HouseItem({ h, open, toggle }: { h: HouseReading; open: boolean; toggle
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h4 className="text-xs font-semibold text-gold-bright">{title}</h4>
+      <h4 className="text-xs font-semibold text-cream">{title}</h4>
       <div className="mt-1 text-muted">{children}</div>
     </div>
   );
@@ -133,7 +133,7 @@ export function CareerPanel({ report }: { report: KundaliReport | null }) {
   return (
     <div className="space-y-6">
       <section className="card-edge rounded-2xl p-6">
-        <h3 className="text-xl font-bold text-gold-bright">Your career in brief</h3>
+        <h3 className="text-xl font-bold text-cream">Your career in brief</h3>
         <dl className="mt-4 grid gap-3 sm:grid-cols-4">
           <Stat label="10th house" value={`${c.tenth.sign} · lord ${c.tenth.lord}`} />
           <Stat label="Amatyakaraka" value={c.amatyakaraka} />
@@ -161,7 +161,7 @@ export function CareerPanel({ report }: { report: KundaliReport | null }) {
             </li>
           ))}
         </ol>
-        <h4 className="mt-6 text-xs font-semibold text-gold-bright">Every planet&rsquo;s pull on your career</h4>
+        <h4 className="mt-6 text-xs font-semibold text-cream">Every planet&rsquo;s pull on your career</h4>
         <ul className="mt-2 space-y-2">
           {c.influences.map((i) => (
             <li key={i.planet} className="grid grid-cols-[5rem_1fr] items-center gap-3 text-sm">

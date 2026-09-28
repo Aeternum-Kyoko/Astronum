@@ -24,7 +24,7 @@ export default function PlanetsExplorer() {
           {filtered.map((p) => (
             <article key={p.name} id={p.name} className="card-edge scroll-mt-24 rounded-3xl p-7 md:p-9">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="font-display text-2xl text-gold-bright">
+                <h2 className="font-display text-2xl text-cream">
                   {p.name} <span className="text-base text-muted">· {p.sanskrit}</span>
                 </h2>
                 <span className="text-xs text-muted">{p.nature}</span>

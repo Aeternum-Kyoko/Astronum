@@ -23,7 +23,7 @@ export default function NakshatrasExplorer() {
           {filtered.map((n) => (
             <article key={n.name} id={n.name} className="card-edge scroll-mt-24 rounded-2xl p-5">
               <div className="flex items-baseline justify-between">
-                <h2 className="font-display text-lg text-gold-bright">
+                <h2 className="font-display text-lg text-cream">
                   {n.index + 1}. {n.name}
                 </h2>
                 <span className="text-xs text-muted">{n.rulingPlanet}</span>

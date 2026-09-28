@@ -23,7 +23,7 @@ function Missing() {
 }
 
 function H({ children }: { children: React.ReactNode }) {
-  return <h4 className="text-xs font-semibold text-gold-bright">{children}</h4>;
+  return <h4 className="text-xs font-semibold text-cream">{children}</h4>;
 }
 
 // ——— Vimshottari in depth ——————————————————————————————————————————
@@ -36,7 +36,7 @@ export function VimshottariDetail({ report }: { report: KundaliReport | null }) 
   const shown = open ?? current;
   return (
     <section className="card-edge rounded-2xl p-6 md:col-span-2">
-      <h3 className="text-xl font-bold text-gold-bright">Every Mahadasha, read in full</h3>
+      <h3 className="text-xl font-bold text-cream">Every Mahadasha, read in full</h3>
       <p className="mt-1 max-w-3xl text-sm text-muted">
         For each period: the lord&rsquo;s condition in your chart and why it matters, the houses it switches on, the yogas it carries, its effect on every area of life, and what to focus on. Open a period to read each Antardasha within it.
       </p>

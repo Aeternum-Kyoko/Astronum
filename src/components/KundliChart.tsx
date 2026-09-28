@@ -1,6 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+
+const GLYPH_KEY = "astronum-chart-glyphs";
+function readGlyphs(): boolean {
+  try {
+    return localStorage.getItem(GLYPH_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+function setGlyphs(on: boolean) {
+  try {
+    localStorage.setItem(GLYPH_KEY, on ? "1" : "0");
+  } catch {
+    /* not persisted */
+  }
+  window.dispatchEvent(new Event("chart-glyphs"));
+}
 import NorthIndianChart, { type ChartPick } from "@/components/NorthIndianChart";
 
 export type { ChartPick };
@@ -54,6 +71,14 @@ export default function KundliChart({
   const [ownStyle, setOwnStyle] = useState<ChartStyle>("north");
   const style = controlledStyle ?? ownStyle;
   const setStyle = onStyleChange ?? setOwnStyle;
+  const glyphs = useSyncExternalStore(
+    (cb) => {
+      window.addEventListener("chart-glyphs", cb);
+      return () => window.removeEventListener("chart-glyphs", cb);
+    },
+    readGlyphs,
+    () => false
+  );
   const used = [...new Set(planets.flatMap((p) => [...(p.markers ?? (p.retrograde ? "R" : ""))]))] as Marker[];
 
   return (
@@ -74,22 +99,27 @@ export default function KundliChart({
       <div className="mx-auto max-w-md">
         <ZoomableChart>
           {style === "north" ? (
-            <NorthIndianChart ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} />
+            <NorthIndianChart ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} glyphs={glyphs} />
           ) : (
-            <ChartGrid ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} />
+            <ChartGrid ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} glyphs={glyphs} />
           )}
         </ZoomableChart>
       </div>
-      {showLegend && used.length > 0 && (
-        <ul className="mx-auto mt-4 flex max-w-md flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted" aria-label="Chart symbols">
-          {used.map((m) => (
-            <li key={m}>
-              <span className={`mr-1 font-semibold ${m === "↓" || m === "C" || m === "R" ? "text-rose" : "text-gold-bright"}`}>{m}</span>
-              {MARKER_MEANING[m]}
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="mx-auto mt-4 flex max-w-md flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-muted">
+        {showLegend && used.length > 0 && (
+          <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1" aria-label="Chart symbols">
+            {used.map((m) => (
+              <li key={m}>
+                <span className={`mr-1 font-semibold ${m === "↓" || m === "C" || m === "R" ? "text-rose" : "text-gold-bright"}`}>{m}</span>
+                {MARKER_MEANING[m]}
+              </li>
+            ))}
+          </ul>
+        )}
+        <button type="button" onClick={() => setGlyphs(!glyphs)} aria-pressed={glyphs} className="rounded-full px-2 py-0.5 text-xs text-muted underline decoration-border underline-offset-4 hover:text-cream">
+          {glyphs ? "Show names" : "Show symbols"}
+        </button>
+      </div>
     </div>
   );
 }

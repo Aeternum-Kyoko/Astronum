@@ -52,7 +52,7 @@ export default function ChartDetail({
       {view === "houses" ? (
         <>
           <div>
-            <h3 className="text-xl font-bold tracking-tight text-gold-bright">House-by-House</h3>
+            <h3 className="text-xl font-bold tracking-tight text-cream">House-by-House</h3>
             <p className="mt-2 text-sm text-muted">
               What each house is about, who rules it, where that lord actually sits, who occupies it directly, and
               how strong it reads overall.
@@ -79,7 +79,7 @@ export default function ChartDetail({
           </div>
 
           <div>
-            <h3 className="text-xl font-bold tracking-tight text-gold-bright">Conjunctions</h3>
+            <h3 className="text-xl font-bold tracking-tight text-cream">Conjunctions</h3>
             <p className="mt-2 text-sm text-muted">Planets sharing a sign blend their significations into one combined force.</p>
             {conjunctions.length === 0 ? (
               <p className="mt-4 text-sm text-muted">No two (or more) planets share a sign in this chart.</p>
@@ -97,7 +97,7 @@ export default function ChartDetail({
         </>
       ) : (
         <div>
-          <h3 className="text-xl font-bold tracking-tight text-gold-bright">Planet-by-Planet</h3>
+          <h3 className="text-xl font-bold tracking-tight text-cream">Planet-by-Planet</h3>
           <p className="mt-2 text-sm text-muted">
             Each planet&rsquo;s condition in this chart — dignity, house placement, and the aspects it gives and receives.
           </p>

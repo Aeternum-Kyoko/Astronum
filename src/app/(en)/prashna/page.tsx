@@ -22,7 +22,7 @@ export default function PrashnaPage() {
           <PrashnaTool />
         </div>
         <section className="card-edge mt-10 rounded-2xl p-6 text-sm leading-relaxed text-muted">
-          <h2 className="text-lg font-bold text-gold-bright">How to ask well</h2>
+          <h2 className="text-lg font-bold text-cream">How to ask well</h2>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>Ask one clear question you genuinely need answered — not a test.</li>
             <li>Don&rsquo;t ask the same question twice in a day; the first chart is the valid one.</li>

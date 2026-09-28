@@ -23,7 +23,7 @@ export default function YogasExplorer() {
           {filtered.map((y) => (
             <article key={y.name} id={y.name.replace(/\s+/g, "-")} className="card-edge scroll-mt-24 rounded-2xl p-6">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <h2 className="font-display text-lg text-gold-bright">{y.name}</h2>
+                <h2 className="font-display text-lg text-cream">{y.name}</h2>
                 <span
                   className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] ${
                     y.detectedByEngine ? "border-gold/50 text-gold-bright" : "border-border text-muted"

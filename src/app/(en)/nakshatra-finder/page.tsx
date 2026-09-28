@@ -30,7 +30,7 @@ export default async function NakshatraFinderPage({ searchParams }: PageProps<"/
       <div className="space-y-6">
         <section className="card-edge rounded-3xl p-7 text-center">
           <p className="text-xs font-semibold text-muted">Janma nakshatra (birth star)</p>
-          <h2 className="mt-2 font-display text-5xl text-gold-bright">{moon.nakshatra}</h2>
+          <h2 className="mt-2 font-display text-5xl text-cream">{moon.nakshatra}</h2>
           <p className="mt-2 text-sm text-muted">
             Pada {moon.pada} · Moon in {moon.sign} · lord {ref.rulingPlanet}
           </p>

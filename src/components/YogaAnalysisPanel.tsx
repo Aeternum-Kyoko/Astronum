@@ -46,7 +46,7 @@ export default function YogaAnalysisPanel({ chart }: { chart: KundaliChart }) {
   return (
     <div className="space-y-6">
       <section className="card-edge rounded-2xl p-6">
-        <h3 className="text-xl font-bold text-gold-bright">Yogas worked out from your {analysis.lagnaSign} Lagna</h3>
+        <h3 className="text-xl font-bold text-cream">Yogas worked out from your {analysis.lagnaSign} Lagna</h3>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
           Parashari yogas depend on which houses each planet rules for your Lagna, so we first sort the planets by what they rule. Then every pair is checked for a link,
           and each yoga is graded by the dignity, house and combustion of the planets that form it.
@@ -89,7 +89,7 @@ function Section({ category, title, intro, findings, chart }: { category: YogaCa
 
   return (
     <section className="card-edge rounded-2xl p-6">
-      <h3 className={`text-xl font-bold ${category === "arishta" ? "text-rose" : "text-gold-bright"}`}>{title}</h3>
+      <h3 className={`text-xl font-bold ${category === "arishta" ? "text-rose" : "text-cream"}`}>{title}</h3>
       <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted">{intro}</p>
       {findings.length === 0 ? (
         <p className="mt-4 text-sm text-cream">

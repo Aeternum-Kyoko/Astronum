@@ -13,7 +13,7 @@ export default function RemediesPanel({ chart }: { chart: KundaliChart }) {
       </p>
 
       <section className="card-edge rounded-2xl p-6">
-        <h3 className="text-xl font-bold tracking-tight text-gold-bright">Gemstones for your chart</h3>
+        <h3 className="text-xl font-bold tracking-tight text-cream">Gemstones for your chart</h3>
         {stones.length === 0 ? (
           <p className="mt-3 text-sm text-muted">
             Your Lagna, 5th and 9th lords also rule difficult houses, so no gemstone is safely indicated — rely on the
@@ -48,7 +48,7 @@ export default function RemediesPanel({ chart }: { chart: KundaliChart }) {
       </section>
 
       <section className="card-edge rounded-2xl p-6">
-        <h3 className="text-xl font-bold tracking-tight text-gold-bright">Planets that need support</h3>
+        <h3 className="text-xl font-bold tracking-tight text-cream">Planets that need support</h3>
         {support.length === 0 ? (
           <p className="mt-3 text-sm text-muted">No planet in your chart is weak, afflicted or running its period right now.</p>
         ) : (
@@ -81,7 +81,7 @@ export default function RemediesPanel({ chart }: { chart: KundaliChart }) {
 
       {doshas.length > 0 && (
         <section className="card-edge rounded-2xl p-6">
-          <h3 className="text-xl font-bold tracking-tight text-gold-bright">Dosha remedies</h3>
+          <h3 className="text-xl font-bold tracking-tight text-cream">Dosha remedies</h3>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {doshas.map((d) => (
               <div key={d.name} className="rounded-xl border border-border p-4">

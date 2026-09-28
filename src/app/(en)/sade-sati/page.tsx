@@ -32,7 +32,7 @@ export default async function SadeSatiPage({ searchParams }: PageProps<"/sade-sa
       <div className="space-y-6">
         <section className={`card-edge rounded-3xl p-7 ${current?.kind === "Sade Sati" ? "shadow-[0_0_40px_rgba(201,138,138,0.12)]" : ""}`}>
           <p className="text-xs font-semibold text-muted">Moon sign · {moon.sign} ({moon.nakshatra})</p>
-          <h2 className={`mt-2 text-3xl font-bold ${current ? "text-rose" : "text-gold-bright"}`}>
+          <h2 className={`mt-2 text-3xl font-bold ${current ? "text-rose" : "text-cream"}`}>
             {current ? `You are in ${current.kind}${current.kind === "Sade Sati" ? ` — ${current.phases.find((p) => p.start <= now && now < p.end)?.phase?.toLowerCase() ?? ""} phase` : ""}` : "You are not in Sade Sati or Dhaiya now"}
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-muted">

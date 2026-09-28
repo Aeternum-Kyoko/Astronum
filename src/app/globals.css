@@ -20,7 +20,7 @@
   --color-gold: #e8a915;
   --color-gold-bright: #f2c14e;
   --color-cream: #eef0f5;
-  --color-muted: #a3aecb;
+  --color-muted: #b3bdd8;
   --color-rose: #ef7b76;
   --color-violet: #1b2a55;
   --color-on-gold: #0e1733;
@@ -47,7 +47,7 @@
   --color-gold: #e8a915;
   --color-gold-bright: #8a5d00;
   --color-cream: #0e1733;
-  --color-muted: #4e5873;
+  --color-muted: #464f68;
   --color-rose: #b3322e;
   --color-violet: #e3e6e0;
   --color-on-gold: #0e1733;
@@ -72,7 +72,7 @@
   --color-border: #2a3a6b;
   --color-gold-bright: #f2c14e;
   --color-cream: #eef0f5;
-  --color-muted: #a3aecb;
+  --color-muted: #b3bdd8;
   background: var(--color-ink);
   color: var(--color-cream);
 }
@@ -93,10 +93,18 @@
   /* One family, two scripts: Anek Latin everywhere, Anek Devanagari on Hindi pages (app/hi/layout.tsx). */
   --font-display: var(--font-anek), var(--font-anek-deva, sans-serif);
   --font-sans: var(--font-anek), var(--font-anek-deva, sans-serif);
+  /* Small sizes set a step larger than Tailwind's defaults: readings are long and read on phones. */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.6;
 }
 
 body {
-  background: var(--color-ink);
+  background:
+    radial-gradient(120% 60% at 50% -10%, color-mix(in oklab, var(--color-surface-raised), transparent 55%), transparent 60%),
+    var(--color-ink);
+  background-attachment: fixed;
   color: var(--color-cream);
   font-family: var(--font-sans);
   font-size: 1.0625rem;
@@ -173,10 +181,25 @@ li > p a:not([class*="rounded"]) {
 }
 
 /* A flat panel: surface colour and one engraved hairline. Radius comes from the utility classes. */
+/* Raised panel: lit from above (a faint gradient and top highlight) rather than boxed in by a hard border. */
 .card-edge {
   position: relative;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--color-surface), white 3%) 0%, var(--color-surface) 38%);
+  border: 1px solid color-mix(in oklab, var(--color-border), transparent 35%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white, transparent 94%),
+    0 1px 2px rgba(0, 0, 0, 0.12),
+    0 12px 32px -18px var(--floating-shadow);
+}
+:root[data-theme="light"] .card-edge {
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  box-shadow:
+    0 1px 2px rgba(14, 23, 51, 0.05),
+    0 12px 32px -20px var(--floating-shadow);
+}
+/* Quieter grouping for secondary content: no box, just a hairline above. */
+.section-rule {
+  border-top: 1px solid color-mix(in oklab, var(--color-border), transparent 30%);
 }
 
 /* Floating panels (menus, pickers). No `position` here: it would override the consumer's Tailwind `absolute`. */
@@ -459,5 +482,76 @@ html.glass-refract .glass-lens {
   }
   .glass::before {
     display: none;
+  }
+}
+
+/* A faint film grain over the page so the night sky never feels like flat screen colour. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1; /* texture the background only; text stays crisp */
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+:root[data-theme="light"] body::after {
+  opacity: 0.03;
+  mix-blend-mode: multiply;
+}
+@media print {
+  body::after {
+    display: none;
+  }
+}
+
+/* Long-form readings: set like a well-edited article, not fine print. */
+.reading {
+  font-size: 1.0625rem;
+  line-height: 1.72;
+  color: color-mix(in oklab, var(--color-cream), var(--color-muted) 35%);
+  max-width: 68ch;
+}
+.reading-lead {
+  font-size: 1.1875rem;
+  line-height: 1.6;
+  color: var(--color-cream);
+  max-width: 62ch;
+}
+@media (min-width: 768px) {
+  .reading {
+    font-size: 1.125rem;
+  }
+}
+
+/* Charts draw themselves in once: frame and divisions trace, then planets fade in. */
+.chart-draw .chart-stroke {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: chart-trace 900ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.chart-draw .chart-fade {
+  opacity: 0;
+  animation: chart-fade-in 420ms ease-out 650ms forwards;
+}
+@keyframes chart-trace {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes chart-fade-in {
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce), print {
+  .chart-draw .chart-stroke {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .chart-draw .chart-fade {
+    animation: none;
+    opacity: 1;
   }
 }

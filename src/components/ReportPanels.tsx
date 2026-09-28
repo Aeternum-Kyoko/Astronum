@@ -90,7 +90,7 @@ export function PlanetReadingsPanel({ report }: { report: KundaliReport | null }
       </p>
       {report.planets.map((r) => (
         <section key={r.planet} className="card-edge rounded-2xl p-6">
-          <h3 className="text-lg font-bold text-gold-bright">{r.headline}</h3>
+          <h3 className="text-lg font-bold text-cream">{r.headline}</h3>
           <p className="mt-3 text-base leading-relaxed text-cream">{r.house}</p>
           <div className="mt-3 space-y-2 text-sm leading-relaxed text-muted">
             <p>{r.sign}</p>

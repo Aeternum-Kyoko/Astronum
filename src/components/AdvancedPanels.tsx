@@ -45,7 +45,7 @@ export function LalKitabPanel({ chart }: { chart: KundaliChart }) {
           ) : (
             <p className="mt-2 text-sm text-muted">No karmic debt is shown by this chart.</p>
           )}
-          <h4 className="mt-5 text-xs font-semibold text-gold-bright">How to do Lal Kitab remedies</h4>
+          <h4 className="mt-5 text-xs font-semibold text-cream">How to do Lal Kitab remedies</h4>
           <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-muted">
             {lk.rules.map((r) => (
               <li key={r}>{r}</li>

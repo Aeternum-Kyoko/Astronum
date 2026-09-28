@@ -104,7 +104,7 @@ function NumerologyDetails({ name, date, phone, setPhone }: { name: string; date
           </div>
           <div className="space-y-3 text-sm">
             <div>
-              <h3 className="text-xs font-semibold text-gold-bright">Complete planes (your strengths)</h3>
+              <h3 className="text-xs font-semibold text-cream">Complete planes (your strengths)</h3>
               <ul className="mt-1 space-y-0.5 text-muted">
                 {grid.planes.filter((p) => p.complete).map((p) => (
                   <li key={p.name}>

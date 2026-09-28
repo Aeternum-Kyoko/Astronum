@@ -24,6 +24,7 @@ const en = {
     heroTitle: "The sky, exactly as it is.",
     heroBody:
       "Every chart on Astronum is calculated from the real positions of the planets — the same sky this dial shows, live. Give us your birth details and read what it said the moment you were born.",
+    heroShort: "Every chart here is drawn from the real, live sky.",
     heroNow: (sign: string, nakshatra: string, tithi: string) => `Right now the Moon is in ${sign}, in ${nakshatra} nakshatra, on ${tithi}.`,
     updated: (time: string) => `Sky as of ${time}, India time.`,
     makeKundli: "Make my kundli",
@@ -273,6 +274,7 @@ const hi: Dictionary = {
     heroTitle: "आकाश, ठीक वैसा जैसा है।",
     heroBody:
       "Astronum की हर कुंडली ग्रहों की वास्तविक स्थिति से बनती है — वही आकाश जो यह चक्र अभी दिखा रहा है। अपना जन्म विवरण दें और जानें कि आपके जन्म के क्षण आकाश ने क्या कहा था।",
+    heroShort: "यहाँ हर कुंडली वास्तविक, जीवंत आकाश से बनती है।",
     heroNow: (sign, nakshatra, tithi) => `इस समय चंद्रमा ${sign} राशि में, ${nakshatra} नक्षत्र में है — ${tithi}।`,
     updated: (time) => `आकाश की स्थिति ${time} बजे (भारतीय समय)।`,
     makeKundli: "मेरी कुंडली बनाएं",
