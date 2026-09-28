@@ -13,6 +13,7 @@ import TimePicker from "@/components/TimePicker";
 import PlaceInput, { type PlaceSuggestion } from "@/components/PlaceInput";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import SaveChartButton from "@/components/SaveChartButton";
+import ProfileChips from "@/components/ProfileChips";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 const MIN_LOADING_MS = 1600;
@@ -131,7 +132,10 @@ export default function KundaliForm() {
             className="mx-auto max-w-4xl"
           >
             <KundaliIntro />
-            <div className="mt-14">
+            <div className="mt-10">
+              <ProfileChips onPick={(p) => void generate({ name: p.name, date: p.date, time: p.time, place: p.place, latitude: p.latitude, longitude: p.longitude, timezone: p.timezone })} />
+            </div>
+            <div className="mt-8">
               <form
                 onSubmit={handleSubmit}
                 className="card-edge rounded-3xl p-7 shadow-[0_0_60px_rgba(212,175,106,0.06)] md:p-10"

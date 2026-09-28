@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "motion/react";
 import DatePicker from "@/components/DatePicker";
 import TimePicker from "@/components/TimePicker";
 import PlaceInput, { type PlaceSuggestion } from "@/components/PlaceInput";
+import ProfileChips from "@/components/ProfileChips";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import MatchingResult from "@/components/MatchingResult";
 import CompatibilityReport from "@/components/CompatibilityReport";
@@ -209,6 +210,9 @@ function PersonFields({
       <p aria-hidden="true" className="font-display text-xl text-cream">
         {title}
       </p>
+      <div className="mt-4">
+        <ProfileChips label="Fill from a saved profile" onPick={(p) => onChange(draftFrom(p))} />
+      </div>
       <div className="mt-5 space-y-4">
         <Field label="Name">
           <input

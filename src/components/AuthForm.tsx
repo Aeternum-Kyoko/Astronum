@@ -37,7 +37,7 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
     }
   }
 
-  const otherHref = `${isSignup ? "/login" : "/signup"}${next !== "/account" ? `?next=${encodeURIComponent(next)}` : ""}`;
+  const otherHref = `${isSignup ? "/login" : "/signup"}${next !== "/today" ? `?next=${encodeURIComponent(next)}` : ""}`;
 
   return (
     <form onSubmit={handleSubmit} className="card-edge w-full rounded-3xl p-7 md:p-9">

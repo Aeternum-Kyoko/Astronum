@@ -44,9 +44,9 @@ describe("checkRateLimit", () => {
 describe("safeRedirectPath", () => {
   it("keeps same-site paths and rejects anything that could leave the site", () => {
     expect(safeRedirectPath("/kundali?name=A")).toBe("/kundali?name=A");
-    expect(safeRedirectPath("//evil.com")).toBe("/account");
-    expect(safeRedirectPath("/\\evil.com")).toBe("/account");
-    expect(safeRedirectPath("https://evil.com")).toBe("/account");
+    expect(safeRedirectPath("//evil.com")).toBe("/today");
+    expect(safeRedirectPath("/\\evil.com")).toBe("/today");
+    expect(safeRedirectPath("https://evil.com")).toBe("/today");
     expect(safeRedirectPath(null, "/")).toBe("/");
   });
 });

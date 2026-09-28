@@ -1,7 +1,8 @@
 import Link from "next/link";
 import QuickKundaliForm from "@/components/QuickKundaliForm";
 import { getDictionary } from "@/lib/i18n/dictionary";
-import { fromBirthQuery, type BirthParams } from "@/lib/birthParams";
+import { fromBirthQuery, toBirthQuery, type BirthParams } from "@/lib/birthParams";
+import { getProfiles } from "@/lib/profiles";
 
 type RawParams = Record<string, string | string[] | undefined>;
 
@@ -13,7 +14,7 @@ export function birthFromParams(params: RawParams): BirthParams | null {
 }
 
 /** Shared frame for birth-detail tools: a header, then the form or the result. */
-export default function ToolShell({
+export default async function ToolShell({
   eyebrow,
   title,
   intro,
@@ -31,6 +32,7 @@ export default function ToolShell({
   children?: React.ReactNode;
 }) {
   const form = getDictionary("en").home.form;
+  const profiles = birth ? [] : await getProfiles();
   return (
     <section className="relative">
       <div className="relative mx-auto max-w-5xl px-5 py-14 md:py-20">
@@ -53,6 +55,21 @@ export default function ToolShell({
           </div>
         ) : (
           <div className="mx-auto mt-10 max-w-md">
+            {profiles.length > 0 && (
+              <div className="mb-6 text-center">
+                <p className="text-xs font-semibold text-muted">Use a saved profile</p>
+                <ul className="mt-2 flex flex-wrap justify-center gap-2">
+                  {profiles.map((p) => (
+                    <li key={p.id}>
+                      <Link href={`${path}?${toBirthQuery(p)}`} className={`inline-block rounded-full border px-4 py-2 text-sm font-semibold ${p.isDefault ? "border-gold bg-gold text-on-gold" : "border-border text-cream hover:border-gold"}`}>
+                        {p.name} <span className={`text-xs font-normal ${p.isDefault ? "" : "text-muted"}`}>· {p.relation}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-4 text-xs text-muted">or enter new details</p>
+              </div>
+            )}
             <QuickKundaliForm copy={{ ...form, title, subtitle: "Enter the birth details.", submit }} target={path} />
           </div>
         )}

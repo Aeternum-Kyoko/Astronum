@@ -60,6 +60,17 @@ model User {
   createdAt      DateTime             @default(now())
   charts         SavedChart[]
   resetTokens    PasswordResetToken[]
+
+  // Email alerts, all off until the user opts in on /account.
+  notifyDaily       Boolean   @default(false)
+  notifyDasha       Boolean   @default(false)
+  notifyFestivals   Boolean   @default(false)
+  notifyTransits    Boolean   @default(false)
+  /// Lets an email's unsubscribe link work without signing in.
+  unsubscribeToken  String?   @unique
+  lastDailySentOn   String?   // YYYY-MM-DD, so a day is never sent twice
+  /// Keys of dasha/transit alerts already sent, comma-separated.
+  sentAlertKeys     String    @default("")
 }
 
 model PasswordResetToken {
@@ -85,6 +96,10 @@ model SavedChart {
   latitude  Float
   longitude Float
   timezone  String
+  /// Self, Spouse, Child, Parent, Sibling, Friend or Other.
+  relation  String   @default("Self")
+  /// The profile that fills in every tool and drives "Today for you".
+  isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
 
   @@index([userId])

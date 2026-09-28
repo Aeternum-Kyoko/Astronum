@@ -10,6 +10,8 @@ interface Email {
   subject: string;
   text: string;
   html: string;
+  /** Extra headers, e.g. List-Unsubscribe. */
+  headers?: Record<string, string>;
 }
 
 export async function sendEmail(email: Email): Promise<void> {
@@ -27,7 +29,7 @@ export async function sendEmail(email: Email): Promise<void> {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: email.to, subject: email.subject, text: email.text, html: email.html }),
+    body: JSON.stringify({ from, to: email.to, subject: email.subject, text: email.text, html: email.html, ...(email.headers ? { headers: email.headers } : {}) }),
   });
   if (!res.ok) throw new Error(`Email send failed (${res.status})`);
 }

@@ -41,6 +41,10 @@ export default function AccountButton({ label = "Sign in" }: { label?: string })
   }
 
   return (
+    <span className="flex items-center gap-2">
+      <Link href="/today" className="hidden rounded-full border border-border px-3.5 py-2 text-sm text-muted transition-colors hover:border-gold hover:text-gold-bright sm:inline-block">
+        Today
+      </Link>
     <Link
       href="/account"
       title="My charts"
@@ -49,5 +53,6 @@ export default function AccountButton({ label = "Sign in" }: { label?: string })
     >
       {me.name.trim()[0]?.toUpperCase() ?? "?"}
     </Link>
+    </span>
   );
 }

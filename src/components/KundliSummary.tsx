@@ -161,7 +161,7 @@ export default function KundliSummary({ chart, report, go, style, setStyle }: { 
       <Card title="Lal Kitab" action="Open Lal Kitab" onAction={() => go("lalkitab")}>
         <p className="text-sm text-muted">
           {lk.rins.length ? `${lk.rins.length} karmic debt${lk.rins.length > 1 ? "s" : ""} (rin): ${lk.rins.map((r) => r.name.split(" (")[0]).join(", ")}.` : "No karmic debt (rin) is shown in this chart."}{" "}
-          {lk.planets.filter((p) => p.verdict === "Weak").length} planet{lk.planets.filter((p) => p.verdict === "Weak").length === 1 ? "" : "s"} need Lal Kitab remedies.
+          {lk.planets.filter((p) => p.verdict === "Weak").length === 1 ? "1 planet needs" : `${lk.planets.filter((p) => p.verdict === "Weak").length} planets need`} Lal Kitab remedies.
         </p>
       </Card>
     </div>

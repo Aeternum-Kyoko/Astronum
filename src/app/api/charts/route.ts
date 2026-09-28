@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { birthInputSchema } from "@/lib/birthSchema";
 import { getCurrentUser } from "@/lib/currentUser";
+import { RELATIONS } from "@/lib/relations";
 
 const MAX_CHARTS_PER_USER = 50;
 
@@ -14,6 +15,8 @@ const chartFields = {
   latitude: true,
   longitude: true,
   timezone: true,
+  relation: true,
+  isDefault: true,
   createdAt: true,
 } as const;
 
@@ -22,7 +25,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
   const charts = await prisma.savedChart.findMany({
     where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
     select: chartFields,
   });
   return NextResponse.json({ charts });
@@ -32,7 +35,9 @@ export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Please sign in to save charts." }, { status: 401 });
 
-  const parsed = birthInputSchema.safeParse(await req.json().catch(() => null));
+  const body = await req.json().catch(() => null);
+  const parsed = birthInputSchema.safeParse(body);
+  const relation = (RELATIONS as readonly string[]).includes(body?.relation) ? (body.relation as string) : "Self";
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
@@ -49,6 +54,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `You can save up to ${MAX_CHARTS_PER_USER} charts. Delete one to make room.` }, { status: 409 });
   }
 
-  const chart = await prisma.savedChart.create({ data: { ...birth, userId: user.id }, select: chartFields });
+  // The first chart someone saves becomes their default profile.
+  const isDefault = (await prisma.savedChart.count({ where: { userId: user.id, isDefault: true } })) === 0;
+  const chart = await prisma.savedChart.create({ data: { ...birth, relation, isDefault, userId: user.id }, select: chartFields });
   return NextResponse.json({ chart }, { status: 201 });
 }

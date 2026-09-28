@@ -5,7 +5,7 @@ import { DateTime } from "luxon";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/currentUser";
 import { toBirthQuery } from "@/lib/birthParams";
-import { DeleteChartButton, SignOutButton } from "@/components/AccountActions";
+import { AlertSettings, DeleteChartButton, ProfileControls, SignOutButton } from "@/components/AccountActions";
 
 export const metadata: Metadata = { title: "My charts", robots: { index: false } };
 
@@ -13,7 +13,8 @@ export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/account");
 
-  const charts = await prisma.savedChart.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" } });
+  const charts = await prisma.savedChart.findMany({ where: { userId: user.id }, orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] });
+  const prefs = await prisma.user.findUnique({ where: { id: user.id }, select: { notifyDaily: true, notifyDasha: true, notifyTransits: true, notifyFestivals: true } });
 
   return (
     <section className="mx-auto max-w-4xl px-5 py-14 md:py-20">
@@ -27,7 +28,10 @@ export default async function AccountPage() {
       </header>
 
       <div className="mt-10 flex items-end justify-between gap-4">
-        <h2 className="text-xl font-bold text-cream">Saved charts</h2>
+        <div>
+          <h2 className="text-xl font-bold text-cream">Family profiles</h2>
+          <p className="mt-1 text-sm text-muted">Your default profile fills in every tool and drives your daily page and emails.</p>
+        </div>
         <Link href="/kundali" className="text-sm font-semibold text-gold-bright hover:text-gold">
           + New kundli
         </Link>
@@ -49,14 +53,18 @@ export default async function AccountPage() {
       ) : (
         <ul className="mt-5 grid gap-3 md:grid-cols-2">
           {charts.map((c) => (
-            <li key={c.id} className="card-edge flex items-center justify-between gap-4 rounded-2xl p-5">
+            <li key={c.id} className={`card-edge flex flex-col gap-3 rounded-2xl p-5 ${c.isDefault ? "ring-1 ring-gold/60" : ""}`}>
               <div className="min-w-0">
                 <p className="truncate font-semibold text-cream">{c.name}</p>
                 <p className="mt-1 truncate text-xs text-muted">
                   {DateTime.fromISO(c.date).toFormat("d LLL yyyy")} · {c.time} · {c.place}
                 </p>
               </div>
-              <div className="flex shrink-0 gap-2">
+              <ProfileControls id={c.id} relation={c.relation} isDefault={c.isDefault} />
+              <div className="flex flex-wrap gap-2">
+                <Link href={`/horoscope/personal?${toBirthQuery(c)}`} className="rounded-full border border-border px-4 py-1.5 text-xs font-semibold text-cream hover:border-gold">
+                  Today
+                </Link>
                 <Link
                   href={`/kundali?${toBirthQuery(c)}`}
                   className="rounded-full bg-gold px-4 py-1.5 text-xs font-semibold text-on-gold hover:bg-gold-bright"
@@ -69,6 +77,20 @@ export default async function AccountPage() {
           ))}
         </ul>
       )}
+
+      <section className="card-edge mt-10 rounded-2xl p-6">
+        <h2 className="text-xl font-bold text-cream">Email alerts</h2>
+        <p className="mt-1 text-sm text-muted">Sent to {user.email}. Every email has a one-click unsubscribe link.</p>
+        <div className="mt-4">
+          <AlertSettings initial={prefs ?? { notifyDaily: false, notifyDasha: false, notifyTransits: false, notifyFestivals: false }} />
+        </div>
+      </section>
+
+      <p className="mt-8 text-center text-sm">
+        <Link href="/today" className="font-semibold text-gold-bright hover:underline">
+          Go to Today for you
+        </Link>
+      </p>
     </section>
   );
 }

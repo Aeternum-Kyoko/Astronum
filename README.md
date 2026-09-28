@@ -49,6 +49,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Paid consultations. Set your prices in `src/lib/consultationPlans.ts` first; point the webhook at `/api/razorpay/webhook` (event `payment.captured`) |
 | `ADMIN_NOTIFY_EMAIL` | Receives a notification for each new booking |
 | `NEXT_PUBLIC_SITE_URL` | Public origin (e.g. `https://astronum.in`) used for the sitemap, canonical URLs and share images. Defaults to `http://localhost:3000` |
+| `CRON_SECRET` | Protects the daily email job at `/api/cron/daily`. `vercel.json` schedules it for 06:00 IST; on another host, call it daily with `Authorization: Bearer <CRON_SECRET>` |
 
 ## Scripts
 
