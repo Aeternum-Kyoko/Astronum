@@ -218,7 +218,7 @@ function summarise(key: LineKey, points: PalmPoint[], strength: number[], statio
   };
 }
 
-export function traceAll(img: GrayImage, response: Float32Array): TracedLine[] {
+export function traceAll(img: Pick<GrayImage, "width" | "height">, response: Float32Array): TracedLine[] {
   const field = { width: img.width, height: img.height, data: response };
   const threshold = creaseThreshold(field);
   const done: TracedLine[] = [];

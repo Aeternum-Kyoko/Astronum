@@ -135,3 +135,47 @@ export function rectify(src: RgbaSource, f: PalmFrame, width: number, height: nu
   }
   return { width, height, data: out };
 }
+
+/**
+ * Which cells of the straightened palm grid show skin: colour (chromaticity)
+ * and brightness close to the palm centre's. Keeps background texture beside
+ * the hand out of the mount readings.
+ */
+export function skinMask(src: RgbaSource, f: PalmFrame, width: number, height: number): Uint8Array {
+  const { data, width: sw, height: sh } = src;
+  const at = (s: number, t: number) => {
+    const p = toImage(f, s, t);
+    const x = Math.round(p.x);
+    const y = Math.round(p.y);
+    if (x < 0 || y < 0 || x >= sw || y >= sh) return null;
+    const i = (y * sw + x) * 4;
+    const sum = data[i] + data[i + 1] + data[i + 2] + 1;
+    return { r: data[i] / sum, g: data[i + 1] / sum, l: sum / 765 };
+  };
+  let r = 0;
+  let g = 0;
+  let l = 0;
+  let n = 0;
+  for (let s = 0.2; s <= 0.8; s += 0.1)
+    for (let t = 0.3; t <= 0.8; t += 0.1) {
+      const c = at(s, t);
+      if (!c) continue;
+      r += c.r;
+      g += c.g;
+      l += c.l;
+      n++;
+    }
+  const out = new Uint8Array(width * height);
+  if (!n) return out.fill(1);
+  r /= n;
+  g /= n;
+  l /= n;
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++) {
+      const c = at(xToS(x, width), yToT(y, height));
+      if (!c) continue;
+      const chroma = Math.hypot(c.r - r, c.g - g);
+      out[y * width + x] = chroma < 0.045 && c.l > l * 0.45 && c.l < l * 1.7 ? 1 : 0;
+    }
+  return out;
+}

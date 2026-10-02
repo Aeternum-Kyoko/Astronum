@@ -4,9 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { HandLandmarker } from "@mediapipe/tasks-vision";
 import SegmentedControl from "@/components/SegmentedControl";
 import { haptic } from "@/lib/haptics";
-import { palmFrame, palmHand, toImage, toPixels, type Hand, type Landmark, type Point } from "@/lib/palmistry/frame";
-import { analyzePalm, scanPalm, type PalmAnalysis, type PalmIssue } from "@/lib/palmistry/analyze";
-import type { LineKey, TracedLine } from "@/lib/palmistry/lines";
+import { dist, palmFrame, palmHand, toImage, toPixels, INDEX, LITTLE, type Hand, type Landmark, type Point } from "@/lib/palmistry/frame";
+import { analyzePalm, mountsFor, scanPalm, type PalmAnalysis, type PalmIssue } from "@/lib/palmistry/analyze";
+import { traceAll, type LineKey, type TracedLine } from "@/lib/palmistry/lines";
+import { fuseFields, type CreaseField } from "@/lib/palmistry/ridges";
+import { dominantMounts, type Fullness, type KundliGrades, type MountAnswers, type MountKey, type MountReading } from "@/lib/palmistry/mounts";
+import { listCharts, type StoredChart } from "@/lib/offlineCharts";
+import { planetDiagnosis } from "@/lib/astrology/planetDiagnosis";
 
 // Served from this site (copied in by scripts/copy-mediapipe.mjs at build), with the public CDNs as a fallback.
 const LOCAL = { wasm: "/mediapipe/wasm", model: "/mediapipe/hand_landmarker.task" };
@@ -29,7 +33,16 @@ const ISSUE_TEXT: Record<PalmIssue, string> = {
   "too-small": "Move your hand a little closer",
   "too-dark": "Find brighter light",
   "too-bright": "Too much glare — tilt your palm away from the light",
+  curled: "Open your hand fully — keep the fingers straight and the palm flat",
+  tilted: "Hold your palm square to the camera, not at an angle",
+  glare: "Glare on the palm — tilt it slightly away from the light",
+  "uneven-light": "The light is uneven — face a window or lamp so the whole palm is lit",
+  blurry: "Hold steady — the picture is blurry",
 };
+
+/** Live frames to fuse before the lines are trusted, and how long everything must stay good before auto-capture. */
+const MIN_FRAMES = 6;
+const HOLD_MS = 1200;
 
 let landmarkerPromise: Promise<HandLandmarker> | null = null;
 
@@ -69,6 +82,10 @@ interface Shot {
   seen: Hand;
   /** The picture was flipped like a mirror (front camera), which swaps how left and right hands look. */
   mirrored: boolean;
+  /** Creases fused over the live frames before capture, blended into the still's own. */
+  prior: CreaseField | null;
+  /** Search detail: 2 when the photo has a large, high-resolution palm. */
+  scale: number;
 }
 
 type Phase = "idle" | "loading" | "live" | "analyzing" | "result";
@@ -83,6 +100,11 @@ export default function PalmReader() {
   const [error, setError] = useState<string | null>(null);
   const [shot, setShot] = useState<Shot | null>(null);
   const [dims, setDims] = useState({ w: 4, h: 3 });
+  const [auto, setAuto] = useState(true);
+  const [ready, setReady] = useState(0);
+  const [answers, setAnswers] = useState<MountAnswers>({});
+  const [charts, setCharts] = useState<StoredChart[]>([]);
+  const [chartKey, setChartKey] = useState<string>("");
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -90,6 +112,26 @@ export default function PalmReader() {
   const rafRef = useRef(0);
   const lastScan = useRef<{ at: number; traced: TracedLine[]; issues: PalmIssue[] }>({ at: 0, traced: [], issues: [] });
   const grab = useRef<HTMLCanvasElement | null>(null);
+  const fused = useRef<{ field: CreaseField | null; frames: number; lastLm: Point[] | null; readySince: number }>({ field: null, frames: 0, lastLm: null, readySince: 0 });
+  const autoRef = useRef(auto);
+  const captureRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    autoRef.current = auto;
+  }, [auto]);
+
+  // Kundlis opened on this device, for the mount-to-planet cross-check.
+  useEffect(() => {
+    let live = true;
+    listCharts().then((list) => {
+      if (!live) return;
+      setCharts(list);
+      if (list[0]) setChartKey(list[0].key);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const stopCamera = useCallback(() => {
     cancelAnimationFrame(rafRef.current);
@@ -122,25 +164,60 @@ export default function PalmReader() {
 
         const result = landmarker.detectForVideo(video, performance.now());
         const lm = result.landmarks[0];
+        const F = fused.current;
         if (!lm) {
           lastScan.current.traced = [];
+          fused.current = { field: null, frames: 0, lastLm: null, readySince: 0 };
+          setReady(0);
           return say("Show your whole open hand — palm and fingers — to the camera");
         }
 
         const now = performance.now();
-        if (now - lastScan.current.at > 250) {
+        if (now - lastScan.current.at > 200) {
           const g = (grab.current ??= document.createElement("canvas"));
           const scale = Math.min(1, 960 / w);
           g.width = Math.round(w * scale);
           g.height = Math.round(h * scale);
           const gctx = g.getContext("2d", { willReadFrequently: true })!;
           gctx.drawImage(video, 0, 0, g.width, g.height);
-          const scan = scanPalm(gctx.getImageData(0, 0, g.width, g.height), lm);
-          lastScan.current = { at: now, traced: scan.traced, issues: scan.issues };
+          const scan = scanPalm(gctx.getImageData(0, 0, g.width, g.height), lm, { world: result.worldLandmarks[0] ?? null });
+          // Every frame maps onto the same palm layout, so creases from successive frames line up; averaging them
+          // keeps the real lines and cancels noise. A sudden big move starts the average afresh.
+          const px = toPixels(lm, g.width, g.height);
+          const span = dist(px[INDEX[0]], px[LITTLE[0]]) || 1;
+          const move = F.lastLm ? Math.max(dist(px[0], F.lastLm[0]), dist(px[9], F.lastLm[9])) / span : 1;
+          if (move > 0.12) {
+            F.field = null;
+            F.frames = 0;
+          }
+          F.field = fuseFields(F.field, scan.field, 0.3);
+          F.frames++;
+          F.lastLm = px;
+          const traced = traceAll(F.field, F.field.response);
+          lastScan.current = { at: now, traced, issues: scan.issues };
+          const found = traced.filter((l) => l.found).length;
+          const good = !scan.issues.length && F.frames >= MIN_FRAMES && found >= 3 && move < 0.04;
+          F.readySince = good ? F.readySince || now : 0;
+          const pct = good ? Math.min(1, (now - F.readySince) / HOLD_MS) : 0;
+          setReady((prev) => (Math.abs(prev - pct) >= 0.1 || (pct === 0) !== (prev === 0) ? pct : prev));
+          if (autoRef.current && pct >= 1) {
+            captureRef.current();
+            return;
+          }
         }
         const { traced, issues } = lastScan.current;
         const found = traced.filter((l) => l.found).length;
-        say(issues.length ? ISSUE_TEXT[issues[0]] : found >= 3 ? "Lines found — tap the shutter" : "Hold still, flat and in good light…");
+        say(
+          issues.length
+            ? ISSUE_TEXT[issues[0]]
+            : F.frames < MIN_FRAMES
+              ? `Steadying… ${F.frames}/${MIN_FRAMES}`
+              : found >= 3
+                ? autoRef.current
+                  ? "Lines found — hold still to capture"
+                  : "Lines found — tap the shutter"
+                : "Hold still, flat and in good light…"
+        );
 
         // Lines are kept in palm coordinates and re-projected each frame, so they stay stuck to the moving hand.
         const px = toPixels(lm, w, h);
@@ -161,9 +238,11 @@ export default function PalmReader() {
     try {
       const [landmarker, stream] = await Promise.all([
         loadLandmarker(),
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: face, width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false }),
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: face, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false }),
       ]);
       await landmarker.setOptions({ runningMode: "VIDEO" });
+      fused.current = { field: null, frames: 0, lastLm: null, readySince: 0 };
+      setReady(0);
       streamRef.current = stream;
       const video = videoRef.current!;
       video.srcObject = stream;
@@ -183,7 +262,7 @@ export default function PalmReader() {
   }
 
   /** Detects the hand on a still picture, then reads it. */
-  async function readStill(canvas: HTMLCanvasElement, mirrored: boolean) {
+  async function readStill(canvas: HTMLCanvasElement, mirrored: boolean, prior: CreaseField | null = null) {
     setPhase("analyzing");
     try {
       const landmarker = await loadLandmarker();
@@ -192,7 +271,11 @@ export default function PalmReader() {
       const lm = result.landmarks[0];
       if (!lm) throw new Error("No hand found in the picture. Show your whole open palm, fingers together, against a plain background.");
       const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+      const px = toPixels(lm, canvas.width, canvas.height);
       setShot({
+        prior,
+        // A large palm in a high-resolution photo carries finer creases than the base grid can hold.
+        scale: dist(px[INDEX[0]], px[LITTLE[0]]) >= 400 ? 2 : 1,
         url: canvas.toDataURL("image/jpeg", 0.9),
         width: canvas.width,
         height: canvas.height,
@@ -212,21 +295,47 @@ export default function PalmReader() {
     }
   }
 
-  function capture() {
+  async function capture() {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || phase !== "live") return;
     haptic("medium");
-    const c = document.createElement("canvas");
-    c.width = video.videoWidth;
-    c.height = video.videoHeight;
-    const ctx = c.getContext("2d", { willReadFrequently: true })!;
+    const prior = fused.current.frames >= MIN_FRAMES ? fused.current.field : null;
     const mirrored = facing === "user";
+    // A full-resolution still where the browser can take one (ImageCapture), otherwise the video frame.
+    let source: CanvasImageSource = video;
+    let sw = video.videoWidth;
+    let sh = video.videoHeight;
+    let done = () => {};
+    const track = streamRef.current?.getVideoTracks()[0];
+    const ImageCaptureCtor = (window as unknown as { ImageCapture?: new (t: MediaStreamTrack) => { takePhoto(): Promise<Blob> } }).ImageCapture;
+    if (ImageCaptureCtor && track) {
+      try {
+        const blob = await new ImageCaptureCtor(track).takePhoto();
+        const img = await decodeImage(new File([blob], "palm.jpg", { type: blob.type }));
+        source = img.source;
+        sw = img.width;
+        sh = img.height;
+        done = img.close;
+      } catch {
+        /* fall back to the video frame */
+      }
+    }
+    const fit = Math.min(1, 2400 / Math.max(sw, sh));
+    const c = document.createElement("canvas");
+    c.width = Math.round(sw * fit);
+    c.height = Math.round(sh * fit);
+    const ctx = c.getContext("2d", { willReadFrequently: true })!;
     // Save the selfie view the way it looked on screen.
     if (mirrored) ctx.setTransform(-1, 0, 0, 1, c.width, 0);
-    ctx.drawImage(video, 0, 0);
+    ctx.drawImage(source, 0, 0, c.width, c.height);
+    done();
     stopCamera();
-    readStill(c, mirrored);
+    readStill(c, mirrored, prior);
   }
+
+  useEffect(() => {
+    captureRef.current = () => void capture();
+  });
 
   async function upload(file: File) {
     setError(null);
@@ -249,6 +358,7 @@ export default function PalmReader() {
 
   function reset() {
     setShot(null);
+    setAnswers({});
     setPhase("idle");
   }
 
@@ -256,9 +366,22 @@ export default function PalmReader() {
   const realHand = shot ? (handFix ?? (shot.mirrored ? other(shot.seen) : shot.seen)) : "Right";
   const analysis = useMemo(
     // Only a corrected hand is checked against the picture: a mismatch then means the back of the hand is showing.
-    () => (shot ? analyzePalm(shot.pixels, shot.landmarks, shot.world, handFix ? (shot.mirrored ? other(handFix) : handFix) : undefined) : null),
+    () =>
+      shot
+        ? analyzePalm(shot.pixels, shot.landmarks, shot.world, handFix ? (shot.mirrored ? other(handFix) : handFix) : undefined, { scale: shot.scale, prior: shot.prior })
+        : null,
     [shot, handFix]
   );
+  const kundli = useMemo<KundliGrades | null>(() => {
+    const c = charts.find((x) => x.key === chartKey);
+    if (!c) return null;
+    try {
+      return Object.fromEntries(planetDiagnosis(c.chart).map((d) => [d.planet, d.grade]));
+    } catch {
+      return null;
+    }
+  }, [charts, chartKey]);
+  const mounts = useMemo(() => (shot && analysis ? mountsFor(analysis, shot.pixels, shot.landmarks, answers, kundli) : []), [shot, analysis, answers, kundli]);
 
   return (
     <div className="space-y-8">
@@ -294,10 +417,16 @@ export default function PalmReader() {
                   </button>
                   <button
                     type="button"
-                    onClick={capture}
+                    onClick={() => void capture()}
                     aria-label="Take photo and read palm"
-                    className="h-16 w-16 rounded-full border-4 border-white bg-white/25 shadow-lg transition active:scale-90"
-                  />
+                    className="relative h-16 w-16 rounded-full border-4 border-white bg-white/25 shadow-lg transition active:scale-90"
+                  >
+                    {ready > 0 && (
+                      <svg viewBox="0 0 36 36" className="absolute -inset-2 h-[calc(100%+1rem)] w-[calc(100%+1rem)] -rotate-90" aria-hidden="true">
+                        <circle cx="18" cy="18" r="16" fill="none" stroke="#f2c14e" strokeWidth="2.5" strokeDasharray={`${ready * 100.5} 100.5`} strokeLinecap="round" />
+                      </svg>
+                    )}
+                  </button>
                   <button type="button" onClick={() => {
                       stopCamera();
                       setPhase("idle");
@@ -305,6 +434,10 @@ export default function PalmReader() {
                     Close
                   </button>
                 </div>
+                <label className="absolute top-14 right-3 flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
+                  <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} className="accent-[var(--color-gold)]" />
+                  Auto-capture
+                </label>
               </>
             )}
             {phase !== "live" && (
@@ -343,6 +476,14 @@ export default function PalmReader() {
       {phase === "result" && shot && analysis && <PalmResult
           shot={shot}
           analysis={analysis}
+          mounts={mounts}
+          onAnswer={(k, v) => {
+            haptic("selection");
+            setAnswers((a) => ({ ...a, [k]: v }));
+          }}
+          charts={charts}
+          chartKey={chartKey}
+          onChart={setChartKey}
           hand={realHand}
           onHand={(h) => {
             haptic("selection");
@@ -402,20 +543,53 @@ function drawLines(ctx: CanvasRenderingContext2D, px: Point[], traced: TracedLin
 
 const toPath = (pts: Point[]) => pts.map((p, k) => `${k ? "L" : "M"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join("");
 
+const SIGN_LABEL: Record<MountReading["sign"], string> = {
+  star: "Possible star",
+  cross: "Possible cross",
+  grille: "Grille of fine lines",
+  vertical: "Vertical lines",
+  clear: "Clear",
+};
+const MOUNT_SHORT: Record<MountKey, string> = {
+  jupiter: "Jupiter",
+  saturn: "Saturn",
+  sun: "Sun",
+  mercury: "Mercury",
+  upperMars: "Upper Mars",
+  lowerMars: "Lower Mars",
+  venus: "Venus",
+  moon: "Moon",
+  rahu: "Rahu",
+  ketu: "Ketu",
+};
+
 function PalmResult({
   shot,
   analysis,
+  mounts,
+  onAnswer,
+  charts,
+  chartKey,
+  onChart,
   hand,
   onHand,
   onRetake,
 }: {
   shot: Shot;
   analysis: PalmAnalysis;
+  mounts: MountReading[];
+  onAnswer: (k: MountKey, v: Fullness) => void;
+  charts: StoredChart[];
+  chartKey: string;
+  onChart: (k: string) => void;
   hand: Hand;
   onHand: (h: Hand) => void;
   onRetake: () => void;
 }) {
   const [active, setActive] = useState<LineKey | null>(null);
+  const [overlay, setOverlay] = useState<"lines" | "mounts">("lines");
+  const [activeMount, setActiveMount] = useState<MountKey | null>(null);
+  const dominant = dominantMounts(mounts);
   const { reading, lines, issues } = analysis;
   const size = Math.max(shot.width, shot.height);
   const stroke = size / 140;
@@ -429,7 +603,21 @@ function PalmResult({
             {/* eslint-disable-next-line @next/next/no-img-element -- a local data URL from the camera */}
             <img src={shot.url} alt="Your palm with its lines traced" className="block h-auto w-full" />
             <svg viewBox={`0 0 ${shot.width} ${shot.height}`} className="absolute inset-0 h-full w-full" aria-hidden="true">
-              {lines.map((line, i) => {
+              {overlay === "mounts" &&
+                mounts
+                  .filter((m) => m.inView)
+                  .map((m) => (
+                    <g key={m.key} style={{ opacity: activeMount && activeMount !== m.key ? 0.25 : 1, transition: "opacity 200ms" }}>
+                      <polygon points={m.outline.map((p) => `${p.x},${p.y}`).join(" ")} fill={m.strength > 0 ? "rgba(242,193,78,0.16)" : m.strength < 0 ? "rgba(239,123,118,0.14)" : "rgba(255,255,255,0.08)"} stroke="rgba(255,255,255,0.55)" strokeWidth={stroke * 0.35} strokeDasharray={`${stroke} ${stroke}`} />
+                      <LineLabel at={{ x: m.centre.x, y: m.centre.y + size / 70 }} text={MOUNT_SHORT[m.key]} color={m.strength > 0 ? "#f2c14e" : m.strength < 0 ? "#ff8a80" : "#ffffff"} size={size * 0.8} delay={0} />
+                      {m.markings.map((k, j) => (
+                        <text key={j} x={k.at.x} y={k.at.y} textAnchor="middle" dominantBaseline="central" fontSize={size / 28} fill="#ff6bd6" stroke="rgba(0,0,0,0.8)" strokeWidth={size / 300} paintOrder="stroke">
+                          {k.kind === "star" ? "✶" : "✚"}
+                        </text>
+                      ))}
+                    </g>
+                  ))}
+              {overlay === "lines" && lines.map((line, i) => {
                 if (!line.found) return null;
                 const dim = active && active !== line.key;
                 return (
@@ -457,6 +645,20 @@ function PalmResult({
               })}
             </svg>
           </div>
+          <div className="flex justify-center px-4 pt-4">
+            <SegmentedControl
+              layoutId="palm-overlay"
+              value={overlay}
+              onChange={(v) => {
+                haptic("selection");
+                setOverlay(v);
+              }}
+              options={[
+                { value: "lines", label: "Lines" },
+                { value: "mounts", label: "Mounts" },
+              ]}
+            />
+          </div>
           <figcaption className="flex flex-wrap items-center justify-between gap-3 p-4">
             <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
               {reading.lines.map((l) => (
@@ -473,6 +675,19 @@ function PalmResult({
         </figure>
 
         <div className="space-y-4">
+          <ul className="flex flex-wrap gap-1.5 text-xs" aria-label="Photo checks">
+            {[
+              ["Sharp", !issues.includes("blurry")],
+              ["Even light", !issues.includes("uneven-light") && !issues.includes("glare") && !issues.includes("too-dark") && !issues.includes("too-bright")],
+              ["Flat, open hand", !issues.includes("curled") && !issues.includes("tilted")],
+              ["Close enough", !issues.includes("too-small")],
+              ...(shot.prior ? ([["Steadied over live frames", true]] as [string, boolean][]) : []),
+            ].map(([label, ok]) => (
+              <li key={label as string} className={`rounded-full border px-2.5 py-0.5 ${ok ? "border-gold/50 text-gold-bright" : "border-rose/50 text-rose"}`}>
+                {ok ? "✓" : "✕"} {label}
+              </li>
+            ))}
+          </ul>
           {issues.length > 0 && (
             <p role="status" className="rounded-xl border border-rose/30 bg-rose/5 px-4 py-2.5 text-sm text-rose">
               {issues[0] === "back-of-hand"
@@ -533,6 +748,73 @@ function PalmResult({
           ))}
         </div>
       </div>
+
+      <section aria-label="Mounts" className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-cream">The mounts (parvatas)</h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted">
+              Each mount belongs to a graha. Markings are read from the photo; how full a mount is can&rsquo;t be seen in a flat
+              photo, so press each one gently and choose what you feel.
+            </p>
+          </div>
+          {charts.length > 0 && (
+            <label className="text-xs text-muted">
+              Compare with kundli{" "}
+              <select value={chartKey} onChange={(e) => onChart(e.target.value)} className="ml-1 rounded-lg border border-border bg-surface px-2 py-1 text-sm text-cream">
+                <option value="">None</option>
+                {charts.map((c) => (
+                  <option key={c.key} value={c.key}>
+                    {c.input.name || c.input.date}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+        {dominant.length > 0 && (
+          <p className="card-edge rounded-2xl px-5 py-4 text-sm text-cream">
+            Strongest mounts: <b>{dominant.slice(0, 3).map((m) => MOUNT_SHORT[m.key]).join(", ")}</b> — {dominant[0].planet} sets the tone of your hand.
+          </p>
+        )}
+        <div className="grid gap-4 md:grid-cols-2">
+          {mounts.map((m) => (
+            <div
+              key={m.key}
+              className={`card-edge rounded-2xl p-5 transition ${activeMount === m.key ? "ring-2 ring-gold" : ""}`}
+              onMouseEnter={() => setActiveMount(m.key)}
+              onMouseLeave={() => setActiveMount(null)}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="font-semibold text-cream">
+                  {m.name} <span className="text-sm font-normal text-muted">{m.nameHi}</span>
+                </h3>
+                <span className={`rounded-full border px-2.5 py-0.5 text-xs ${!m.inView ? "border-border text-muted" : m.sign === "star" || m.sign === "vertical" ? "border-gold/60 text-gold-bright" : m.sign === "clear" ? "border-border text-muted" : "border-rose/50 text-rose"}`}>
+                  {m.inView ? SIGN_LABEL[m.sign] : "Not in view"}
+                </span>
+              </div>
+              {m.pressable && (
+                <div className="mt-3 flex items-center gap-2 text-xs">
+                  <span className="text-muted">When pressed it feels</span>
+                  {(["flat", "normal", "full"] as Fullness[]).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      aria-pressed={m.fullness === f}
+                      onClick={() => onAnswer(m.key, f)}
+                      className={`rounded-full border px-2.5 py-1 capitalize ${m.fullness === f ? "border-gold bg-gold text-on-gold" : "border-border text-cream hover:border-gold"}`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <p className="mt-3 text-sm leading-relaxed text-muted">{m.text}</p>
+              {m.kundli && <p className="mt-2 text-sm text-cream">{m.kundli}</p>}
+            </div>
+          ))}
+        </div>
+      </section>
 
       {reading.fingers.length > 0 && (
         <section className="card-edge rounded-3xl p-6">

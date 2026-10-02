@@ -27,13 +27,28 @@ export function blur(img: GrayImage, sigma: number): GrayImage {
 }
 
 /**
- * How strongly each pixel sits in a thin dark groove — a palm crease — at the
- * given scale. Uses the Hessian: across a crease the brightness curves upward
+ * Crease strength and direction over the straightened palm, at the base search
+ * resolution. `response` is how strongly each pixel sits in a thin dark groove;
+ * `orientation` is the groove's direction (radians, 0 = along the palm's width,
+ * π/2 = along its length); `valid` marks pixels that came from the photo.
+ */
+export interface CreaseField {
+  width: number;
+  height: number;
+  response: Float32Array;
+  orientation: Float32Array;
+  valid: Uint8Array;
+}
+
+/**
+ * Finds creases with the Hessian: across a crease the brightness curves upward
  * sharply (large positive eigenvalue) while along it it stays flat. The image
  * is first divided by its local brightness so creases in shadow count as much
- * as creases in light. Pixels off the photo (NaN) score zero.
+ * as creases in light. `scale` is how many times larger than the base grid the
+ * input is (2 for a full-resolution photo); filters scale with it, and the
+ * result is max-pooled back to the base grid so a fine crease survives intact.
  */
-export function creaseResponse(img: GrayImage, scales = [2, 3.5]): Float32Array {
+export function creaseField(img: GrayImage, scale = 1): CreaseField {
   const { width: w, height: h } = img;
   const valid = new Uint8Array(w * h);
   let mean = 0;
@@ -48,13 +63,14 @@ export function creaseResponse(img: GrayImage, scales = [2, 3.5]): Float32Array 
   const filled = new Float32Array(w * h);
   for (let i = 0; i < w * h; i++) filled[i] = valid[i] ? img.data[i] : mean;
 
-  const base = { width: w, height: h, data: filled };
-  const local = blur(base, 12);
+  const local = blur({ width: w, height: h, data: filled }, 12 * scale);
   const norm = new Float32Array(w * h);
   for (let i = 0; i < w * h; i++) norm[i] = filled[i] / Math.max(local.data[i], 0.05);
 
-  const out = new Float32Array(w * h);
-  for (const sigma of scales) {
+  const resp = new Float32Array(w * h);
+  const orient = new Float32Array(w * h);
+  for (const base of [2, 3.5]) {
+    const sigma = base * scale;
     const g = blur({ width: w, height: h, data: norm }, sigma).data;
     const s2 = sigma * sigma;
     for (let y = 2; y < h - 2; y++)
@@ -69,8 +85,60 @@ export function creaseResponse(img: GrayImage, scales = [2, 3.5]): Float32Array 
         const l1 = (ixx + iyy) / 2 + root;
         const l2 = (ixx + iyy) / 2 - root;
         const r = s2 * (l1 - 0.5 * Math.abs(l2));
-        if (r > out[i]) out[i] = r;
+        if (r > resp[i]) {
+          resp[i] = r;
+          // The strongest curvature runs across the crease; the crease itself is perpendicular to it.
+          orient[i] = (0.5 * Math.atan2(2 * ixy, ixx - iyy) + Math.PI / 2 + Math.PI) % Math.PI;
+        }
       }
   }
+  if (scale === 1) return { width: w, height: h, response: resp, orientation: orient, valid };
+
+  // Max-pool to the base grid, keeping the direction of the strongest pixel in each block.
+  const bw = Math.round(w / scale);
+  const bh = Math.round(h / scale);
+  const out = { width: bw, height: bh, response: new Float32Array(bw * bh), orientation: new Float32Array(bw * bh), valid: new Uint8Array(bw * bh) };
+  for (let by = 0; by < bh; by++)
+    for (let bx = 0; bx < bw; bx++) {
+      let best = 0;
+      let dir = 0;
+      let anyValid = 0;
+      for (let y = Math.floor(by * scale); y < Math.min(h, Math.floor((by + 1) * scale)); y++)
+        for (let x = Math.floor(bx * scale); x < Math.min(w, Math.floor((bx + 1) * scale)); x++) {
+          const i = y * w + x;
+          anyValid |= valid[i];
+          if (resp[i] > best) {
+            best = resp[i];
+            dir = orient[i];
+          }
+        }
+      const o = by * bw + bx;
+      out.response[o] = best;
+      out.orientation[o] = dir;
+      out.valid[o] = anyValid;
+    }
   return out;
+}
+
+/** Back-compat: crease strength alone at the base resolution. */
+export function creaseResponse(img: GrayImage): Float32Array {
+  return creaseField(img).response;
+}
+
+/**
+ * Blends a new frame's creases into a running average. Every frame is mapped
+ * onto the same palm layout, so real creases line up and add up, while noise,
+ * glare and skin texture — different in every frame — average away.
+ */
+export function fuseFields(prev: CreaseField | null, next: CreaseField, weight = 0.3): CreaseField {
+  if (!prev || prev.width !== next.width || prev.height !== next.height) return next;
+  const response = new Float32Array(next.response.length);
+  const orientation = new Float32Array(next.response.length);
+  const valid = new Uint8Array(next.response.length);
+  for (let i = 0; i < response.length; i++) {
+    response[i] = prev.response[i] * (1 - weight) + next.response[i] * weight;
+    orientation[i] = next.response[i] >= prev.response[i] ? next.orientation[i] : prev.orientation[i];
+    valid[i] = prev.valid[i] | next.valid[i];
+  }
+  return { width: next.width, height: next.height, response, orientation, valid };
 }
