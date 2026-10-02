@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // The palm reader's model and WASM runtime (~30 MB): cache for a week so repeat visits load instantly.
+        source: "/mediapipe/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400" }],
+      },
+      {
         // The service worker must always be fetched fresh so updates reach users.
         source: "/sw.js",
         headers: [

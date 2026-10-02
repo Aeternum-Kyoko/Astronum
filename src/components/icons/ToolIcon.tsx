@@ -69,6 +69,13 @@ const PATHS: Record<string, React.ReactNode> = {
       <path d="M10 8.5l2.5-1.5v10M10 17h5" />
     </>
   ),
+  // An open palm with its lines.
+  palmistry: (
+    <>
+      <path d="M7.5 21c-2-1.8-3.3-4-3.7-6.6l-.6-3c-.2-.8.9-1.2 1.3-.4l1.5 3V5c0-.9 1.3-.9 1.3 0v6.5V3.6c0-.9 1.4-.9 1.4 0v7.9-6.8c0-.9 1.4-.9 1.4 0v6.8V6c0-.9 1.3-.9 1.3 0v8.5c0 3.2-1 5.2-2.4 6.5" />
+      <path d="M7.2 13.2c1.1-.7 2.8-.7 4 .3M8.7 19.4c-.3-2.2 0-3.6 1-5" />
+    </>
+  ),
   // A clock hand being adjusted.
   rectification: (
     <>

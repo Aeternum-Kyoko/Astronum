@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import type { KundaliChart } from "@/lib/astrology/types";
 import { NAKSHATRAS, SIGN_SANSKRIT, SIGN_LORDS } from "@/lib/astrology/constants";
 import { computeAvakahada, computeBirthPanchang } from "@/lib/astrology/birthDetails";
+import { birthTime } from "@/lib/astrology/dashboard";
 import { nakshatraLord } from "@/lib/astrology/dasha";
 
 /** The "basic details" block Indian kundli reports open with: birth data, Avakahada Chakra, and birth Panchang. */
@@ -11,13 +12,15 @@ export default function BasicDetails({ chart }: { chart: KundaliChart }) {
   const sun = chart.planets.find((p) => p.planet === "Sun")!;
   const avakahada = computeAvakahada(moon);
   const panchang = computeBirthPanchang(sun.siderealLongitude, moon.siderealLongitude);
+  // The Vedic weekday turns at sunrise, so a birth before sunrise belongs to the previous day.
+  const vara = birthTime(chart)?.vara;
   const birth = DateTime.fromISO(`${input.date}T${input.time}`, { zone: input.timezone });
   const ascNakshatraIndex = Math.floor(chart.ascendant.siderealLongitude / (360 / 27));
 
   const birthRows: [string, string][] = [
     ["Date", birth.isValid ? birth.toFormat("d LLLL yyyy") : input.date],
     ["Time", birth.isValid ? birth.toFormat("h:mm a") : input.time],
-    ["Weekday", birth.isValid ? birth.toFormat("cccc") : "—"],
+    ["Weekday", vara ? `${vara.name} (${vara.sanskrit})` : birth.isValid ? birth.toFormat("cccc") : "—"],
     ["Place", input.place],
     ["Coordinates", `${formatCoord(input.latitude, "N", "S")}, ${formatCoord(input.longitude, "E", "W")}`],
     ["Timezone", `${input.timezone}${birth.isValid ? ` (UTC${birth.toFormat("ZZ")})` : ""}`],

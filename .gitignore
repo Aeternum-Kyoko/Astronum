@@ -52,3 +52,6 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# palm reader runtime, copied/downloaded by scripts/copy-mediapipe.mjs
+/public/mediapipe/

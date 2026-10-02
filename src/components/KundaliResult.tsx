@@ -19,6 +19,7 @@ import ChartDetail from "@/components/ChartDetail";
 import SegmentedControl from "@/components/SegmentedControl";
 import PrintReport from "@/components/PrintReport";
 import BasicDetails from "@/components/BasicDetails";
+import AstroDashboard from "@/components/AstroDashboard";
 import RemediesPanel from "@/components/RemediesPanel";
 import DashaExplorer from "@/components/DashaExplorer";
 import { LifeReportPanel, PlanetReadingsPanel, TransitsPanel } from "@/components/ReportPanels";
@@ -34,7 +35,7 @@ import { nakshatraLord } from "@/lib/astrology/dasha";
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 /** The kundli's sections, grouped so the page opens on a summary and each area is one tap away. */
 const GROUPS = [
-  { name: "Start", tabs: ["Summary", "Overview"] },
+  { name: "Start", tabs: ["Summary", "Dashboard", "Overview"] },
   { name: "Predictions", tabs: ["Life Report", "Life Sectors", "Life Timeline", "Career", "Houses", "Planet Readings", "Transits"] },
   { name: "Charts", tabs: ["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Ashtakavarga", "Shadbala", "House Lords"] },
   { name: "Dashas", tabs: ["Dashas", "Yogini Dasha", "Chara Dasha"] },
@@ -60,6 +61,7 @@ const TAB_SECTIONS: Partial<Record<Tab, HeavySection[]>> = {
 /** URL-friendly names for deep links such as /kundali?tab=dashas. */
 export const TAB_SLUGS: Record<string, Tab> = {
   summary: "Summary",
+  dashboard: "Dashboard",
   overview: "Overview",
   report: "Life Report",
   planets: "Planet Readings",
@@ -235,6 +237,7 @@ export default function KundaliResult({
               transition={{ duration: 0.35, ease: EASE_OUT_EXPO }}
             >
               {tab === "Summary" && <KundliSummary chart={chart} report={report} go={go} style={style} setStyle={setStyle} />}
+              {tab === "Dashboard" && <AstroDashboard chart={chart} />}
               {tab === "Overview" && <OverviewTab chart={chart} />}
               {tab === "Lal Kitab" && <LalKitabPanel chart={chart} />}
               {tab === "Special Tables" && <SpecialTablesPanel chart={chart} />}
@@ -545,7 +548,7 @@ function RasiTab({
         <PlanetTable chart={chart} />
       </div>
 
-      <ChartDetail vargaKey="D1" ascendantSignIndex={chart.ascendant.signIndex} planets={chart.planets} shadbala={chart.shadbala} />
+      <ChartDetail vargaKey="D1" ascendantSignIndex={chart.ascendant.signIndex} planets={chart.planets} natal={chart} />
     </div>
   );
 }
@@ -734,7 +737,7 @@ function VargaTab({
         </div>
       </div>
 
-      <ChartDetail vargaKey={title} ascendantSignIndex={divisionalChart.ascendant.signIndex} planets={divisionalChart.planets} />
+      <ChartDetail vargaKey={title} ascendantSignIndex={divisionalChart.ascendant.signIndex} planets={divisionalChart.planets} natal={chart} />
     </div>
   );
 }

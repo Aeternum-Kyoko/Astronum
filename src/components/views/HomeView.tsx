@@ -23,6 +23,7 @@ const TOOLS = [
   { key: "muhurat", href: "/muhurat" },
   { key: "sadeSati", href: "/sade-sati" },
   { key: "numerology", href: "/numerology" },
+  { key: "palmistry", href: "/palmistry" },
   { key: "rectification", href: "/rectification" },
 ] as const;
 

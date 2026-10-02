@@ -555,3 +555,32 @@ body::after {
     opacity: 1;
   }
 }
+
+/* Palm reading: each traced line draws itself on, then its label fades in. */
+.palm-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: palm-draw 1.1s cubic-bezier(0.45, 0, 0.2, 1) forwards;
+}
+.palm-label {
+  opacity: 0;
+  animation: palm-label 0.4s ease-out forwards;
+}
+@keyframes palm-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes palm-label {
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .palm-draw,
+  .palm-label {
+    animation: none;
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}

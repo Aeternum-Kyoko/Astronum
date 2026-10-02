@@ -70,7 +70,7 @@ const DIGNITY_POINTS: Record<CombinedRelation, number> = {
  * and own-sign are fixed top scores; everything else falls back to Panchadha
  * Maitri's five-fold relationship with that sign's lord. Shared by Shadbala
  * (`saptavargajaBala`) and the house/planet-strength heuristics in
- * `bhavaStrength.ts` / `vargaPlanetStrength.ts` so there is one dignity-in-a-varga
+ * `bhavaStrength.ts` so there is one dignity-in-a-varga
  * implementation, not two.
  */
 export function vargaDignityPoints(

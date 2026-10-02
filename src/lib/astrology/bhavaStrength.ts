@@ -73,7 +73,10 @@ export function analyzeBhavaStrength(
     }
 
     const relevantPlanets: PlanetName[] = occupants.length > 0 ? occupants.map((o) => o.planet) : [lord];
-    const received = aspects.filter((a) => relevantPlanets.includes(a.to) && !relevantPlanets.includes(a.from));
+    // One planet aspecting several occupants of the same sign is still one aspect on the house.
+    const received = aspects
+      .filter((a) => relevantPlanets.includes(a.to) && !relevantPlanets.includes(a.from))
+      .filter((a, i, all) => all.findIndex((b) => b.from === a.from) === i);
     const aspectScore = Math.max(
       -20,
       Math.min(20, received.reduce((sum, a) => sum + (a.benefic ? 5 : -5), 0))
