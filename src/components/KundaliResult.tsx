@@ -20,6 +20,7 @@ import SegmentedControl from "@/components/SegmentedControl";
 import PrintReport from "@/components/PrintReport";
 import BasicDetails from "@/components/BasicDetails";
 import AstroDashboard from "@/components/AstroDashboard";
+import MonthlyForecastPanel from "@/components/MonthlyForecastPanel";
 import RemediesPanel from "@/components/RemediesPanel";
 import DashaExplorer from "@/components/DashaExplorer";
 import { LifeReportPanel, PlanetReadingsPanel, TransitsPanel } from "@/components/ReportPanels";
@@ -36,7 +37,7 @@ const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 /** The kundli's sections, grouped so the page opens on a summary and each area is one tap away. */
 const GROUPS = [
   { name: "Start", tabs: ["Summary", "Dashboard", "Overview"] },
-  { name: "Predictions", tabs: ["Life Report", "Life Sectors", "Life Timeline", "Career", "Houses", "Planet Readings", "Transits"] },
+  { name: "Predictions", tabs: ["Monthly Forecast", "Life Report", "Life Sectors", "Life Timeline", "Career", "Houses", "Planet Readings", "Transits"] },
   { name: "Charts", tabs: ["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Ashtakavarga", "Shadbala", "House Lords"] },
   { name: "Dashas", tabs: ["Dashas", "Yogini Dasha", "Chara Dasha"] },
   { name: "Advanced", tabs: ["Yogas & Doshas", "KP System", "Lal Kitab", "Special Tables"] },
@@ -56,6 +57,7 @@ const TAB_SECTIONS: Partial<Record<Tab, HeavySection[]>> = {
   "Yogini Dasha": ["yogini"],
   "Chara Dasha": ["chara"],
   "KP System": ["kp"],
+  "Monthly Forecast": ["monthly"],
 };
 
 /** URL-friendly names for deep links such as /kundali?tab=dashas. */
@@ -64,6 +66,7 @@ export const TAB_SLUGS: Record<string, Tab> = {
   dashboard: "Dashboard",
   overview: "Overview",
   report: "Life Report",
+  monthly: "Monthly Forecast",
   planets: "Planet Readings",
   houses: "Houses",
   career: "Career",
@@ -241,6 +244,7 @@ export default function KundaliResult({
               {tab === "Overview" && <OverviewTab chart={chart} />}
               {tab === "Lal Kitab" && <LalKitabPanel chart={chart} />}
               {tab === "Special Tables" && <SpecialTablesPanel chart={chart} />}
+              {tab === "Monthly Forecast" && <MonthlyForecastPanel report={report} />}
               {tab === "Life Report" && <LifeReportPanel report={report} />}
               {tab === "Planet Readings" && <PlanetReadingsPanel report={report} />}
               {tab === "Houses" && <HousesPanel report={report} />}

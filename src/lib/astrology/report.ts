@@ -9,6 +9,7 @@ import { yoginiDasha, type YoginiPeriod } from "./yoginiDasha";
 import { charaDasha, charaKarakas, charaReading, type CharaPeriod, type Karaka } from "./charaDasha";
 import { kpAnalysis, type KpAnalysis } from "./kp";
 import { lifeSectors, type LifeSector } from "./lifeSectors";
+import { monthlyForecast, type MonthlyForecast } from "./monthlyForecast";
 
 /** The quick, always-sent part of a kundli's written report. */
 export interface CoreReport {
@@ -30,9 +31,10 @@ export interface HeavyReport {
   chara: { karakas: Karaka[]; periods: (CharaPeriod & { reading: string[] })[] };
   kp: KpAnalysis;
   sectors: LifeSector[];
+  monthly: MonthlyForecast;
 }
 
-export const HEAVY_SECTIONS = ["houses", "career", "timeline", "dashaDetail", "yogini", "chara", "kp", "sectors"] as const satisfies readonly (keyof HeavyReport)[];
+export const HEAVY_SECTIONS = ["houses", "career", "timeline", "dashaDetail", "yogini", "chara", "kp", "sectors", "monthly"] as const satisfies readonly (keyof HeavyReport)[];
 export type HeavySection = (typeof HEAVY_SECTIONS)[number];
 
 /** What the browser holds: the core report plus whichever heavy sections have loaded. */
@@ -75,6 +77,7 @@ export function buildSections(chart: KundaliChart, sections: readonly HeavySecti
   }
   if (want.has("kp")) out.kp = kpAnalysis(chart, now);
   if (want.has("sectors")) out.sectors = lifeSectors(chart, getTimeline(), getCareer());
+  if (want.has("monthly")) out.monthly = monthlyForecast(chart, now);
   return out;
 }
 
