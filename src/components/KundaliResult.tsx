@@ -21,6 +21,7 @@ import PrintReport from "@/components/PrintReport";
 import BasicDetails from "@/components/BasicDetails";
 import AstroDashboard from "@/components/AstroDashboard";
 import MonthlyForecastPanel from "@/components/MonthlyForecastPanel";
+import RudrakshaPanel from "@/components/RudrakshaPanel";
 import RemediesPanel from "@/components/RemediesPanel";
 import DashaExplorer from "@/components/DashaExplorer";
 import { LifeReportPanel, PlanetReadingsPanel, TransitsPanel } from "@/components/ReportPanels";
@@ -41,7 +42,7 @@ const GROUPS = [
   { name: "Charts", tabs: ["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Ashtakavarga", "Shadbala", "House Lords"] },
   { name: "Dashas", tabs: ["Dashas", "Yogini Dasha", "Chara Dasha"] },
   { name: "Advanced", tabs: ["Yogas & Doshas", "KP System", "Lal Kitab", "Special Tables"] },
-  { name: "Guidance", tabs: ["Remedies"] },
+  { name: "Guidance", tabs: ["Remedies", "Rudraksha"] },
 ] as const;
 type Tab = (typeof GROUPS)[number]["tabs"][number];
 const groupOf = (t: Tab) => GROUPS.find((g) => (g.tabs as readonly string[]).includes(t))!;
@@ -84,6 +85,7 @@ export const TAB_SLUGS: Record<string, Tab> = {
   dashas: "Dashas",
   yogas: "Yogas & Doshas",
   remedies: "Remedies",
+  rudraksha: "Rudraksha",
   lords: "House Lords",
   lalkitab: "Lal Kitab",
   tables: "Special Tables",
@@ -283,6 +285,7 @@ export default function KundaliResult({
               {tab === "Dashas" && <DashasTab chart={chart} report={report} />}
               {tab === "Yogas & Doshas" && <YogasDoshasTab chart={chart} />}
               {tab === "Remedies" && <RemediesPanel chart={chart} />}
+              {tab === "Rudraksha" && <RudrakshaPanel chart={chart} />}
               {tab === "House Lords" && <HouseLordsTab chart={chart} />}
             </motion.div>
           </AnimatePresence>

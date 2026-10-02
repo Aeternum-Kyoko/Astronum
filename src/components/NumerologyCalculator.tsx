@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import DatePicker from "@/components/DatePicker";
 import { bhagyank, loShu, LO_SHU_LAYOUT, mobileNumerology, moolank, nameNumber, nameSuggestions, NUMBER_MEANINGS } from "@/lib/numerology";
@@ -92,7 +93,12 @@ function NumerologyDetails({ name, date, phone, setPhone }: { name: string; date
     <div className="mt-8 space-y-6">
       <section className="card-edge rounded-2xl p-6">
         <h2 className="text-lg font-bold text-cream">Lo Shu grid</h2>
-        <p className="mt-1 text-sm text-muted">Every digit of your birth date, plus your Moolank and Bhagyank, placed in the Lo Shu magic square.</p>
+        <p className="mt-1 text-sm text-muted">
+          Every digit of your birth date, plus your Moolank and Bhagyank, placed in the Lo Shu magic square.{" "}
+          <Link href={`/lo-shu?date=${date}&name=${encodeURIComponent(name)}`} className="font-semibold text-gold-bright hover:text-gold">
+            Open the detailed Lo Shu reading →
+          </Link>
+        </p>
         <div className="mt-5 grid gap-6 md:grid-cols-[auto_1fr]">
           <div className="grid grid-cols-3 gap-1.5" role="table" aria-label="Lo Shu grid">
             {LO_SHU_LAYOUT.flat().map((n) => (

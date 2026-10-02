@@ -43,6 +43,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...SIGN_SLUGS.flatMap((slug) => ["weekly", "monthly", "yearly"].map((p) => page(`/horoscope/${slug}/${p}`, "weekly", 0.7))),
     page("/numerology", "monthly", 0.7),
     page("/palmistry", "monthly", 0.7),
+    page("/lo-shu", "monthly", 0.7),
+    page("/rudraksha", "monthly", 0.7),
     page("/sade-sati", "monthly", 0.8),
     page("/nakshatra-finder", "monthly", 0.7),
     page("/varshphal", "monthly", 0.7),
