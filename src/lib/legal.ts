@@ -4,11 +4,11 @@
  * until then each legal page shows a "draft template" notice.
  */
 export const BUSINESS = {
-  name: "[Business or owner name]",
+  name: "Manish Dave",
   email: "[support@yourdomain.com]",
   phone: "[+91 phone number]",
-  address: "[Registered address, City, State, PIN]",
-  jurisdiction: "[City], India",
+  address: "[Street address], Jodhpur, Rajasthan [PIN]",
+  jurisdiction: "Jodhpur, Rajasthan, India",
   lastUpdated: "[date]",
   reviewed: false,
 };
