@@ -85,6 +85,8 @@ export default function ChartGrid({
           }
 
           const occupants = bySign.get(signIndex) ?? [];
+          // Four or more planets (counting the Lagna label) get smaller labels without degrees, so the cell never overflows.
+          const crowded = occupants.length + (signIndex === ascendantSignIndex ? 1 : 0) >= 4;
           const isAscendant = signIndex === ascendantSignIndex;
           const house = ((signIndex - ascendantSignIndex + 12) % 12) + 1;
           return (
@@ -93,12 +95,12 @@ export default function ChartGrid({
               key={`${r}-${c}`}
               onClick={onPick ? () => onPick({ kind: "house", house }) : undefined}
               data-haptic={onPick ? "selection" : undefined}
-              className={`relative flex flex-col items-center justify-center rounded-lg border p-1 text-center transition-colors ${
+              className={`relative flex min-w-0 flex-col items-center justify-center overflow-hidden rounded-lg border p-1 text-center transition-colors ${
                 isAscendant ? "border-gold/70 bg-[radial-gradient(circle_at_50%_30%,color-mix(in_oklab,var(--color-gold)_16%,transparent),transparent_70%)]" : "border-border/40 bg-ink-deep/25"
               } ${onPick ? "cursor-pointer hover:border-gold/70" : ""} ${selected?.kind === "house" && selected.house === house ? "ring-1 ring-gold" : ""}`}
             >
               <span className="chart-fade text-[10px] text-muted/80">{SIGN_SANSKRIT[signIndex]}</span>
-              <div className="mt-1 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
+              <div className={`mt-1 flex flex-wrap items-center justify-center ${crowded ? "gap-x-1 gap-y-0 leading-tight" : "gap-x-1.5 gap-y-0.5"}`}>
                 {isAscendant && <span className="chart-fade text-[10px] font-semibold text-gold-bright">Lagna</span>}
                 {occupants.map((p) => (
                   <span
@@ -130,11 +132,11 @@ export default function ChartGrid({
                     ]
                       .filter(Boolean)
                       .join(" · ")}
-                    className={`chart-fade text-[13px] font-semibold ${p.dignity ? DIGNITY_COLOR[p.dignity] : "text-cream"} ${glyphs ? "text-[15px]" : ""}`}
+                    className={`chart-fade font-semibold ${p.dignity ? DIGNITY_COLOR[p.dignity] : "text-cream"} ${glyphs ? (crowded ? "text-[12px]" : "text-[15px]") : crowded ? "text-[11px]" : "text-[13px]"}`}
                     style={glyphs ? { fontFamily: "'Noto Sans Symbols 2','Segoe UI Symbol','Apple Symbols',serif" } : undefined}
                   >
                     {glyphs ? PLANET_GLYPH[p.planet] : PLANET_ABBR[p.planet]}
-                    {p.degreeInSign !== undefined && <span className="ml-px text-[9px] font-normal text-muted tabular-nums">{Math.floor(p.degreeInSign)}°</span>}
+                    {p.degreeInSign !== undefined && !crowded && <span className="ml-px text-[9px] font-normal text-muted tabular-nums">{Math.floor(p.degreeInSign)}°</span>}
                     {[...(p.markers ?? (p.retrograde ? "R" : ""))].map((m, i) => (
                       <sup key={i} className={m === "↓" || m === "C" || m === "R" ? "text-rose" : "text-gold-bright"}>
                         {m}

@@ -7,7 +7,7 @@ import { computeAvakahada, computeBirthPanchang } from "@/lib/astrology/birthDet
 import { nakshatraLord } from "@/lib/astrology/dasha";
 import { NAKSHATRAS } from "@/lib/astrology/constants";
 import { analyzeYogas } from "@/lib/astrology/yogaAnalysis";
-import { A, B, C, D, HOUSE_LABEL_ANCHORS, HOUSE_POLYGONS, P1, P2, P3, P4, PLANET_ABBR, polygonPoints } from "@/lib/chartGeometry";
+import { A, B, C, D, HOUSE_POLYGONS, P1, P2, P3, P4, PLANET_ABBR, SIGN_ANCHORS, layoutHouse, polygonPoints } from "@/lib/chartGeometry";
 
 /**
  * The downloadable kundli report, rendered server-side to PDF. Uses the
@@ -81,20 +81,27 @@ function ChartSvg({ ascendantSignIndex, planets }: { ascendantSignIndex: number;
       <Line x1={B[0]} y1={B[1]} x2={D[0]} y2={D[1]} stroke={GOLD} strokeWidth={1} />
       <Polygon points={`${P1.join(",")} ${P2.join(",")} ${P3.join(",")} ${P4.join(",")}`} stroke={GOLD} strokeWidth={1} fill="none" />
       <Polygon points={polygonPoints(HOUSE_POLYGONS[0])} fill="#f3ecdf" stroke="none" />
-      {HOUSE_LABEL_ANCHORS.map(([x, y], i) => {
+      {SIGN_ANCHORS.map(([sx, sy], i) => {
         const house = i + 1;
         const sign = ((ascendantSignIndex + i) % 12) + 1;
         const occupants = planets.filter((p) => p.house === house);
+        const layout = layoutHouse(house, occupants.length);
+        const size = 13 * layout.scale;
         return (
           <View key={house}>
-            <SvgText x={x - 4} y={y - 12} style={{ fontSize: 11 }} fill={MUTED}>
+            <SvgText x={sx - 3} y={sy + 4} style={{ fontSize: 11 }} fill={MUTED}>
               {String(sign)}
             </SvgText>
-            {occupants.map((p, idx) => (
-              <SvgText key={p.planet} x={x - 10} y={y + 4 + idx * 14} style={{ fontSize: 13, fontFamily: "Helvetica-Bold" }} fill={INK}>
-                {`${PLANET_ABBR[p.planet]}${p.retrograde && p.planet !== "Rahu" && p.planet !== "Ketu" ? "(R)" : ""}`}
-              </SvgText>
-            ))}
+            {occupants.map((p, idx) => {
+              const label = `${PLANET_ABBR[p.planet]}${p.retrograde && p.planet !== "Rahu" && p.planet !== "Ketu" ? "(R)" : ""}`;
+              const [x, y] = layout.points[idx];
+              // react-pdf has no text-anchor: centre by an estimate of the label's width.
+              return (
+                <SvgText key={p.planet} x={x - label.length * size * 0.3} y={y} style={{ fontSize: size, fontFamily: "Helvetica-Bold" }} fill={INK}>
+                  {label}
+                </SvgText>
+              );
+            })}
           </View>
         );
       })}

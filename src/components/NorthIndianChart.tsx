@@ -1,5 +1,5 @@
 import type { Dignity } from "@/lib/astrology/dignity";
-import { A, B, C, D, HOUSE_LABEL_ANCHORS, HOUSE_POLYGONS, P1, P2, P3, P4, PLANET_ABBR, PLANET_GLYPH, polygonPoints } from "@/lib/chartGeometry";
+import { A, B, C, D, HOUSE_POLYGONS, P1, P2, P3, P4, PLANET_ABBR, PLANET_GLYPH, SIGN_ANCHORS, layoutHouse, polygonPoints } from "@/lib/chartGeometry";
 
 const DIGNITY_COLOR: Record<Dignity, string> = {
   Exalted: "var(--color-gold-bright)",
@@ -31,8 +31,6 @@ const keyActivate = (fn: () => void) => (e: React.KeyboardEvent) => {
     fn();
   }
 };
-
-const LINE = 17; // vertical rhythm between planets in a house
 
 /**
  * The North Indian kundli: houses fixed in place, signs rotating with the
@@ -87,11 +85,12 @@ export default function NorthIndianChart({
         const houseNumber = i + 1;
         const signNumber = ((ascendantSignIndex + houseNumber - 1) % 12) + 1;
         const occupants = byHouse.get(houseNumber) ?? [];
-        const [ax, ay] = HOUSE_LABEL_ANCHORS[i];
+        const [sx, sy] = SIGN_ANCHORS[i];
         const isAscendant = houseNumber === 1;
         const picked = selected?.kind === "house" && selected.house === houseNumber;
-        // Centre a house's planets on its anchor so crowded houses stay balanced.
-        const top = ay - ((occupants.length - 1) * LINE) / 2 + 2;
+        // Planets are laid out in a grid that always fits inside the house, shrinking only when crowded.
+        const layout = layoutHouse(houseNumber, occupants.length, isAscendant ? 12 : 0);
+        const fs = (glyphs ? 16 : 14) * layout.scale;
 
         return (
           <g key={houseNumber}>
@@ -110,7 +109,7 @@ export default function NorthIndianChart({
                   }
                 : {})}
             />
-            <text x={ax} y={top - 18} textAnchor="middle" fontSize="10" fill="var(--color-muted)" opacity="0.75" className="chart-fade" style={{ fontVariantNumeric: "tabular-nums" }}>
+            <text x={sx} y={sy} textAnchor="middle" dominantBaseline="middle" fontSize="11" fontWeight="600" fill="var(--color-muted)" opacity="0.85" className="chart-fade" style={{ fontVariantNumeric: "tabular-nums" }}>
               {signNumber}
             </text>
             {occupants.map((p, idx) => {
@@ -119,10 +118,10 @@ export default function NorthIndianChart({
               return (
                 <text
                   key={p.planet}
-                  x={ax}
-                  y={top + idx * LINE}
+                  x={layout.points[idx][0]}
+                  y={layout.points[idx][1]}
                   textAnchor="middle"
-                  fontSize={glyphs ? 16 : 14}
+                  fontSize={fs}
                   fontWeight="600"
                   className={onPick ? "chart-fade cursor-pointer outline-none" : "chart-fade"}
                   fill={p.dignity ? DIGNITY_COLOR[p.dignity] : "var(--color-cream)"}
@@ -147,13 +146,13 @@ export default function NorthIndianChart({
                       .join(" · ")}
                   </title>
                   {glyphs ? PLANET_GLYPH[p.planet] : (PLANET_ABBR[p.planet] ?? p.planet.slice(0, 2))}
-                  {p.degreeInSign !== undefined && (
-                    <tspan fontSize="8.5" fontWeight="400" fill="var(--color-muted)" dx="2" style={{ fontVariantNumeric: "tabular-nums", fontFamily: "inherit" }}>
+                  {p.degreeInSign !== undefined && layout.degrees && (
+                    <tspan fontSize={8.5 * layout.scale} fontWeight="400" fill="var(--color-muted)" dx="2" style={{ fontVariantNumeric: "tabular-nums", fontFamily: "inherit" }}>
                       {Math.floor(p.degreeInSign)}°
                     </tspan>
                   )}
                   {marks && (
-                    <tspan fontSize="8.5" dy="-5" style={{ fontFamily: "inherit" }}>
+                    <tspan fontSize={8.5 * Math.max(layout.scale, 0.8)} dy={-5 * layout.scale} style={{ fontFamily: "inherit" }}>
                       {[...marks].map((m, k) => (
                         <tspan key={k} fill={m === "↓" || m === "C" || m === "R" ? "var(--color-rose)" : "var(--color-gold-bright)"}>
                           {m}
@@ -165,7 +164,7 @@ export default function NorthIndianChart({
               );
             })}
             {isAscendant && (
-              <text x={ax} y={top + occupants.length * LINE + (occupants.length ? 2 : 0)} textAnchor="middle" fontSize="9" fontWeight="600" letterSpacing="0.6" fill="var(--color-gold-bright)" className="chart-fade">
+              <text x={200} y={160} textAnchor="middle" fontSize="9" fontWeight="600" letterSpacing="0.6" fill="var(--color-gold-bright)" className="chart-fade">
                 Lagna
               </text>
             )}
