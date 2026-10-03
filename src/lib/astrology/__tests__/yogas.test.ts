@@ -75,26 +75,34 @@ describe("Chandra-Mangal Yoga", () => {
 });
 
 describe("Kemadruma Yoga", () => {
-  it("is present when nothing (besides the Sun) flanks the Moon", () => {
-    // Moon in Cancer(3); flanking signs are Gemini(2) and Leo(4). Put every
-    // other planet far away.
-    const planets = fixture({
-      Moon: { house: 1, signIndex: 3 },
-      Sun: { house: 1, signIndex: 2 }, // Sun doesn't count, even though it's flanking
-      Mars: { house: 6, signIndex: 8 },
-      Mercury: { house: 6, signIndex: 8 },
-      Jupiter: { house: 6, signIndex: 8 },
-      Venus: { house: 6, signIndex: 8 },
-      Saturn: { house: 6, signIndex: 8 },
-    });
+  // Lagna is Aries. Moon in Taurus(1) is the 2nd house (not a kendra); its flanks are Aries(0) and Gemini(2).
+  // The remaining planets sit in Virgo/Sagittarius: no flank, no conjunction, no kendra from the Moon.
+  const far = { house: 6, signIndex: 8 };
+  const base = { Moon: { house: 2, signIndex: 1 }, Mars: far, Mercury: far, Jupiter: far, Venus: far, Saturn: far, Rahu: { house: 6, signIndex: 5 }, Ketu: { house: 12, signIndex: 11 } };
+
+  it("is present when nothing (besides the Sun) flanks or joins the Moon", () => {
+    const planets = fixture({ ...base, Sun: { house: 3, signIndex: 2 } }); // Sun doesn't count, even though it's flanking
     expect(yoga("Kemadruma", planets).present).toBe(true);
   });
 
   it("is cancelled when a planet (other than the Sun) flanks the Moon", () => {
-    const planets = fixture({
-      Moon: { house: 1, signIndex: 3 },
-      Mercury: { house: 2, signIndex: 4 }, // Leo, 2nd from Moon
-    });
+    const planets = fixture({ ...base, Sun: far, Mercury: { house: 3, signIndex: 2 } });
+    expect(yoga("Kemadruma", planets).present).toBe(false);
+  });
+
+  it("is cancelled when a planet shares the Moon's sign", () => {
+    const planets = fixture({ ...base, Sun: far, Mars: { house: 2, signIndex: 1 } });
+    expect(yoga("Kemadruma", planets).present).toBe(false);
+  });
+
+  it("is cancelled when the Moon stands in a kendra from the Lagna", () => {
+    const planets = fixture({ ...base, Sun: far, Moon: { house: 4, signIndex: 3 } });
+    expect(yoga("Kemadruma", planets).present).toBe(false);
+  });
+
+  it("is cancelled when a planet stands in a kendra from the Moon", () => {
+    const planets = fixture({ ...base, Sun: far, Jupiter: { house: 5, signIndex: 4 } }); // Leo, 4th from Taurus
     expect(yoga("Kemadruma", planets).present).toBe(false);
   });
 });
+

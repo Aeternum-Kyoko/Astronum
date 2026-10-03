@@ -93,12 +93,28 @@ export function detectYogas(planets: PlanetPlacement[], ascendantSignIndex: numb
     const secondFromMoon = (moon.signIndex + 1) % 12;
     const twelfthFromMoon = (moon.signIndex + 11) % 12;
     const hasNeighbor = others.some((p) => p.signIndex === secondFromMoon || p.signIndex === twelfthFromMoon);
+    // Classical cancellations: a planet (not the Sun) shares the Moon's sign, or the Moon / any such planet is in a kendra.
+    const hasCompanion = others.some((p) => p.signIndex === moon.signIndex);
+    const moonInKendra = KENDRA_HOUSES.has(houseFromSignIndex(ascendantSignIndex, moon));
+    const planetInKendraFromMoon = others.some((p) => p.planet !== "Rahu" && p.planet !== "Ketu" && KENDRA_HOUSES.has(houseFrom(moon, p)));
+    const cancelled = hasNeighbor || hasCompanion || moonInKendra || planetInKendraFromMoon;
     yogas.push({
       name: "Kemadruma Yoga",
-      present: !hasNeighbor,
-      description: !hasNeighbor
-        ? L("No planets (besides the Sun) fall in the houses immediately before or after the Moon — the classical condition for Kemadruma Yoga, traditionally read as a caution needing the rest of the chart to be weighed carefully.", "चंद्र से ठीक पहले या बाद के भाव में (सूर्य के अलावा) कोई ग्रह नहीं है — यह केमद्रुम योग की शास्त्रीय शर्त है, जिसे सावधानी का संकेत माना जाता है; शेष कुंडली को ध्यान से तौलना चाहिए।")
-        : L("Planets flank the Moon on at least one side, so Kemadruma Yoga is cancelled.", "चंद्र के कम से कम एक ओर ग्रह हैं, इसलिए केमद्रुम योग भंग है।"),
+      present: !cancelled,
+      description: !cancelled
+        ? L("No planets (besides the Sun) flank or join the Moon, and none stand in a kendra from it — the classical condition for Kemadruma Yoga, traditionally read as a caution needing the rest of the chart to be weighed carefully.", "चंद्र के आसपास या उसके साथ (सूर्य के अलावा) कोई ग्रह नहीं है और चंद्र से केंद्र में भी कोई नहीं — यह केमद्रुम योग की शास्त्रीय शर्त है, जिसे सावधानी का संकेत माना जाता है; शेष कुंडली को ध्यान से तौलना चाहिए।")
+        : L(
+            hasCompanion
+              ? "A planet shares the Moon's sign, so Kemadruma Yoga is cancelled."
+              : hasNeighbor
+                ? "Planets flank the Moon on at least one side, so Kemadruma Yoga is cancelled."
+                : "The Moon, or a planet from it, stands in a kendra, so Kemadruma Yoga is cancelled.",
+            hasCompanion
+              ? "चंद्र की राशि में कोई ग्रह है, इसलिए केमद्रुम योग भंग है।"
+              : hasNeighbor
+                ? "चंद्र के कम से कम एक ओर ग्रह हैं, इसलिए केमद्रुम योग भंग है।"
+                : "चंद्र स्वयं या उससे कोई ग्रह केंद्र में है, इसलिए केमद्रुम योग भंग है।"
+          ),
     });
   }
 

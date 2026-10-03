@@ -69,7 +69,7 @@ export const YOGA_REFERENCE: ReferenceYoga[] = [
   {
     name: "Kemadruma Yoga",
     category: "Chandra Yoga",
-    definition: "No planet besides the Sun occupies the sign immediately before or after the Moon.",
+    definition: "No planet besides the Sun occupies the sign before, after or with the Moon, and neither the Moon nor any planet stands in a kendra from it (any of these cancels the yoga).",
     effect: "Classically a caution for isolation or struggle — read against the strength of the rest of the chart, not in isolation.",
     detectedByEngine: true,
   },
