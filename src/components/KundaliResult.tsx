@@ -1091,7 +1091,41 @@ function YogasDoshasTab({ chart }: { chart: KundaliChart }) {
           </ul>
         </Card>
       </div>
+      <VargaYogasCard chart={chart} />
     </div>
+  );
+}
+
+/** The same yoga rules read in the Navamsa and Dasamsa — a Rasi yoga that holds there is firmer; one that appears only there is a lesser, subject-specific echo. */
+function VargaYogasCard({ chart }: { chart: KundaliChart }) {
+  const tr = useT();
+  const rasi = new Set(chart.yogas.filter((y) => y.present).map((y) => y.key ?? y.name));
+  const sections = ([["D9", "Navamsa (D9) — marriage, dharma, a planet's true strength"], ["D10", "Dasamsa (D10) — career and public life"]] as const)
+    .map(([k, title]) => ({ k, title, yogas: chart.vargaYogas?.[k] ?? [] }))
+    .filter((x) => x.yogas.length > 0);
+  if (!sections.length) return null;
+  return (
+    <Card>
+      <h3 className="text-xl font-bold tracking-tight text-cream">{tr("Yogas in the divisional charts")}</h3>
+      <p className="mt-2 text-xs leading-relaxed text-muted">
+        {tr("The Rasi chart decides whether a yoga exists. Here the same rules are read in the Navamsa and Dasamsa: a yoga that also forms there is firmer; one that forms only there is a lesser echo for that chart's subject.")}
+      </p>
+      <div className="mt-5 grid gap-6 md:grid-cols-2">
+        {sections.map(({ k, title, yogas }) => (
+          <div key={k}>
+            <p className="text-sm font-semibold text-cream">{tr(title)}</p>
+            <ul className="mt-3 space-y-2">
+              {yogas.map((y) => (
+                <li key={y.key ?? y.name} className="text-xs leading-relaxed text-muted">
+                  <span className="font-semibold text-cream">{y.name}</span>{" — "}
+                  <span className={rasi.has(y.key ?? y.name) ? "text-gold-bright" : ""}>{rasi.has(y.key ?? y.name) ? tr("also in the Rasi chart") : tr("only in this chart")}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 

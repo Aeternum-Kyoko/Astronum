@@ -1,4 +1,5 @@
-import type { PlanetPlacement, Yoga } from "./types";
+import type { Yoga } from "./types";
+import { detectClassicalYogas, CLASSICAL_YOGA_NAME_HI, type YogaPlanet } from "./yogasClassical";
 import { getDignity } from "./dignity";
 import { SIGN_LORDS, type PlanetName } from "./constants";
 import type { Locale } from "../i18n/locale";
@@ -8,11 +9,11 @@ import { term } from "../i18n/terms";
 const KENDRA_HOUSES = new Set([1, 4, 7, 10]);
 const BENEFICS = new Set<PlanetName>(["Mercury", "Jupiter", "Venus"]);
 
-function houseFrom(base: PlanetPlacement, target: PlanetPlacement): number {
+function houseFrom(base: YogaPlanet, target: YogaPlanet): number {
   return ((target.signIndex - base.signIndex + 12) % 12) + 1;
 }
 
-function houseFromSignIndex(baseSignIndex: number, target: PlanetPlacement): number {
+function houseFromSignIndex(baseSignIndex: number, target: YogaPlanet): number {
   return ((target.signIndex - baseSignIndex + 12) % 12) + 1;
 }
 
@@ -26,6 +27,7 @@ const MAHAPURUSHA: { planet: PlanetName; name: string; hi: string }[] = [
 
 /** Hindi names for the yogas, keyed by their English name. */
 export const YOGA_NAME_HI: Record<string, string> = {
+  ...CLASSICAL_YOGA_NAME_HI,
   "Gaj Kesari Yoga": "गजकेसरी योग",
   "Chandra-Mangal Yoga": "चंद्र-मंगल योग",
   "Kemadruma Yoga": "केमद्रुम योग",
@@ -40,7 +42,7 @@ export const YOGA_NAME_HI: Record<string, string> = {
   ...Object.fromEntries(MAHAPURUSHA.map((m) => [`${m.name} (Panch Mahapurusha)`, `${m.hi} (पंच महापुरुष)`])),
 };
 
-export function detectYogas(planets: PlanetPlacement[], ascendantSignIndex: number, locale: Locale = "en"): Yoga[] {
+export function detectYogas(planets: YogaPlanet[], ascendantSignIndex: number, locale: Locale = "en"): Yoga[] {
   const byName = new Map(planets.map((p) => [p.planet, p]));
   const found: Yoga[] = [];
   const L = pick(locale);
@@ -253,7 +255,7 @@ export function detectYogas(planets: PlanetPlacement[], ascendantSignIndex: numb
   {
     const tenthFromMoonOccupants = moon ? planets.filter((p) => p.planet !== "Moon" && houseFrom(moon, p) === 10) : [];
     const tenthFromLagnaOccupants = planets.filter((p) => houseFromSignIndex(ascendantSignIndex, p) === 10);
-    const clean = (occupants: PlanetPlacement[]) => occupants.length > 0 && occupants.every((p) => BENEFICS.has(p.planet));
+    const clean = (occupants: YogaPlanet[]) => occupants.length > 0 && occupants.every((p) => BENEFICS.has(p.planet));
     const present = clean(tenthFromMoonOccupants) || clean(tenthFromLagnaOccupants);
     yogas.push({
       name: "Amala Yoga",
@@ -263,6 +265,8 @@ export function detectYogas(planets: PlanetPlacement[], ascendantSignIndex: numb
         : L("The 10th house from the Moon and from the Lagna is either empty of benefics or also holds a malefic, so Amala Yoga is not indicated.", "चंद्र और लग्न से दसवाँ भाव या तो शुभ ग्रहों से ख़ाली है या उसमें कोई पाप ग्रह भी है, इसलिए अमला योग नहीं बनता।"),
     });
   }
+
+  found.push(...detectClassicalYogas(planets, ascendantSignIndex, locale));
 
   return found;
 }

@@ -121,6 +121,8 @@ export interface KundaliChart {
   doshas: Dosha[];
   mangalDosha: MangalDoshaResult;
   yogas: Yoga[];
+  /** The same yoga rules read in the Navamsa and Dasamsa — present ones only. */
+  vargaYogas?: Partial<Record<"D9" | "D10", Yoga[]>>;
   sadeSati: SadeSatiStatus;
   ashtakavarga: AshtakavargaResult;
   shadbala: ShadbalaResult[];

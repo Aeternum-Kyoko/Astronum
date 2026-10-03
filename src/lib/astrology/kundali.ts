@@ -308,6 +308,12 @@ export function calculateKundali(
   const yogas = detectYogas(planets, ascPlacement.signIndex, locale);
   const houseLords = computeHouseLords(ascPlacement.signIndex, planets);
   const divisionalCharts = computeAllDivisionalCharts(ascSidereal, planets);
+  const vargaYogas = Object.fromEntries(
+    (["D9", "D10"] as const).map((k) => {
+      const d = divisionalCharts[k];
+      return [k, detectYogas(d.planets, d.ascendant.signIndex, locale).filter((y) => y.present)];
+    }),
+  ) as KundaliChart["vargaYogas"];
   const ashtakavarga = computeAshtakavarga(ascPlacement.signIndex, planets);
   const shadbala = computeShadbala(
     planets,
@@ -348,6 +354,7 @@ export function calculateKundali(
     doshas,
     mangalDosha,
     yogas,
+    vargaYogas,
     sadeSati,
     ashtakavarga,
     shadbala,
