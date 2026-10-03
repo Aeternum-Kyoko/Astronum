@@ -10,6 +10,8 @@ import { traceAll, type LineKey, type TracedLine } from "@/lib/palmistry/lines";
 import { fuseFields, type CreaseField } from "@/lib/palmistry/ridges";
 import { dominantMounts, type Fullness, type KundliGrades, type MountAnswers, type MountKey, type MountReading } from "@/lib/palmistry/mounts";
 import { listCharts, type StoredChart } from "@/lib/offlineCharts";
+import type { Locale } from "@/lib/i18n/locale";
+import { PALM_COPY, type PalmCopy } from "@/components/palmCopy";
 import { planetDiagnosis } from "@/lib/astrology/planetDiagnosis";
 
 // Served from this site (copied in by scripts/copy-mediapipe.mjs at build), with the public CDNs as a fallback.
@@ -28,17 +30,6 @@ export const LINE_COLORS: Record<LineKey, string> = {
   fate: "#b892ff",
 };
 
-const ISSUE_TEXT: Record<PalmIssue, string> = {
-  "back-of-hand": "Turn your palm to face the camera",
-  "too-small": "Move your hand a little closer",
-  "too-dark": "Find brighter light",
-  "too-bright": "Too much glare — tilt your palm away from the light",
-  curled: "Open your hand fully — keep the fingers straight and the palm flat",
-  tilted: "Hold your palm square to the camera, not at an angle",
-  glare: "Glare on the palm — tilt it slightly away from the light",
-  "uneven-light": "The light is uneven — face a window or lamp so the whole palm is lit",
-  blurry: "Hold steady — the picture is blurry",
-};
 
 /** Live frames to fuse before the lines are trusted, and how long everything must stay good before auto-capture. */
 const MIN_FRAMES = 6;
@@ -90,7 +81,9 @@ interface Shot {
 
 type Phase = "idle" | "loading" | "live" | "analyzing" | "result";
 
-export default function PalmReader() {
+export default function PalmReader({ locale = "en" }: { locale?: Locale }) {
+  const t = PALM_COPY[locale] as PalmCopy;
+  const tRef = useRef(t);
   const [phase, setPhase] = useState<Phase>("idle");
   // Set only if the reader corrects the detected hand.
   const [handFix, setHandFix] = useState<Hand | null>(null);
@@ -118,7 +111,8 @@ export default function PalmReader() {
 
   useEffect(() => {
     autoRef.current = auto;
-  }, [auto]);
+    tRef.current = t;
+  }, [auto, t]);
 
   // Kundlis opened on this device, for the mount-to-planet cross-check.
   useEffect(() => {
@@ -169,7 +163,7 @@ export default function PalmReader() {
           lastScan.current.traced = [];
           fused.current = { field: null, frames: 0, lastLm: null, readySince: 0 };
           setReady(0);
-          return say("Show your whole open hand — palm and fingers — to the camera");
+          return say(tRef.current.showHand);
         }
 
         const now = performance.now();
@@ -207,17 +201,8 @@ export default function PalmReader() {
         }
         const { traced, issues } = lastScan.current;
         const found = traced.filter((l) => l.found).length;
-        say(
-          issues.length
-            ? ISSUE_TEXT[issues[0]]
-            : F.frames < MIN_FRAMES
-              ? `Steadying… ${F.frames}/${MIN_FRAMES}`
-              : found >= 3
-                ? autoRef.current
-                  ? "Lines found — hold still to capture"
-                  : "Lines found — tap the shutter"
-                : "Hold still, flat and in good light…"
-        );
+        const tt = tRef.current;
+        say(issues.length ? tt.issues[issues[0]] : F.frames < MIN_FRAMES ? tt.steadying(F.frames, MIN_FRAMES) : found >= 3 ? (autoRef.current ? tt.holdToCapture : tt.tapShutter) : tt.holdStill);
 
         // Lines are kept in palm coordinates and re-projected each frame, so they stay stuck to the moving hand.
         const px = toPixels(lm, w, h);
@@ -233,7 +218,7 @@ export default function PalmReader() {
     setFacing(face);
     setError(null);
     setPhase("loading");
-    say("Loading the hand model…");
+    say(t.loadingModel);
     stopCamera();
     try {
       const [landmarker, stream] = await Promise.all([
@@ -255,8 +240,8 @@ export default function PalmReader() {
       setPhase("idle");
       setError(
         err instanceof DOMException && err.name === "NotAllowedError"
-          ? "Camera permission was declined. Allow the camera in your browser settings, or upload a photo instead."
-          : "Couldn't start the camera here. You can upload a photo of your palm instead."
+          ? t.cameraDeclined
+          : t.cameraFailed
       );
     }
   }
@@ -269,7 +254,7 @@ export default function PalmReader() {
       await landmarker.setOptions({ runningMode: "IMAGE" });
       const result = landmarker.detect(canvas);
       const lm = result.landmarks[0];
-      if (!lm) throw new Error("No hand found in the picture. Show your whole open palm, fingers together, against a plain background.");
+      if (!lm) throw new Error(t.noHand);
       const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
       const px = toPixels(lm, canvas.width, canvas.height);
       setShot({
@@ -290,7 +275,7 @@ export default function PalmReader() {
       haptic("success");
     } catch (err) {
       setPhase("idle");
-      setError(err instanceof Error ? err.message : "Couldn't read that picture.");
+      setError(err instanceof Error ? err.message : t.readFailed);
       haptic("error");
     }
   }
@@ -352,7 +337,7 @@ export default function PalmReader() {
       await readStill(c, false);
     } catch {
       setPhase("idle");
-      setError("Couldn't open that image. Try a JPEG or PNG photo.");
+      setError(t.openFailed);
     }
   }
 
@@ -368,9 +353,9 @@ export default function PalmReader() {
     // Only a corrected hand is checked against the picture: a mismatch then means the back of the hand is showing.
     () =>
       shot
-        ? analyzePalm(shot.pixels, shot.landmarks, shot.world, handFix ? (shot.mirrored ? other(handFix) : handFix) : undefined, { scale: shot.scale, prior: shot.prior })
+        ? analyzePalm(shot.pixels, shot.landmarks, shot.world, handFix ? (shot.mirrored ? other(handFix) : handFix) : undefined, { scale: shot.scale, prior: shot.prior, locale })
         : null,
-    [shot, handFix]
+    [shot, handFix, locale]
   );
   const kundli = useMemo<KundliGrades | null>(() => {
     const c = charts.find((x) => x.key === chartKey);
@@ -381,7 +366,7 @@ export default function PalmReader() {
       return null;
     }
   }, [charts, chartKey]);
-  const mounts = useMemo(() => (shot && analysis ? mountsFor(analysis, shot.pixels, shot.landmarks, answers, kundli) : []), [shot, analysis, answers, kundli]);
+  const mounts = useMemo(() => (shot && analysis ? mountsFor(analysis, shot.pixels, shot.landmarks, answers, kundli, locale) : []), [shot, analysis, answers, kundli, locale]);
 
   return (
     <div className="space-y-8">
@@ -413,12 +398,12 @@ export default function PalmReader() {
                     }}
                     className="rounded-full bg-black/55 px-3 py-2 text-xs font-semibold text-white backdrop-blur"
                   >
-                    Flip
+                    {t.flip}
                   </button>
                   <button
                     type="button"
                     onClick={() => void capture()}
-                    aria-label="Take photo and read palm"
+                    aria-label={t.shutter}
                     className="relative h-16 w-16 rounded-full border-4 border-white bg-white/25 shadow-lg transition active:scale-90"
                   >
                     {ready > 0 && (
@@ -431,12 +416,12 @@ export default function PalmReader() {
                       stopCamera();
                       setPhase("idle");
                     }} className="rounded-full bg-black/55 px-3 py-2 text-xs font-semibold text-white backdrop-blur">
-                    Close
+                    {t.close}
                   </button>
                 </div>
                 <label className="absolute top-14 right-3 flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
                   <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} className="accent-[var(--color-gold)]" />
-                  Auto-capture
+                  {t.auto}
                 </label>
               </>
             )}
@@ -447,18 +432,18 @@ export default function PalmReader() {
                     <PalmGlyph />
                     <div className="flex flex-wrap justify-center gap-3">
                       <button type="button" onClick={() => startCamera()} className="rounded-full bg-gold px-6 py-3 text-sm font-semibold text-on-gold hover:bg-gold-bright">
-                        Open camera
+                        {t.openCamera}
                       </button>
                       <label className="cursor-pointer rounded-full border border-border px-6 py-3 text-sm font-semibold text-cream hover:border-gold">
-                        Upload a photo
+                        {t.upload}
                         <input type="file" accept="image/*" className="sr-only" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
                       </label>
                     </div>
-                    <p className="max-w-sm text-xs text-muted">Everything runs on your device — your palm photo is never uploaded.</p>
+                    <p className="max-w-sm text-xs text-muted">{t.private}</p>
                   </>
                 ) : (
                   <p className="text-sm font-semibold text-cream" aria-live="polite">
-                    {phase === "loading" ? status : "Reading your palm…"}
+                    {phase === "loading" ? status : t.reading}
                   </p>
                 )}
               </div>
@@ -477,6 +462,7 @@ export default function PalmReader() {
           shot={shot}
           analysis={analysis}
           mounts={mounts}
+          t={t}
           onAnswer={(k, v) => {
             haptic("selection");
             setAnswers((a) => ({ ...a, [k]: v }));
@@ -543,30 +529,11 @@ function drawLines(ctx: CanvasRenderingContext2D, px: Point[], traced: TracedLin
 
 const toPath = (pts: Point[]) => pts.map((p, k) => `${k ? "L" : "M"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join("");
 
-const SIGN_LABEL: Record<MountReading["sign"], string> = {
-  star: "Possible star",
-  cross: "Possible cross",
-  grille: "Grille of fine lines",
-  vertical: "Vertical lines",
-  clear: "Clear",
-};
-const MOUNT_SHORT: Record<MountKey, string> = {
-  jupiter: "Jupiter",
-  saturn: "Saturn",
-  sun: "Sun",
-  mercury: "Mercury",
-  upperMars: "Upper Mars",
-  lowerMars: "Lower Mars",
-  venus: "Venus",
-  moon: "Moon",
-  rahu: "Rahu",
-  ketu: "Ketu",
-};
-
 function PalmResult({
   shot,
   analysis,
   mounts,
+  t,
   onAnswer,
   charts,
   chartKey,
@@ -578,6 +545,7 @@ function PalmResult({
   shot: Shot;
   analysis: PalmAnalysis;
   mounts: MountReading[];
+  t: PalmCopy;
   onAnswer: (k: MountKey, v: Fullness) => void;
   charts: StoredChart[];
   chartKey: string;
@@ -601,7 +569,7 @@ function PalmResult({
         <figure className="card-edge overflow-hidden rounded-3xl md:sticky md:top-24">
           <div className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element -- a local data URL from the camera */}
-            <img src={shot.url} alt="Your palm with its lines traced" className="block h-auto w-full" />
+            <img src={shot.url} alt={t.alt} className="block h-auto w-full" />
             <svg viewBox={`0 0 ${shot.width} ${shot.height}`} className="absolute inset-0 h-full w-full" aria-hidden="true">
               {overlay === "mounts" &&
                 mounts
@@ -609,7 +577,7 @@ function PalmResult({
                   .map((m) => (
                     <g key={m.key} style={{ opacity: activeMount && activeMount !== m.key ? 0.25 : 1, transition: "opacity 200ms" }}>
                       <polygon points={m.outline.map((p) => `${p.x},${p.y}`).join(" ")} fill={m.strength > 0 ? "rgba(242,193,78,0.16)" : m.strength < 0 ? "rgba(239,123,118,0.14)" : "rgba(255,255,255,0.08)"} stroke="rgba(255,255,255,0.55)" strokeWidth={stroke * 0.35} strokeDasharray={`${stroke} ${stroke}`} />
-                      <LineLabel at={{ x: m.centre.x, y: m.centre.y + size / 70 }} text={MOUNT_SHORT[m.key]} color={m.strength > 0 ? "#f2c14e" : m.strength < 0 ? "#ff8a80" : "#ffffff"} size={size * 0.8} delay={0} />
+                      <LineLabel at={{ x: m.centre.x, y: m.centre.y + size / 70 }} text={t.mountShort[m.key]} color={m.strength > 0 ? "#f2c14e" : m.strength < 0 ? "#ff8a80" : "#ffffff"} size={size * 0.8} delay={0} />
                       {m.markings.map((k, j) => (
                         <text key={j} x={k.at.x} y={k.at.y} textAnchor="middle" dominantBaseline="central" fontSize={size / 28} fill="#ff6bd6" stroke="rgba(0,0,0,0.8)" strokeWidth={size / 300} paintOrder="stroke">
                           {k.kind === "star" ? "✶" : "✚"}
@@ -654,8 +622,8 @@ function PalmResult({
                 setOverlay(v);
               }}
               options={[
-                { value: "lines", label: "Lines" },
-                { value: "mounts", label: "Mounts" },
+                { value: "lines", label: t.lines },
+                { value: "mounts", label: t.mounts },
               ]}
             />
           </div>
@@ -669,7 +637,7 @@ function PalmResult({
               ))}
             </ul>
             <button type="button" onClick={onRetake} className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-cream hover:border-gold">
-              Retake
+              {t.retake}
             </button>
           </figcaption>
         </figure>
@@ -677,11 +645,11 @@ function PalmResult({
         <div className="space-y-4">
           <ul className="flex flex-wrap gap-1.5 text-xs" aria-label="Photo checks">
             {[
-              ["Sharp", !issues.includes("blurry")],
-              ["Even light", !issues.includes("uneven-light") && !issues.includes("glare") && !issues.includes("too-dark") && !issues.includes("too-bright")],
-              ["Flat, open hand", !issues.includes("curled") && !issues.includes("tilted")],
-              ["Close enough", !issues.includes("too-small")],
-              ...(shot.prior ? ([["Steadied over live frames", true]] as [string, boolean][]) : []),
+              [t.checks.sharp, !issues.includes("blurry")],
+              [t.checks.light, !issues.includes("uneven-light") && !issues.includes("glare") && !issues.includes("too-dark") && !issues.includes("too-bright")],
+              [t.checks.flat, !issues.includes("curled") && !issues.includes("tilted")],
+              [t.checks.close, !issues.includes("too-small")],
+              ...(shot.prior ? ([[t.checks.steadied, true]] as [string, boolean][]) : []),
             ].map(([label, ok]) => (
               <li key={label as string} className={`rounded-full border px-2.5 py-0.5 ${ok ? "border-gold/50 text-gold-bright" : "border-rose/50 text-rose"}`}>
                 {ok ? "✓" : "✕"} {label}
@@ -691,20 +659,20 @@ function PalmResult({
           {issues.length > 0 && (
             <p role="status" className="rounded-xl border border-rose/30 bg-rose/5 px-4 py-2.5 text-sm text-rose">
               {issues[0] === "back-of-hand"
-                ? `This looks like the back of the hand, or the ${other(hand).toLowerCase()} hand — switch hands above if so, or retake with your palm facing the camera.`
-                : `${ISSUE_TEXT[issues[0]]}. The reading below may be off — a retake will help.`}
+                ? t.backOfHand(t.otherHand[hand])
+                : `${t.issues[issues[0]]}. ${t.mayBeOff}`}
             </p>
           )}
           <section className="card-edge rounded-3xl p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-gold-bright">Hasta Samudrika reading</p>
+              <p className="text-sm font-semibold text-gold-bright">{t.title}</p>
               <SegmentedControl
                 layoutId="palm-hand"
                 value={hand}
                 onChange={onHand}
                 options={[
-                  { value: "Right", label: "Right hand" },
-                  { value: "Left", label: "Left hand" },
+                  { value: "Right", label: t.right },
+                  { value: "Left", label: t.left },
                 ]}
               />
             </div>
@@ -734,7 +702,7 @@ function PalmResult({
               <div className="flex items-center gap-2">
                 <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: LINE_COLORS[l.key], opacity: l.found ? 1 : 0.4 }} />
                 <h3 className="font-semibold text-cream">{l.name}</h3>
-                <span className="text-sm text-muted">{l.nameHi}</span>
+                {t.showHindiName && <span className="text-sm text-muted">{l.nameHi}</span>}
               </div>
               <ul className="mt-2 flex flex-wrap gap-1.5">
                 {l.traits.map((t) => (
@@ -752,17 +720,14 @@ function PalmResult({
       <section aria-label="Mounts" className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-cream">The mounts (parvatas)</h2>
-            <p className="mt-1 max-w-2xl text-sm text-muted">
-              Each mount belongs to a graha. Markings are read from the photo; how full a mount is can&rsquo;t be seen in a flat
-              photo, so press each one gently and choose what you feel.
-            </p>
+            <h2 className="text-xl font-bold tracking-tight text-cream">{t.mountsTitle}</h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted">{t.mountsBody}</p>
           </div>
           {charts.length > 0 && (
             <label className="text-xs text-muted">
-              Compare with kundli{" "}
+              {t.compare}{" "}
               <select value={chartKey} onChange={(e) => onChart(e.target.value)} className="ml-1 rounded-lg border border-border bg-surface px-2 py-1 text-sm text-cream">
-                <option value="">None</option>
+                <option value="">{t.none}</option>
                 {charts.map((c) => (
                   <option key={c.key} value={c.key}>
                     {c.input.name || c.input.date}
@@ -774,7 +739,7 @@ function PalmResult({
         </div>
         {dominant.length > 0 && (
           <p className="card-edge rounded-2xl px-5 py-4 text-sm text-cream">
-            Strongest mounts: <b>{dominant.slice(0, 3).map((m) => MOUNT_SHORT[m.key]).join(", ")}</b> — {dominant[0].planet} sets the tone of your hand.
+            {t.strongest(dominant.slice(0, 3).map((m) => t.mountShort[m.key]).join(", "), t.mountShort[dominant[0].key])}
           </p>
         )}
         <div className="grid gap-4 md:grid-cols-2">
@@ -787,24 +752,24 @@ function PalmResult({
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="font-semibold text-cream">
-                  {m.name} <span className="text-sm font-normal text-muted">{m.nameHi}</span>
+                  {m.name} {t.showHindiName && <span className="text-sm font-normal text-muted">{m.nameHi}</span>}
                 </h3>
                 <span className={`rounded-full border px-2.5 py-0.5 text-xs ${!m.inView ? "border-border text-muted" : m.sign === "star" || m.sign === "vertical" ? "border-gold/60 text-gold-bright" : m.sign === "clear" ? "border-border text-muted" : "border-rose/50 text-rose"}`}>
-                  {m.inView ? SIGN_LABEL[m.sign] : "Not in view"}
+                  {m.inView ? t.signs[m.sign] : t.notInView}
                 </span>
               </div>
               {m.pressable && (
                 <div className="mt-3 flex items-center gap-2 text-xs">
-                  <span className="text-muted">When pressed it feels</span>
+                  <span className="text-muted">{t.pressed}</span>
                   {(["flat", "normal", "full"] as Fullness[]).map((f) => (
                     <button
                       key={f}
                       type="button"
                       aria-pressed={m.fullness === f}
                       onClick={() => onAnswer(m.key, f)}
-                      className={`rounded-full border px-2.5 py-1 capitalize ${m.fullness === f ? "border-gold bg-gold text-on-gold" : "border-border text-cream hover:border-gold"}`}
+                      className={`rounded-full border px-2.5 py-1 ${m.fullness === f ? "border-gold bg-gold text-on-gold" : "border-border text-cream hover:border-gold"}`}
                     >
-                      {f}
+                      {t.fullness[f]}
                     </button>
                   ))}
                 </div>
@@ -818,7 +783,7 @@ function PalmResult({
 
       {reading.fingers.length > 0 && (
         <section className="card-edge rounded-3xl p-6">
-          <h2 className="text-lg font-bold text-cream">Fingers and their grahas</h2>
+          <h2 className="text-lg font-bold text-cream">{t.fingersTitle}</h2>
           <dl className="mt-4 grid gap-4 md:grid-cols-3">
             {reading.fingers.map((f) => (
               <div key={f.label} className="rounded-2xl border border-border/70 p-4">

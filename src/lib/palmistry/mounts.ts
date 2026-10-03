@@ -3,6 +3,10 @@ import type { TracedLine } from "./lines";
 import type { CreaseField } from "./ridges";
 import type { PlanetName } from "../astrology/constants";
 import type { Grade } from "../astrology/planetDiagnosis";
+import type { Locale } from "../i18n/locale";
+import { term } from "../i18n/terms";
+import { GRADE_HI } from "../astrology/rudraksha.hi";
+import { MOUNTS_HI } from "./mounts.hi";
 
 /**
  * The mounts of the palm (Hasta Samudrika's parvatas), each ruled by a graha.
@@ -254,7 +258,17 @@ const BINS = 6; // 30° direction bins
 /** True where a pixel looks like palm skin: colour close to the palm centre's (computed by the caller at base resolution). */
 export type SkinMask = Uint8Array | null;
 
-export function readMounts(field: CreaseField, threshold: number, traced: TracedLine[], frame: PalmFrame, answers: MountAnswers, kundli: KundliGrades | null, skinIn: SkinMask = null): MountReading[] {
+export function readMounts(
+  field: CreaseField,
+  threshold: number,
+  traced: TracedLine[],
+  frame: PalmFrame,
+  answers: MountAnswers,
+  kundli: KundliGrades | null,
+  skinIn: SkinMask = null,
+  locale: Locale = "en"
+): MountReading[] {
+  const hi = locale === "hi";
   const { width: w, height: h, response, orientation, valid } = field;
   // Shrink the skin mask by a few pixels: the hand's outline itself is a strong edge and must not read as markings.
   let skin: SkinMask = null;
@@ -363,14 +377,18 @@ export function readMounts(field: CreaseField, threshold: number, traced: Traced
       sign === "star" ? stars.slice(0, 2).map((p) => ({ kind: "star" as const, at: at(p) })) : sign === "cross" ? crosses.slice(0, 2).map((p) => ({ kind: "cross" as const, at: at(p) })) : [];
 
     const fullness = m.pressable ? (answers[m.key] ?? null) : null;
-    const parts: string[] = [`${m.name.split(" (")[0]}, ${m.where}, is ruled by ${m.planet} and governs ${m.governs}.`];
-    if (!inView) parts.push("It isn't fully in the photo, so its markings can't be read — retake with the whole palm in view.");
+    const c = hi ? { ...m, ...MOUNTS_HI[m.key] } : m;
+    const planet = hi ? term("hi", m.planet) : m.planet;
+    const parts: string[] = [
+      hi ? `${c.name.split(" (")[0]}, ${c.where}, के स्वामी ${planet} हैं; यह ${c.governs} का क्षेत्र है।` : `${c.name.split(" (")[0]}, ${c.where}, is ruled by ${planet} and governs ${c.governs}.`,
+    ];
+    if (!inView) parts.push(hi ? "यह फ़ोटो में पूरा नहीं दिखा, इसलिए इसके चिह्न नहीं पढ़े जा सके — पूरी हथेली दिखाकर फिर से फ़ोटो लें।" : "It isn't fully in the photo, so its markings can't be read — retake with the whole palm in view.");
     else {
-      if (fullness === "full") parts.push(m.full);
-      else if (fullness === "flat") parts.push(m.flat);
-      else if (fullness === "normal") parts.push(`An even, normal mount: ${m.planet}'s qualities are present in balance.`);
-      parts.push(sign === "clear" ? "It is clear of special markings, so its qualities work smoothly." : m.marks[sign]);
-      if (sign !== "grille" && lineDensity > 0.14) parts.push("Many fine lines cross it — energy here is busy and somewhat scattered.");
+      if (fullness === "full") parts.push(c.full);
+      else if (fullness === "flat") parts.push(c.flat);
+      else if (fullness === "normal") parts.push(hi ? `सामान्य, समतल पर्वत: ${planet} के गुण संतुलन में हैं।` : `An even, normal mount: ${planet}'s qualities are present in balance.`);
+      parts.push(sign === "clear" ? (hi ? "इस पर कोई विशेष चिह्न नहीं है, इसलिए इसके गुण सहजता से काम करते हैं।" : "It is clear of special markings, so its qualities work smoothly.") : c.marks[sign]);
+      if (sign !== "grille" && lineDensity > 0.14) parts.push(hi ? "इसे कई बारीक रेखाएँ काटती हैं — यहाँ की ऊर्जा व्यस्त और कुछ बिखरी हुई है।" : "Many fine lines cross it — energy here is busy and somewhat scattered.");
     }
 
     const markScore: Record<MarkingKind, number> = { star: 1, vertical: 1, clear: 0, cross: -0.5, grille: -1 };
@@ -381,16 +399,26 @@ export function readMounts(field: CreaseField, threshold: number, traced: Traced
     if (grade) {
       const strongChart = grade === "Excellent" || grade === "Good";
       const weakChart = grade === "Weak" || grade === "Very weak";
-      kundliNote =
-        strength > 0 && strongChart
-          ? `Confirmed: ${m.planet} is also ${grade.toLowerCase()} in your kundli — a clear strength in your life.`
+      const g = hi ? GRADE_HI[grade] : grade.toLowerCase();
+      kundliNote = hi
+        ? strength > 0 && strongChart
+          ? `पुष्टि: आपकी कुंडली में भी ${planet} ${g} हैं — यह आपके जीवन की स्पष्ट शक्ति है।`
           : strength < 0 && weakChart
-            ? `Your kundli agrees: ${m.planet} is ${grade.toLowerCase()} there too — this area needs conscious support, and ${m.planet}'s remedies help.`
+            ? `कुंडली भी यही कहती है: वहाँ भी ${planet} ${g} हैं — इस क्षेत्र को सचेत सहारा चाहिए, और ${planet} के उपाय मदद करते हैं।`
             : strength > 0 && weakChart
-              ? `Interesting: ${m.planet} is ${grade.toLowerCase()} in your kundli, yet the palm shows strength here — the hand often shows what you have built beyond the birth promise.`
+              ? `रोचक: कुंडली में ${planet} ${g} हैं, फिर भी हथेली यहाँ शक्ति दिखाती है — हाथ अक्सर वह दिखाता है जो आपने जन्म के वादे से आगे बनाया है।`
               : strength < 0 && strongChart
-                ? `${m.planet} is ${grade.toLowerCase()} in your kundli, but the palm reads quieter here — a strength you have yet to fully use.`
-                : `In your kundli ${m.planet} is ${grade.toLowerCase()}.`;
+                ? `कुंडली में ${planet} ${g} हैं, पर हथेली यहाँ शांत है — एक ऐसी शक्ति जिसका पूरा उपयोग अभी बाकी है।`
+                : `आपकी कुंडली में ${planet} ${g} हैं।`
+        : strength > 0 && strongChart
+          ? `Confirmed: ${planet} is also ${g} in your kundli — a clear strength in your life.`
+          : strength < 0 && weakChart
+            ? `Your kundli agrees: ${planet} is ${g} there too — this area needs conscious support, and ${planet}'s remedies help.`
+            : strength > 0 && weakChart
+              ? `Interesting: ${planet} is ${g} in your kundli, yet the palm shows strength here — the hand often shows what you have built beyond the birth promise.`
+              : strength < 0 && strongChart
+                ? `${planet} is ${g} in your kundli, but the palm reads quieter here — a strength you have yet to fully use.`
+                : `In your kundli ${planet} is ${g}.`;
     }
 
     const outline = [
@@ -401,10 +429,10 @@ export function readMounts(field: CreaseField, threshold: number, traced: Traced
     ].map(([s, t]) => toImage(frame, s, t));
     return {
       key: m.key,
-      name: m.name,
+      name: c.name,
       nameHi: m.nameHi,
       planet: m.planet,
-      where: m.where,
+      where: c.where,
       pressable: m.pressable,
       inView,
       outline,

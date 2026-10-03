@@ -5,9 +5,10 @@ export const LOCALES: Locale[] = ["en", "hi"];
 /**
  * Paths that have a Hindi version under /hi: the home page, daily horoscopes
  * (/horoscope and /horoscope/<sign>, not the weekly/monthly/yearly pages),
- * Panchang, and the festival calendar and festival pages.
+ * Panchang, the festival calendar and festival pages, and the palmistry,
+ * Lo Shu and rudraksha tools.
  */
-const HINDI_PATTERNS = [/^\/$/, /^\/horoscope(\/(?!personal$)[a-z]+)?$/, /^\/panchang$/, /^\/festivals(\/\d{4}(\/[a-z0-9-]+)?)?$/];
+const HINDI_PATTERNS = [/^\/$/, /^\/horoscope(\/(?!personal$)[a-z]+)?$/, /^\/panchang$/, /^\/festivals(\/\d{4}(\/[a-z0-9-]+)?)?$/, /^\/(palmistry|lo-shu|rudraksha)$/];
 
 export function hasHindiVersion(path: string): boolean {
   const pathname = path.split("?")[0];

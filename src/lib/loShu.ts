@@ -1,5 +1,8 @@
 import type { PlanetName } from "@/lib/astrology/constants";
 import { bhagyank, moolank, nameNumber, reduceToDigit, FRIENDLY, LO_SHU_LAYOUT, NUMBER_MEANINGS } from "@/lib/numerology";
+import type { Locale } from "@/lib/i18n/locale";
+import { term } from "@/lib/i18n/terms";
+import { DIGITS_HI, DIRECTION_HI, ELEMENT_HI, KUA_USE_HI, NUMBER_KEYWORDS_HI, PLANES_HI } from "@/lib/loShu.hi";
 
 /**
  * A detailed Lo Shu grid reading. The grid holds every non-zero digit of the
@@ -199,7 +202,15 @@ export function kuaNumber(date: string, gender: Gender): number {
   return k;
 }
 
+export interface DigitLabel {
+  planet: string;
+  element: string;
+  direction: string;
+  area: string;
+}
+
 export interface LoShuReport {
+  locale: Locale;
   date: string;
   driver: number;
   conductor: number;
@@ -207,14 +218,14 @@ export interface LoShuReport {
   /** The numbers placed, in order: date digits, then driver, conductor and Kua. */
   placed: number[];
   counts: Record<number, number>;
-  cells: { n: number; count: number; info: DigitInfo; meaning: string | null }[][];
-  present: { n: number; count: number; meaning: string }[];
-  missing: { n: number; meaning: string; remedies: string[] }[];
-  planes: { plane: Plane; filled: number; status: "complete" | "partial" | "empty"; missingNumbers: number[] }[];
+  cells: { n: number; count: number; label: DigitLabel; meaning: string | null }[][];
+  present: { n: number; count: number; meaning: string; label: DigitLabel }[];
+  missing: { n: number; meaning: string; remedies: string[]; label: DigitLabel }[];
+  planes: { name: string; numbers: number[]; strong: string; empty: string; filled: number; status: "complete" | "partial" | "empty"; missingNumbers: number[] }[];
   driverConductor: string;
   kuaDirections: { group: string; best: { direction: string; use: string }[] } | null;
   name: { number: number; compound: number; fills: number | null; suits: boolean; text: string } | null;
-  personalYear: { year: number; number: number };
+  personalYear: { year: number; number: number; keywords: string };
   strengths: string[];
   challenges: string[];
   topRemedies: string[];
@@ -223,7 +234,17 @@ export interface LoShuReport {
 
 const ordinalCount = (c: number) => (c === 1 ? "once" : c === 2 ? "twice" : `${c} times`);
 
-export function loShuReport(date: string, opts: { gender?: Gender | null; name?: string | null; now?: Date } = {}): LoShuReport {
+/** A number's planet, element, direction and life area in the reader's language. */
+export function digitLabel(n: number, locale: Locale = "en"): DigitLabel {
+  const d = DIGITS[n];
+  return locale === "hi"
+    ? { planet: term("hi", d.planet), element: ELEMENT_HI[d.element], direction: DIRECTION_HI[d.direction], area: DIGITS_HI[n].area }
+    : { planet: d.planet, element: d.element, direction: d.direction, area: d.area };
+}
+
+export function loShuReport(date: string, opts: { gender?: Gender | null; name?: string | null; now?: Date; locale?: Locale } = {}): LoShuReport {
+  const locale = opts.locale ?? "en";
+  const hi = locale === "hi";
   const driver = moolank(date);
   const conductor = bhagyank(date);
   const kua = opts.gender ? kuaNumber(date, opts.gender) : null;
@@ -231,21 +252,39 @@ export function loShuReport(date: string, opts: { gender?: Gender | null; name?:
   const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 };
   for (const d of placed) counts[d]++;
 
-  const meaning = (n: number) => (counts[n] ? DIGITS[n].byCount[Math.min(3, counts[n] - 1)] : null);
-  const cells = LO_SHU_LAYOUT.map((row) => row.map((n) => ({ n, count: counts[n], info: DIGITS[n], meaning: meaning(n) })));
-  const present = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => counts[n]).map((n) => ({ n, count: counts[n], meaning: meaning(n)! }));
-  const missing = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => !counts[n]).map((n) => ({ n, meaning: DIGITS[n].missing, remedies: DIGITS[n].remedies }));
+  const text = (n: number) => (hi ? DIGITS_HI[n] : DIGITS[n]);
+  const meaning = (n: number) => (counts[n] ? text(n).byCount[Math.min(3, counts[n] - 1)] : null);
+  const planetName = (n: number) => digitLabel(n, locale).planet;
+  const keywords = (n: number) => (hi ? NUMBER_KEYWORDS_HI[n] : NUMBER_MEANINGS[n].keywords.toLowerCase());
+
+  const cells = LO_SHU_LAYOUT.map((row) => row.map((n) => ({ n, count: counts[n], label: digitLabel(n, locale), meaning: meaning(n) })));
+  const present = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => counts[n]).map((n) => ({ n, count: counts[n], meaning: meaning(n)!, label: digitLabel(n, locale) }));
+  const missing = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => !counts[n]).map((n) => ({ n, meaning: text(n).missing, remedies: text(n).remedies, label: digitLabel(n, locale) }));
   const planes = PLANES.map((plane) => {
     const filled = plane.numbers.filter((n) => counts[n]).length;
-    return { plane, filled, status: (filled === 3 ? "complete" : filled === 0 ? "empty" : "partial") as "complete" | "partial" | "empty", missingNumbers: plane.numbers.filter((n) => !counts[n]) };
+    const t = hi ? PLANES_HI[plane.name] : plane;
+    return {
+      name: t.name,
+      numbers: plane.numbers,
+      strong: t.strong,
+      empty: t.empty,
+      filled,
+      status: (filled === 3 ? "complete" : filled === 0 ? "empty" : "partial") as "complete" | "partial" | "empty",
+      missingNumbers: plane.numbers.filter((n) => !counts[n]),
+    };
   });
 
   const friendly = FRIENDLY[driver].includes(conductor) && FRIENDLY[conductor].includes(driver);
   const oneWay = FRIENDLY[driver].includes(conductor) || FRIENDLY[conductor].includes(driver);
-  const driverConductor =
-    driver === conductor
-      ? `Driver and Conductor are both ${driver} (${NUMBER_MEANINGS[driver].planet}) — a single, focused life theme: ${NUMBER_MEANINGS[driver].keywords.toLowerCase()}.`
-      : `Driver ${driver} (${NUMBER_MEANINGS[driver].planet}) shapes your personality — ${NUMBER_MEANINGS[driver].keywords.toLowerCase()}; Conductor ${conductor} (${NUMBER_MEANINGS[conductor].planet}) shapes your destiny — ${NUMBER_MEANINGS[conductor].keywords.toLowerCase()}. ${
+  const driverConductor = hi
+    ? driver === conductor
+      ? `मूलांक और भाग्यांक दोनों ${driver} (${planetName(driver)}) हैं — जीवन का एक ही केंद्रित विषय: ${keywords(driver)}।`
+      : `मूलांक ${driver} (${planetName(driver)}) आपका स्वभाव गढ़ता है — ${keywords(driver)}; भाग्यांक ${conductor} (${planetName(conductor)}) आपका भाग्य गढ़ता है — ${keywords(conductor)}। ${
+          friendly ? "दोनों मित्र अंक हैं, इसलिए आपका स्वभाव और जीवन की दिशा एक ही ओर खिंचते हैं।" : oneWay ? "दोनों आंशिक मित्र हैं — अधिकतर तालमेल, कभी-कभी भीतरी खिंचाव।" : "दोनों मित्र अंक नहीं हैं — स्वभाव और भाग्य अलग दिशा में खिंचते हैं, इसलिए परिणाम भीतरी समायोजन के बाद आते हैं।"
+        }`
+    : driver === conductor
+      ? `Driver and Conductor are both ${driver} (${planetName(driver)}) — a single, focused life theme: ${keywords(driver)}.`
+      : `Driver ${driver} (${planetName(driver)}) shapes your personality — ${keywords(driver)}; Conductor ${conductor} (${planetName(conductor)}) shapes your destiny — ${keywords(conductor)}. ${
           friendly
             ? "They are friendly numbers, so who you are and where life leads pull in the same direction."
             : oneWay
@@ -253,8 +292,13 @@ export function loShuReport(date: string, opts: { gender?: Gender | null; name?:
               : "They are not friendly numbers — your nature and your destiny pull differently, so results come after inner adjustment."
         }`;
 
-  const KUA_USE = ["success and wealth", "health", "love and relationships", "personal growth and study"];
-  const kuaDirections = kua ? { group: KUA_DIRECTIONS[kua].group, best: KUA_DIRECTIONS[kua].best.map((direction, i) => ({ direction, use: KUA_USE[i] })) } : null;
+  const KUA_USE = hi ? KUA_USE_HI : ["success and wealth", "health", "love and relationships", "personal growth and study"];
+  const kuaDirections = kua
+    ? {
+        group: hi ? (KUA_DIRECTIONS[kua].group === "East" ? "पूर्व समूह" : "पश्चिम समूह") : `${KUA_DIRECTIONS[kua].group} group`,
+        best: KUA_DIRECTIONS[kua].best.map((direction, i) => ({ direction: hi ? DIRECTION_HI[direction] : direction, use: KUA_USE[i] })),
+      }
+    : null;
 
   let name: LoShuReport["name"] = null;
   if (opts.name?.trim()) {
@@ -266,9 +310,11 @@ export function loShuReport(date: string, opts: { gender?: Gender | null; name?:
       compound: nn.compound,
       fills,
       suits,
-      text: `Your name number is ${nn.compound} → ${nn.digit} (${NUMBER_MEANINGS[nn.digit].planet}). ${
-        fills ? `It supplies the missing ${fills} in your grid — your name works as a remedy.` : `${nn.digit} is already in your grid, so your name strengthens it.`
-      } ${suits ? "It is friendly to both your Driver and Conductor." : "It is not friendly to both your Driver and Conductor; a small spelling change can harmonise it (see the Numerology tool)."}`,
+      text: hi
+        ? `आपका नामांक ${nn.compound} → ${nn.digit} (${planetName(nn.digit)}) है। ${fills ? `यह आपकी ग्रिड का लुप्त ${fills} पूरा करता है — आपका नाम स्वयं एक उपाय है।` : `${nn.digit} पहले से आपकी ग्रिड में है, इसलिए नाम उसे और मज़बूत करता है।`} ${suits ? "यह आपके मूलांक और भाग्यांक दोनों का मित्र है।" : "यह मूलांक और भाग्यांक दोनों का मित्र नहीं है; वर्तनी में छोटा बदलाव इसे अनुकूल बना सकता है (अंक ज्योतिष टूल देखें)।"}`
+        : `Your name number is ${nn.compound} → ${nn.digit} (${planetName(nn.digit)}). ${
+            fills ? `It supplies the missing ${fills} in your grid — your name works as a remedy.` : `${nn.digit} is already in your grid, so your name strengthens it.`
+          } ${suits ? "It is friendly to both your Driver and Conductor." : "It is not friendly to both your Driver and Conductor; a small spelling change can harmonise it (see the Numerology tool)."}`,
     };
   }
 
@@ -276,23 +322,24 @@ export function loShuReport(date: string, opts: { gender?: Gender | null; name?:
   const py = reduceToDigit(Number(date.slice(8, 10)) + Number(date.slice(5, 7)) + reduceToDigit(now.getFullYear()));
 
   const strengths = [
-    ...planes.filter((p) => p.status === "complete").map((p) => `${p.plane.name}: ${p.plane.strong}`),
-    ...present.filter((p) => p.count === 2).map((p) => `${p.n} twice (${DIGITS[p.n].planet}): ${p.meaning}`),
+    ...planes.filter((p) => p.status === "complete").map((p) => `${p.name}: ${p.strong}`),
+    ...present.filter((p) => p.count === 2).map((p) => (hi ? `${p.n} दो बार (${p.label.planet}): ${p.meaning}` : `${p.n} twice (${p.label.planet}): ${p.meaning}`)),
   ];
   const challenges = [
-    ...planes.filter((p) => p.status === "empty").map((p) => `${p.plane.name} is empty: ${p.plane.empty}`),
-    ...present.filter((p) => p.count >= 3).map((p) => `${p.n} appears ${ordinalCount(p.count)}: ${p.meaning}`),
+    ...planes.filter((p) => p.status === "empty").map((p) => (hi ? `${p.name} खाली है: ${p.empty}` : `${p.name} is empty: ${p.empty}`)),
+    ...present.filter((p) => p.count >= 3).map((p) => (hi ? `${p.n} ${p.count} बार आता है: ${p.meaning}` : `${p.n} appears ${ordinalCount(p.count)}: ${p.meaning}`)),
   ];
   // Remedies first for numbers that would complete a Raj Yoga or another nearly-full plane.
   const priority = [...missing].sort((a, b) => {
     const weight = (n: number) => planes.filter((p) => p.status === "partial" && p.missingNumbers.length === 1 && p.missingNumbers[0] === n).length * 2 + (n === 5 ? 1 : 0);
     return weight(b.n) - weight(a.n);
   });
-  const topRemedies = priority.slice(0, 3).map((m) => `For the missing ${m.n} (${DIGITS[m.n].planet}, ${DIGITS[m.n].direction}): ${m.remedies[0]}`);
+  const topRemedies = priority.slice(0, 3).map((m) => (hi ? `लुप्त ${m.n} (${m.label.planet}, ${m.label.direction}) के लिए: ${m.remedies[0]}` : `For the missing ${m.n} (${m.label.planet}, ${m.label.direction}): ${m.remedies[0]}`));
 
   const score = Math.round(((9 - missing.length) / 9) * 60 + planes.filter((p) => p.status === "complete").length * 6 - planes.filter((p) => p.status === "empty").length * 4 - present.filter((p) => p.count >= 3).length * 3 + 20);
 
   return {
+    locale,
     date,
     driver,
     conductor,
@@ -306,7 +353,7 @@ export function loShuReport(date: string, opts: { gender?: Gender | null; name?:
     driverConductor,
     kuaDirections,
     name,
-    personalYear: { year: now.getFullYear(), number: py },
+    personalYear: { year: now.getFullYear(), number: py, keywords: keywords(py) },
     strengths,
     challenges,
     topRemedies,

@@ -125,3 +125,15 @@ describe("fusing frames", () => {
     expect(heartOf(fused).found).toBe(true);
   });
 });
+
+describe("palm reading in Hindi", () => {
+  it("reads the same palm in Hindi", () => {
+    const strokes: Stroke[] = star(0.05, 0.1);
+    const hi = analyzePalm(photo(strokes), norm, null, "Right", { answers: { jupiter: "full" }, kundli: { Jupiter: "Excellent" }, locale: "hi" });
+    const j = hi.mounts.find((m) => m.key === "jupiter")!;
+    expect(j.name).toBe("गुरु पर्वत");
+    expect(j.text).toMatch(/स्वाभाविक नेता/);
+    expect(j.kundli).toMatch(/पुष्टि/);
+    expect(hi.reading.lines[0].name).toBe("हृदय रेखा");
+  });
+});

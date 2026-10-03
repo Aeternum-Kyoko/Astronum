@@ -3,6 +3,7 @@ import { creaseThreshold, traceAll, type LineKey, type TracedLine } from "./line
 import { blur, creaseField, fuseFields, type CreaseField } from "./ridges";
 import { readPalm, type PalmReading } from "./reading";
 import { readMounts, type MountAnswers, type MountReading, type KundliGrades } from "./mounts";
+import type { Locale } from "../i18n/locale";
 
 /** Size of the straightened palm grid the lines are searched in. */
 export const RECT_SIZE = { width: 288, height: 240 };
@@ -159,11 +160,11 @@ export interface PalmAnalysis extends PalmScan {
 }
 
 /** The mounts for a finished scan — cheap, so it can re-run as the reader answers the fullness questions. */
-export function mountsFor(scan: PalmScan, src: RgbaSource, landmarks: Landmark[], answers: MountAnswers = {}, kundli: KundliGrades | null = null): MountReading[] {
+export function mountsFor(scan: PalmScan, src: RgbaSource, landmarks: Landmark[], answers: MountAnswers = {}, kundli: KundliGrades | null = null, locale: Locale = "en"): MountReading[] {
   const frame = palmFrame(toPixels(landmarks, src.width, src.height));
   const threshold = creaseThreshold({ width: scan.field.width, height: scan.field.height, data: scan.field.response });
   const skin = skinMask(src, frame, scan.field.width, scan.field.height);
-  return readMounts(scan.field, threshold, scan.traced, frame, answers, kundli, skin);
+  return readMounts(scan.field, threshold, scan.traced, frame, answers, kundli, skin, locale);
 }
 
 export function analyzePalm(
@@ -171,8 +172,13 @@ export function analyzePalm(
   landmarks: Landmark[],
   world: Landmark[] | null,
   hand?: Hand,
-  extra: { scale?: number; prior?: CreaseField | null; answers?: MountAnswers; kundli?: KundliGrades | null } = {}
+  extra: { scale?: number; prior?: CreaseField | null; answers?: MountAnswers; kundli?: KundliGrades | null; locale?: Locale } = {}
 ): PalmAnalysis {
   const scan = scanPalm(src, landmarks, { hand, world, scale: extra.scale, prior: extra.prior });
-  return { ...scan, hand: hand ?? palmHand(landmarks), reading: readPalm(scan.traced, world), mounts: mountsFor(scan, src, landmarks, extra.answers, extra.kundli) };
+  return {
+    ...scan,
+    hand: hand ?? palmHand(landmarks),
+    reading: readPalm(scan.traced, world, extra.locale),
+    mounts: mountsFor(scan, src, landmarks, extra.answers, extra.kundli, extra.locale),
+  };
 }

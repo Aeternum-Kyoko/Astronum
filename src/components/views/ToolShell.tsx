@@ -1,6 +1,7 @@
 import Link from "next/link";
 import QuickKundaliForm from "@/components/QuickKundaliForm";
 import { getDictionary } from "@/lib/i18n/dictionary";
+import type { Locale } from "@/lib/i18n/locale";
 import { fromBirthQuery, toBirthQuery, type BirthParams } from "@/lib/birthParams";
 import { getProfiles } from "@/lib/profiles";
 
@@ -22,6 +23,7 @@ export default async function ToolShell({
   submit,
   birth,
   children,
+  locale = "en",
 }: {
   eyebrow: string;
   title: string;
@@ -30,8 +32,10 @@ export default async function ToolShell({
   submit: string;
   birth: BirthParams | null;
   children?: React.ReactNode;
+  locale?: Locale;
 }) {
-  const form = getDictionary("en").home.form;
+  const hi = locale === "hi";
+  const form = getDictionary(locale).home.form;
   const profiles = birth ? [] : await getProfiles();
   return (
     <section className="relative">
@@ -46,7 +50,7 @@ export default async function ToolShell({
               </p>
             </div>
             <Link href={path} className="text-sm font-semibold text-cream underline decoration-gold/60 underline-offset-4 hover:decoration-gold">
-              Change details
+              {hi ? "विवरण बदलें" : "Change details"}
             </Link>
           </header>
         ) : (
@@ -62,7 +66,7 @@ export default async function ToolShell({
           <div className="mx-auto mt-10 max-w-md">
             {profiles.length > 0 && (
               <div className="mb-6 text-center">
-                <p className="text-xs font-semibold text-muted">Use a saved profile</p>
+                <p className="text-xs font-semibold text-muted">{hi ? "सहेजी गई प्रोफ़ाइल चुनें" : "Use a saved profile"}</p>
                 <ul className="mt-2 flex flex-wrap justify-center gap-2">
                   {profiles.map((p) => (
                     <li key={p.id}>
@@ -72,10 +76,10 @@ export default async function ToolShell({
                     </li>
                   ))}
                 </ul>
-                <p className="mt-4 text-xs text-muted">or enter new details</p>
+                <p className="mt-4 text-xs text-muted">{hi ? "या नया विवरण भरें" : "or enter new details"}</p>
               </div>
             )}
-            <QuickKundaliForm copy={{ ...form, title, subtitle: "Enter the birth details.", submit }} target={path} />
+            <QuickKundaliForm copy={{ ...form, title, subtitle: hi ? "जन्म विवरण भरें।" : "Enter the birth details.", submit }} target={path} />
           </div>
         )}
       </div>

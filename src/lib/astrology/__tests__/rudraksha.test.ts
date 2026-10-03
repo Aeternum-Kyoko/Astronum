@@ -41,3 +41,15 @@ describe("rudrakshaPlan", () => {
     expect(plan.goals.find((g) => g.goal === "Career and status")!.bead.mukhi).toBe(PLANET_MUKHI[tenthLord].main);
   });
 });
+
+describe("rudrakshaPlan in Hindi", () => {
+  it("gives the same beads with Hindi reasons, names and mantras", () => {
+    const hi = rudrakshaPlan(chart, "hi");
+    expect(hi.top.map((r) => r.bead.mukhi)).toEqual(plan.top.map((r) => r.bead.mukhi));
+    expect(hi.top[0].reasons[0].text).toMatch(/लग्न/);
+    expect(hi.top[0].bead.name).toMatch(/मुखी/);
+    expect(hi.top[0].bead.mantra).toMatch(/^ॐ/);
+    expect(hi.combination.text).toMatch(/संयोजन/);
+    expect(hi.wearing[0]).toMatch(/धारण/);
+  });
+});
