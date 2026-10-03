@@ -1,6 +1,10 @@
 import Link from "next/link";
 import ShareBar from "@/components/ShareBar";
 import type { MatchPartner, MatchResponse } from "@/lib/astrology/matching";
+import type { DeepMatch, Finding, Tone } from "@/lib/astrology/marriageMatch";
+
+const TONE_TEXT: Record<Tone, string> = { good: "text-gold-bright", neutral: "text-cream", caution: "text-rose" };
+const TONE_DOT: Record<Tone, string> = { good: "bg-gold", neutral: "bg-muted/60", caution: "bg-rose" };
 
 const VERDICT_TEXT: Record<MatchResponse["match"]["verdict"], string> = {
   "Not recommended":
@@ -17,7 +21,7 @@ const MANGLIK_LABEL: Record<MatchPartner["mangalDosha"]["status"], string> = {
 };
 
 export default function MatchingResult({ result }: { result: MatchResponse }) {
-  const { boy, girl, match, manglik, porutham } = result;
+  const { boy, girl, match, manglik, porutham, deep } = result;
   const good = match.total >= 18;
 
   return (
@@ -147,10 +151,12 @@ export default function MatchingResult({ result }: { result: MatchResponse }) {
         </section>
       )}
 
+      {deep && <DeepSection deep={deep} />}
+
       <section className="rounded-2xl border border-gold/30 bg-gold/5 p-6 text-center">
         <p className="text-sm leading-relaxed text-muted">
-          Guna Milan compares only the two Moons. A full compatibility reading also weighs the 7th house, Venus,
-          dashas and the whole of both charts.
+          These are classical checks computed from both charts. A personal reading weighs them together with your
+          questions and circumstances.
         </p>
         <Link
           href="/consultation"
@@ -211,6 +217,84 @@ function PartnerCard({ label, partner }: { label: string; partner: MatchPartner 
           </div>
         ))}
       </dl>
+    </section>
+  );
+}
+
+function FindingRow({ f }: { f: Finding }) {
+  return (
+    <li className="flex gap-3 text-sm">
+      <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${TONE_DOT[f.tone]}`} aria-hidden="true" />
+      <span>
+        <span className={`font-semibold ${TONE_TEXT[f.tone]}`}>{f.title}</span> <span className="text-muted">— {f.text}</span>
+      </span>
+    </li>
+  );
+}
+
+/** Both full charts read together, beyond the Moon-only Guna Milan. */
+function DeepSection({ deep }: { deep: DeepMatch }) {
+  const vTone: Tone = deep.verdict === "Very supportive" || deep.verdict === "Supportive" ? "good" : deep.verdict === "Mixed" ? "neutral" : "caution";
+  return (
+    <section className="space-y-5" aria-label="Deeper chart matching">
+      <div className="card-edge rounded-2xl p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-bold text-cream">Beyond Guna Milan — both charts together</h3>
+            <p className="mt-1 text-sm text-muted">Each person&rsquo;s own promise of marriage, how the two charts touch, and the timing of both dashas.</p>
+          </div>
+          <span className="text-right">
+            <span className={`block text-lg font-bold ${TONE_TEXT[vTone]}`}>{deep.verdict}</span>
+            <span className="text-xs text-muted">{deep.score}/100</span>
+          </span>
+        </div>
+        <p className="mt-3 text-sm leading-relaxed text-cream">{deep.summary}</p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {[deep.boy, deep.girl].map((p) => (
+          <div key={p.name} className="card-edge rounded-2xl p-5">
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="font-semibold text-cream">{p.name}&rsquo;s marriage promise</h4>
+              <span className={`text-sm font-semibold ${p.verdict === "Strong" ? "text-gold-bright" : p.verdict === "Weak" ? "text-rose" : "text-cream"}`}>
+                {p.verdict} · {p.score}
+              </span>
+            </div>
+            <ul className="mt-3 space-y-2">
+              {p.findings.map((f) => (
+                <FindingRow key={f.title} f={f} />
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <div className="card-edge rounded-2xl p-5">
+        <h4 className="font-semibold text-cream">How the two charts connect</h4>
+        <ul className="mt-3 space-y-2">
+          {deep.links.map((f) => (
+            <FindingRow key={f.title + f.text} f={f} />
+          ))}
+        </ul>
+      </div>
+
+      <div className="card-edge rounded-2xl p-5">
+        <h4 className="font-semibold text-cream">Timing — both dashas over the next 12 years</h4>
+        {deep.timing.favourable.length + deep.timing.caution.length + deep.timing.sandhi.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">No strongly favourable or difficult overlaps in the next 12 years — an even run for both.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {[...deep.timing.favourable, ...deep.timing.caution, ...deep.timing.sandhi]
+              .sort((a, b) => a.start.localeCompare(b.start))
+              .map((w) => (
+                <li key={w.text} className="flex gap-3 text-sm">
+                  <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${TONE_DOT[w.tone]}`} aria-hidden="true" />
+                  <span className="text-muted">{w.text}</span>
+                </li>
+              ))}
+          </ul>
+        )}
+      </div>
     </section>
   );
 }

@@ -5,6 +5,7 @@ import { computePorutham } from "@/lib/astrology/porutham";
 import { compareManglik, computeGunaMilan, type CompatibilityResponse, type MatchPartner, type MatchResponse } from "@/lib/astrology/matching";
 import { birthInputSchema } from "@/lib/birthSchema";
 import { computeCompatibility } from "@/lib/astrology/compatibility";
+import { deepMatch } from "@/lib/astrology/marriageMatch";
 import type { KundaliChart } from "@/lib/astrology/types";
 
 // "boy"/"girl" are the classical Guna Milan roles; other relationship types treat them as first and second person.
@@ -58,6 +59,7 @@ export async function POST(req: NextRequest) {
       match: computeGunaMilan(boyMoon, girlMoon),
       manglik: compareManglik(boy.mangalDosha, girl.mangalDosha),
       porutham: computePorutham(boyMoon, girlMoon),
+      deep: deepMatch(boy, girl),
     };
     return NextResponse.json(body);
   } catch (err) {

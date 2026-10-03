@@ -1,3 +1,4 @@
+import type { DeepMatch } from "./marriageMatch";
 import { NAKSHATRAS, SIGNS, SIGN_LORDS, type PlanetName } from "./constants";
 import { computeAvakahada, type Avakahada } from "./birthDetails";
 import { FRIENDS, ENEMIES } from "./dignity";
@@ -286,6 +287,8 @@ export interface MatchResponse {
   manglik: ManglikComparison;
   /** The South Indian ten-porutham match for the same pair. */
   porutham?: PoruthamMatch;
+  /** Both full charts read together: each person's marriage promise, how the charts touch, and dasha timing. */
+  deep?: DeepMatch;
 }
 
 /** What /api/matching returns for romance, business and friendship. */
