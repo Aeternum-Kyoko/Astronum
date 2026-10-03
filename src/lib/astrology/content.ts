@@ -64,3 +64,13 @@ export const HOUSE_SIGNIFICATION: Record<number, string> = {
   11: "gains, aspirations, and social networks",
   12: "loss, expenditure, isolation, and spiritual release",
 };
+
+// ——— In the reader's language ——————————————————————————————————————
+
+import type { Locale } from "../i18n/locale";
+import { HOUSE_SIGNIFICATION_HI, PLANET_KEYNOTE_HI, SIGN_KEYNOTE_HI, VARGA_INFO_HI } from "./content.hi";
+
+export const signKeynote = (sign: SignName, locale: Locale = "en") => (locale === "hi" ? SIGN_KEYNOTE_HI[sign] : SIGN_KEYNOTE[sign]);
+export const planetKeynote = (planet: PlanetName, locale: Locale = "en") => (locale === "hi" ? PLANET_KEYNOTE_HI[planet] : PLANET_KEYNOTE[planet]);
+export const houseSignification = (house: number, locale: Locale = "en") => (locale === "hi" ? HOUSE_SIGNIFICATION_HI[house] : HOUSE_SIGNIFICATION[house]);
+export const vargaInfo = (key: VargaKey, locale: Locale = "en") => (locale === "hi" ? VARGA_INFO_HI[key] : VARGA_INFO[key]);

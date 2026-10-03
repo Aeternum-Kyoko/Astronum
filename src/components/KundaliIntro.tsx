@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale, useT } from "@/lib/i18n/LocaleContext";
 import { motion } from "motion/react";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -14,6 +15,8 @@ const FEATURES = [
 ];
 
 export default function KundaliIntro() {
+  const t = useT();
+  const hi = useLocale() === "hi";
   return (
     <div className="text-center">
       <motion.p
@@ -22,7 +25,7 @@ export default function KundaliIntro() {
         transition={{ duration: 0.6, ease: EASE_OUT_EXPO }}
         className="text-xs font-semibold text-gold-bright"
       >
-        Free Tool
+        {t("Free Tool")}
       </motion.p>
       <motion.h1
         initial={{ y: 20 }}
@@ -30,7 +33,15 @@ export default function KundaliIntro() {
         transition={{ duration: 0.8, delay: 0.08, ease: EASE_OUT_EXPO }}
         className="mt-5 text-5xl leading-[1.05] font-bold tracking-tight text-cream sm:text-6xl md:text-7xl"
       >
-        Generate your <span className="text-gold-bright">kundali.</span>
+        {hi ? (
+          <>
+            अपनी <span className="text-gold-bright">कुंडली</span> बनाएं।
+          </>
+        ) : (
+          <>
+            Generate your <span className="text-gold-bright">kundali.</span>
+          </>
+        )}
       </motion.h1>
       <motion.p
         initial={{ y: 18 }}
@@ -38,8 +49,7 @@ export default function KundaliIntro() {
         transition={{ duration: 0.8, delay: 0.18, ease: EASE_OUT_EXPO }}
         className="mx-auto mt-7 max-w-xl text-lg leading-relaxed text-muted"
       >
-        Enter your exact birth date, time, and place for an accurate sidereal (Vedic) chart. Birth
-        time matters — even a few minutes can shift your ascendant and houses.
+        {t("Enter your exact birth date, time, and place for an accurate sidereal (Vedic) chart. Birth time matters — even a few minutes can shift your ascendant and houses.")}
       </motion.p>
 
       <motion.div
@@ -53,7 +63,7 @@ export default function KundaliIntro() {
             key={f}
             className="rounded-full border border-border/80 bg-surface/60 px-3.5 py-1.5 text-xs text-muted"
           >
-            {f}
+            {t(f)}
           </span>
         ))}
       </motion.div>

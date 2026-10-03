@@ -1,5 +1,7 @@
 import type { Dignity } from "@/lib/astrology/dignity";
-import { A, B, C, D, HOUSE_POLYGONS, P1, P2, P3, P4, PLANET_ABBR, PLANET_GLYPH, SIGN_ANCHORS, layoutHouse, polygonPoints } from "@/lib/chartGeometry";
+import { A, B, C, D, HOUSE_POLYGONS, P1, P2, P3, P4, PLANET_GLYPH, SIGN_ANCHORS, layoutHouse, markerText, planetAbbr, polygonPoints } from "@/lib/chartGeometry";
+import type { Locale } from "@/lib/i18n/locale";
+import { term } from "@/lib/i18n/terms";
 
 const DIGNITY_COLOR: Record<Dignity, string> = {
   Exalted: "var(--color-gold-bright)",
@@ -43,6 +45,7 @@ export default function NorthIndianChart({
   onPick,
   selected,
   glyphs = false,
+  locale = "en",
 }: {
   ascendantSignIndex: number;
   planets: ChartPlanet[];
@@ -51,7 +54,10 @@ export default function NorthIndianChart({
   selected?: ChartPick | null;
   /** Planet symbols (☉ ☽ ♂…) instead of two-letter names. */
   glyphs?: boolean;
+  locale?: Locale;
 }) {
+  const hi = locale === "hi";
+  const tr = (s: string) => (hi ? term("hi", s) : s);
   const byHouse = new Map<number, ChartPlanet[]>();
   for (const p of planets) {
     const list = byHouse.get(p.house) ?? [];
@@ -60,7 +66,7 @@ export default function NorthIndianChart({
   }
 
   return (
-    <svg viewBox="0 0 400 400" className="chart-draw mx-auto w-full max-w-md overflow-visible" role="img" aria-label="Birth chart, North Indian style">
+    <svg viewBox="0 0 400 400" className="chart-draw mx-auto w-full max-w-md overflow-visible" role="img" aria-label={hi ? "जन्म कुंडली, उत्तर भारतीय शैली" : "Birth chart, North Indian style"}>
       <defs>
         <radialGradient id="nic-bg" cx="50%" cy="45%" r="75%">
           <stop offset="0%" style={{ stopColor: "var(--chart-top)" }} />
@@ -102,7 +108,7 @@ export default function NorthIndianChart({
                 ? {
                     role: "button",
                     tabIndex: 0,
-                    "aria-label": `House ${houseNumber}`,
+                    "aria-label": hi ? `भाव ${houseNumber}` : `House ${houseNumber}`,
                     className: "cursor-pointer outline-none transition-[fill] hover:fill-[color-mix(in_oklab,var(--color-gold)_12%,transparent)] focus-visible:stroke-[var(--color-gold-bright)] focus-visible:[stroke-width:1.5]",
                     onClick: () => onPick({ kind: "house", house: houseNumber }),
                     onKeyDown: keyActivate(() => onPick({ kind: "house", house: houseNumber })),
@@ -131,7 +137,7 @@ export default function NorthIndianChart({
                     ? {
                         role: "button",
                         tabIndex: 0,
-                        "aria-label": p.planet,
+                        "aria-label": tr(p.planet),
                         onClick: (e: React.MouseEvent) => {
                           e.stopPropagation();
                           onPick({ kind: "planet", planet: p.planet });
@@ -141,11 +147,19 @@ export default function NorthIndianChart({
                     : {})}
                 >
                   <title>
-                    {[p.planet, p.sign, p.degreeInSign !== undefined ? `${p.degreeInSign.toFixed(2)}°` : null, `House ${houseNumber}`, p.nakshatra, p.dignity, p.retrograde ? "Retrograde" : null]
+                    {[
+                      tr(p.planet),
+                      p.sign ? tr(p.sign) : null,
+                      p.degreeInSign !== undefined ? `${p.degreeInSign.toFixed(2)}°` : null,
+                      hi ? `भाव ${houseNumber}` : `House ${houseNumber}`,
+                      p.nakshatra ? tr(p.nakshatra) : null,
+                      p.dignity ? tr(p.dignity) : null,
+                      p.retrograde ? (hi ? "वक्री" : "Retrograde") : null,
+                    ]
                       .filter(Boolean)
                       .join(" · ")}
                   </title>
-                  {glyphs ? PLANET_GLYPH[p.planet] : (PLANET_ABBR[p.planet] ?? p.planet.slice(0, 2))}
+                  {glyphs ? PLANET_GLYPH[p.planet] : planetAbbr(p.planet, locale)}
                   {p.degreeInSign !== undefined && layout.degrees && (
                     <tspan fontSize={8.5 * layout.scale} fontWeight="400" fill="var(--color-muted)" dx="2" style={{ fontVariantNumeric: "tabular-nums", fontFamily: "inherit" }}>
                       {Math.floor(p.degreeInSign)}°
@@ -155,7 +169,7 @@ export default function NorthIndianChart({
                     <tspan fontSize={8.5 * Math.max(layout.scale, 0.8)} dy={-5 * layout.scale} style={{ fontFamily: "inherit" }}>
                       {[...marks].map((m, k) => (
                         <tspan key={k} fill={m === "↓" || m === "C" || m === "R" ? "var(--color-rose)" : "var(--color-gold-bright)"}>
-                          {m}
+                          {markerText(m, locale)}
                         </tspan>
                       ))}
                     </tspan>
@@ -165,7 +179,7 @@ export default function NorthIndianChart({
             })}
             {isAscendant && (
               <text x={200} y={160} textAnchor="middle" fontSize="9" fontWeight="600" letterSpacing="0.6" fill="var(--color-gold-bright)" className="chart-fade">
-                Lagna
+                {hi ? "लग्न" : "Lagna"}
               </text>
             )}
           </g>

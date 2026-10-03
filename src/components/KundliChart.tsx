@@ -25,6 +25,8 @@ import ChartGrid from "@/components/ChartGrid";
 import ZoomableChart from "@/components/ZoomableChart";
 import SegmentedControl from "@/components/SegmentedControl";
 import { MARKER_MEANING, type Marker } from "@/lib/astrology/chartMarkers";
+import { markerText } from "@/lib/chartGeometry";
+import { useLocale, useT } from "@/lib/i18n/LocaleContext";
 import type { Dignity } from "@/lib/astrology/dignity";
 
 export type ChartStyle = "north" | "south";
@@ -68,6 +70,8 @@ export default function KundliChart({
   onPick?: (pick: ChartPick) => void;
   selected?: ChartPick | null;
 }) {
+  const locale = useLocale();
+  const t = useT();
   const [ownStyle, setOwnStyle] = useState<ChartStyle>("north");
   const style = controlledStyle ?? ownStyle;
   const setStyle = onStyleChange ?? setOwnStyle;
@@ -90,8 +94,8 @@ export default function KundliChart({
             value={style}
             onChange={setStyle}
             options={[
-              { value: "north", label: "North Indian" },
-              { value: "south", label: "South Indian" },
+              { value: "north", label: t("North Indian") },
+              { value: "south", label: t("South Indian") },
             ]}
           />
         </div>
@@ -99,25 +103,25 @@ export default function KundliChart({
       <div className="mx-auto max-w-md">
         <ZoomableChart>
           {style === "north" ? (
-            <NorthIndianChart ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} glyphs={glyphs} />
+            <NorthIndianChart ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} glyphs={glyphs} locale={locale} />
           ) : (
-            <ChartGrid ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} glyphs={glyphs} />
+            <ChartGrid ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} glyphs={glyphs} locale={locale} />
           )}
         </ZoomableChart>
       </div>
       <div className="mx-auto mt-4 flex max-w-md flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-muted">
         {showLegend && used.length > 0 && (
-          <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1" aria-label="Chart symbols">
+          <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1" aria-label={t("Chart symbols")}>
             {used.map((m) => (
               <li key={m}>
-                <span className={`mr-1 font-semibold ${m === "↓" || m === "C" || m === "R" ? "text-rose" : "text-gold-bright"}`}>{m}</span>
-                {MARKER_MEANING[m]}
+                <span className={`mr-1 font-semibold ${m === "↓" || m === "C" || m === "R" ? "text-rose" : "text-gold-bright"}`}>{markerText(m, locale)}</span>
+                {t(MARKER_MEANING[m])}
               </li>
             ))}
           </ul>
         )}
         <button type="button" onClick={() => setGlyphs(!glyphs)} aria-pressed={glyphs} className="rounded-full px-2 py-0.5 text-xs text-muted underline decoration-border underline-offset-4 hover:text-cream">
-          {glyphs ? "Show names" : "Show symbols"}
+          {glyphs ? t("Show names") : t("Show symbols")}
         </button>
       </div>
     </div>

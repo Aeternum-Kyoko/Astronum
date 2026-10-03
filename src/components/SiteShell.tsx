@@ -8,6 +8,7 @@ import JsonLd from "@/components/JsonLd";
 import { THEME_INIT_SCRIPT } from "@/lib/themeScript";
 import { DISPLAY_INIT_SCRIPT } from "@/lib/displayPrefs";
 import type { Locale } from "@/lib/i18n/locale";
+import { LocaleProvider } from "@/lib/i18n/LocaleContext";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 
 const SITE_JSON_LD = {
@@ -36,7 +37,9 @@ export function SiteBody({ locale, children }: { locale: Locale; children: React
         <AppChrome />
         <Header locale={locale} />
         <main className="flex-1">
-          <PageTransition>{children}</PageTransition>
+          <LocaleProvider locale={locale}>
+            <PageTransition>{children}</PageTransition>
+          </LocaleProvider>
         </main>
         <Footer locale={locale} />
         <MobileTabBar locale={locale} />

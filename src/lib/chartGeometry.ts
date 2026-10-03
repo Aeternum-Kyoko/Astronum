@@ -165,3 +165,22 @@ export function layoutHouse(house: number, count: number, reserveBottom = 0): Ho
   }
   return { points, scale, degrees: scale >= 0.8 };
 }
+
+/** Hindi chart abbreviations, as printed in Hindi kundlis. */
+export const PLANET_ABBR_HI: Record<string, string> = {
+  Sun: "सू",
+  Moon: "चं",
+  Mars: "मं",
+  Mercury: "बु",
+  Jupiter: "गु",
+  Venus: "शु",
+  Saturn: "श",
+  Rahu: "रा",
+  Ketu: "के",
+};
+
+/** Status marks in Hindi: वक्री (retrograde), अस्त (combust), वर्गोत्तम. The arrows stay. */
+export const MARKER_HI: Record<string, string> = { R: "व", C: "अ", V: "वर्ग", "↑": "↑", "↓": "↓" };
+
+export const planetAbbr = (planet: string, locale: "en" | "hi" = "en") => (locale === "hi" ? PLANET_ABBR_HI[planet] : PLANET_ABBR[planet]) ?? planet.slice(0, 2);
+export const markerText = (m: string, locale: "en" | "hi" = "en") => (locale === "hi" ? (MARKER_HI[m] ?? m) : m);

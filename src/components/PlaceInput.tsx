@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale, useT } from "@/lib/i18n/LocaleContext";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -15,13 +16,14 @@ export default function PlaceInput({
   selected,
   onSelect,
   showTimezone = true,
-  placeholder = "Start typing a city, e.g. Jaipur, India",
+  placeholder,
 }: {
   selected: PlaceSuggestion | null;
   onSelect: (place: PlaceSuggestion | null) => void;
   showTimezone?: boolean;
   placeholder?: string;
 }) {
+  const t = useT();
   const [query, setQuery] = useState(selected?.displayName ?? "");
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -68,7 +70,7 @@ export default function PlaceInput({
           }}
           onFocus={() => setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t("Start typing a city, e.g. Jaipur, India")}
           className="input input-icon"
           autoComplete="off"
         />
@@ -107,7 +109,7 @@ export default function PlaceInput({
       </AnimatePresence>
       {showTimezone && selected && (
         <p className="mt-2 text-xs text-muted">
-          Timezone detected: <span className="text-gold-bright">{selected.timezone}</span>
+          {t("Timezone detected:")} <span className="text-gold-bright">{selected.timezone}</span>
         </p>
       )}
     </div>

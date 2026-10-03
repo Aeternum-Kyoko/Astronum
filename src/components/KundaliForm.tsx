@@ -15,6 +15,7 @@ import ProfileChips from "@/components/ProfileChips";
 import KundliHeader from "@/components/KundliHeader";
 import { listCharts, loadChart, saveChart, type StoredChart } from "@/lib/offlineCharts";
 import { haptic } from "@/lib/haptics";
+import { useLocale, useT } from "@/lib/i18n/LocaleContext";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 const MIN_LOADING_MS = 1600;
@@ -29,6 +30,8 @@ const LOADING_STEPS = [
 type View = "form" | "loading" | "result";
 
 export default function KundaliForm() {
+  const locale = useLocale();
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   // Opened from the home page form or a shared link: the URL carries the birth details.
@@ -68,7 +71,7 @@ export default function KundaliForm() {
       const res = await fetch("/api/kundali/sections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ birth: chart.input, sections: missing }),
+        body: JSON.stringify({ birth: chart.input, sections: missing, locale }),
       });
       const data = await res.json();
       if (res.ok) setReport((r) => (r ? { ...r, ...data.sections } : r));
@@ -96,10 +99,10 @@ export default function KundaliForm() {
       const res = await fetch("/api/kundali", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(params),
+        body: JSON.stringify({ ...params, locale }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Something went wrong");
+      if (!res.ok) throw new Error(data.error ?? t("Something went wrong"));
 
       const elapsed = Date.now() - startedAt;
       if (elapsed < MIN_LOADING_MS) {
@@ -110,7 +113,7 @@ export default function KundaliForm() {
       setOfflineFrom(null);
       haptic("success");
       // Reflect the chart in the URL so it can be bookmarked or shared.
-      router.replace(`/kundali?${toBirthQuery(params)}`, { scroll: false });
+      router.replace(`${locale === "hi" ? "/hi" : ""}/kundali?${toBirthQuery(params)}`, { scroll: false });
     } catch (err) {
       // No connection: open the copy kept on this device, if there is one.
       const stored = err instanceof TypeError ? await loadChart(params) : null;
@@ -120,7 +123,7 @@ export default function KundaliForm() {
         setOfflineFrom(stored.savedAt);
         haptic("warning");
       } else {
-        setError(err instanceof TypeError ? "You're offline, and this kundli isn't saved on this device yet." : err instanceof Error ? err.message : "Something went wrong");
+        setError(err instanceof TypeError ? t("You're offline, and this kundli isn't saved on this device yet.") : err instanceof Error ? err.message : t("Something went wrong"));
         haptic("error");
       }
     } finally {
@@ -139,7 +142,7 @@ export default function KundaliForm() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !date || !time || !selectedPlace) {
-      setError("Please fill in your name, birth date, time, and select a birth place from the list.");
+      setError(t("Please fill in your name, birth date, time, and select a birth place from the list."));
       return;
     }
     void generate({
@@ -181,29 +184,29 @@ export default function KundaliForm() {
                 className="card-edge rounded-3xl p-7 shadow-[0_0_60px_rgba(212,175,106,0.06)] md:p-10"
               >
                 <div className="grid gap-5 md:grid-cols-2">
-                  <Field label="Name">
+                  <Field label={t("Name")}>
                     <input
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Asha Sharma"
+                      placeholder={t("e.g. Asha Sharma")}
                       className="input"
                     />
                   </Field>
 
                   <div className="@container">
                     <div className="grid gap-5 @sm:grid-cols-2">
-                      <Field label="Date of birth">
+                      <Field label={t("Date of birth")}>
                         <DatePicker value={date} onChange={setDate} />
                       </Field>
-                      <Field label="Time of birth">
+                      <Field label={t("Time of birth")}>
                         <TimePicker value={time} onChange={setTime} />
                       </Field>
                     </div>
                   </div>
 
                   <div className="md:col-span-2">
-                    <Field label="Place of birth">
+                    <Field label={t("Place of birth")}>
                       <PlaceInput selected={selectedPlace} onSelect={setSelectedPlace} />
                     </Field>
                   </div>
@@ -226,7 +229,7 @@ export default function KundaliForm() {
                   type="submit"
                   className="mt-8 flex w-full items-center justify-center gap-2.5 rounded-full bg-gold px-6 py-4 text-base font-semibold text-on-gold transition-transform hover:scale-[1.02] hover:bg-gold-bright md:w-auto md:px-9"
                 >
-                  Generate Kundali
+                  {t("Generate Kundali")}
                 </button>
               </form>
             </div>
@@ -257,7 +260,7 @@ export default function KundaliForm() {
             <KundliHeader chart={chart} onEdit={editChart} />
             {offlineFrom && (
               <p role="status" className="mx-auto mt-6 max-w-2xl rounded-xl border border-gold/40 bg-gold/5 px-4 py-2.5 text-center text-sm text-cream">
-                You&rsquo;re offline — showing the copy saved on this device on {new Date(offlineFrom).toLocaleString()}.
+                {t("You're offline — showing the copy saved on this device on")} {new Date(offlineFrom).toLocaleString(locale === "hi" ? "hi-IN" : undefined)}.
               </p>
             )}
             <KundaliResult chart={chart} report={report} initialTab={initialTab} loadSections={loadSections} />
@@ -269,6 +272,7 @@ export default function KundaliForm() {
 }
 
 function LoadingCard() {
+  const t = useT();
   const [step, setStep] = useState(0);
 
   useEffect(() => {
@@ -285,7 +289,7 @@ function LoadingCard() {
         animate={{ rotate: 360 }}
         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
       />
-      <p className="mt-7 font-display text-xl text-cream">Calculating your kundli…</p>
+      <p className="mt-7 font-display text-xl text-cream">{t("Calculating your kundli…")}</p>
       <ul className="mt-6 space-y-2.5">
         {LOADING_STEPS.map((label, i) => (
           <li
@@ -299,7 +303,7 @@ function LoadingCard() {
                 i <= step ? "bg-gold-bright" : "bg-muted/40"
               }`}
             />
-            {label}
+            {t(label)}
           </li>
         ))}
       </ul>
@@ -318,6 +322,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 /** Kundlis opened on this device before — they open even offline. */
 function RecentCharts({ onPick }: { onPick: (input: BirthParams) => void }) {
+  const t = useT();
   const [recent, setRecent] = useState<StoredChart[]>([]);
   useEffect(() => {
     let alive = true;
@@ -329,7 +334,7 @@ function RecentCharts({ onPick }: { onPick: (input: BirthParams) => void }) {
   if (!recent.length) return null;
   return (
     <div className="mt-5 text-center">
-      <p className="text-xs font-semibold text-muted">Recently opened on this device</p>
+      <p className="text-xs font-semibold text-muted">{t("Recently opened on this device")}</p>
       <ul className="mt-2 flex flex-wrap justify-center gap-2">
         {recent.map((r) => (
           <li key={r.key}>

@@ -290,7 +290,7 @@ export function rudrakshaPlan(chart: KundaliChart, locale: Locale = "en"): Rudra
   const phaseHi: Record<string, string> = { rising: "आरंभिक", peak: "मध्य (चरम)", setting: "अंतिम" };
   if (chart.sadeSati.active)
     add("Saturn", "sadeSati", T(`Sade Sati is running now (${chart.sadeSati.phase} phase) — Saturn's bead is the classic support for these years.`, `अभी साढ़े साती चल रही है (${phaseHi[chart.sadeSati.phase ?? "peak"]} चरण) — इन वर्षों में शनि का रुद्राक्ष पारंपरिक सहारा है।`), 7);
-  const dosha = (n: string) => chart.doshas.find((d) => d.name.startsWith(n) && d.present && !d.cancelled);
+  const dosha = (n: string) => chart.doshas.find((d) => (d.key ?? d.name).startsWith(n) && d.present && !d.cancelled);
   if (dosha("Mangal")) add("Mars", "dosha", T("Mangal Dosha is present in your chart — Mars's bead calms it.", "आपकी कुंडली में मंगल दोष है — मंगल का रुद्राक्ष इसे शांत करता है।"), 5);
   if (dosha("Kaal Sarp")) {
     add("Rahu", "dosha", T("Kaal Sarp Dosha is present — the Rahu bead (8 Mukhi) is its traditional remedy.", "कालसर्प दोष है — राहु का रुद्राक्ष (आठ मुखी) इसका पारंपरिक उपाय है।"), 6);

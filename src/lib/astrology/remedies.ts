@@ -207,7 +207,7 @@ export function computeRemedies(chart: KundaliChart): RemedyPlan {
       ],
     });
   }
-  if (chart.doshas.find((d) => d.name.startsWith("Kaal Sarp"))?.present) {
+  if (chart.doshas.find((d) => (d.key ?? d.name).startsWith("Kaal Sarp"))?.present) {
     doshas.push({
       name: "Kaal Sarp Dosha",
       remedies: [
@@ -217,7 +217,7 @@ export function computeRemedies(chart: KundaliChart): RemedyPlan {
       ],
     });
   }
-  if (chart.doshas.find((d) => d.name.startsWith("Pitra"))?.present) {
+  if (chart.doshas.find((d) => (d.key ?? d.name).startsWith("Pitra"))?.present) {
     doshas.push({
       name: "Pitra Dosha",
       remedies: [

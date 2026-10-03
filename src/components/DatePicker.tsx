@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale, useT } from "@/lib/i18n/LocaleContext";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 
@@ -8,6 +9,8 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ];
 const WEEKDAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const WEEKDAY_LABELS_HI = ["र", "सो", "मं", "बु", "गु", "शु", "श"];
+const MONTH_NAMES_HI = ["जनवरी", "फ़रवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई", "अगस्त", "सितंबर", "अक्टूबर", "नवंबर", "दिसंबर"];
 const MIN_YEAR = 1900;
 
 function parseISO(value: string): { year: number; month: number; day: number } | null {
@@ -72,6 +75,8 @@ export default function DatePicker({
   onChange: (v: string) => void;
   placeholder?: string;
 }) {
+  const t = useT();
+  const hi = useLocale() === "hi";
   const parsed = parseISO(value);
   const today = new Date();
   const [text, setText] = useState(toDisplay(value));
@@ -149,13 +154,13 @@ export default function DatePicker({
       <button
         type="button"
         onClick={toggleOpen}
-        aria-label="Choose from calendar"
+        aria-label={t("Choose from calendar")}
         aria-expanded={open}
         className="absolute top-1/2 right-2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-raised hover:text-gold-bright"
       >
         <CalendarGlyph />
       </button>
-      {invalid && <p className="mt-1 text-xs text-rose">Enter a real date as DD/MM/YYYY.</p>}
+      {invalid && <p className="mt-1 text-xs text-rose">{t("Enter a real date as DD/MM/YYYY.")}</p>}
 
       <AnimatePresence>
         {open && (
@@ -169,20 +174,20 @@ export default function DatePicker({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                aria-label="Previous month"
+                aria-label={t("Previous month")}
                 onClick={() => (viewMonth === 0 ? (setViewMonth(11), setViewYear(viewYear - 1)) : setViewMonth(viewMonth - 1))}
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-surface-raised hover:text-cream"
               >
                 ‹
               </button>
-              <select value={viewMonth} onChange={(e) => setViewMonth(Number(e.target.value))} aria-label="Month" className="input !py-1.5 flex-1 !px-2 !text-sm">
-                {MONTH_NAMES.map((m, i) => (
+              <select value={viewMonth} onChange={(e) => setViewMonth(Number(e.target.value))} aria-label={t("Month")} className="input !py-1.5 flex-1 !px-2 !text-sm">
+                {(hi ? MONTH_NAMES_HI : MONTH_NAMES).map((m, i) => (
                   <option key={m} value={i}>
                     {m}
                   </option>
                 ))}
               </select>
-              <select value={viewYear} onChange={(e) => setViewYear(Number(e.target.value))} aria-label="Year" className="input !w-[5.5rem] !py-1.5 !px-2 !text-sm">
+              <select value={viewYear} onChange={(e) => setViewYear(Number(e.target.value))} aria-label={t("Year")} className="input !w-[5.5rem] !py-1.5 !px-2 !text-sm">
                 {years.map((y) => (
                   <option key={y} value={y}>
                     {y}
@@ -191,7 +196,7 @@ export default function DatePicker({
               </select>
               <button
                 type="button"
-                aria-label="Next month"
+                aria-label={t("Next month")}
                 onClick={() => (viewMonth === 11 ? (setViewMonth(0), setViewYear(viewYear + 1)) : setViewMonth(viewMonth + 1))}
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-surface-raised hover:text-cream"
               >
@@ -200,7 +205,7 @@ export default function DatePicker({
             </div>
 
             <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[11px] text-muted">
-              {WEEKDAY_LABELS.map((w) => (
+              {(hi ? WEEKDAY_LABELS_HI : WEEKDAY_LABELS).map((w) => (
                 <div key={w}>{w}</div>
               ))}
             </div>

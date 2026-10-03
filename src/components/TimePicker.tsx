@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale, useT } from "@/lib/i18n/LocaleContext";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 
@@ -63,6 +64,7 @@ export default function TimePicker({
   onChange: (v: string) => void;
   placeholder?: string;
 }) {
+  const t = useT();
   const parsed = parseValue(value);
   const [meridiem, setMeridiem] = useState<Meridiem>(parsed?.meridiem ?? "AM");
   const [text, setText] = useState(parsed ? `${String(parsed.hour12).padStart(2, "0")}:${String(parsed.minute).padStart(2, "0")}` : "");
@@ -137,7 +139,7 @@ export default function TimePicker({
           className={`input !pr-[6.5rem] font-tabular ${invalid ? "!border-rose" : ""}`}
         />
         <div className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-1">
-          <div role="group" aria-label="AM or PM" className="flex overflow-hidden rounded-lg border border-border text-[11px] font-semibold">
+          <div role="group" aria-label={t("AM or PM")} className="flex overflow-hidden rounded-lg border border-border text-[11px] font-semibold">
             {(["AM", "PM"] as const).map((m) => (
               <button
                 key={m}
@@ -156,7 +158,7 @@ export default function TimePicker({
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
-            aria-label="Choose hour and minute"
+            aria-label={t("Choose hour and minute")}
             aria-expanded={open}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-raised hover:text-gold-bright"
           >
@@ -164,7 +166,7 @@ export default function TimePicker({
           </button>
         </div>
       </div>
-      {invalid && <p className="mt-1 text-xs text-rose">Enter a time like 06:45.</p>}
+      {invalid && <p className="mt-1 text-xs text-rose">{t("Enter a time like 06:45.")}</p>}
 
       <AnimatePresence>
         {open && (
@@ -175,7 +177,7 @@ export default function TimePicker({
             transition={{ duration: 0.15 }}
             className="card-glass shadow-floating absolute right-0 z-30 mt-2 w-72 rounded-2xl p-4"
           >
-            <p className="text-xs text-muted">Hour</p>
+            <p className="text-xs text-muted">{t("Hour")}</p>
             <div className="mt-1.5 grid grid-cols-6 gap-1">
               {HOURS.map((h) => (
                 <button
@@ -189,7 +191,7 @@ export default function TimePicker({
                 </button>
               ))}
             </div>
-            <p className="mt-3 text-xs text-muted">Minute</p>
+            <p className="mt-3 text-xs text-muted">{t("Minute")}</p>
             <div className="mt-1.5 grid grid-cols-6 gap-1">
               {MINUTE_STEPS.map((m) => (
                 <button
@@ -203,9 +205,9 @@ export default function TimePicker({
                 </button>
               ))}
             </div>
-            <p className="mt-3 text-xs text-muted">For an exact minute, type it in the box — birth time matters to the minute.</p>
+            <p className="mt-3 text-xs text-muted">{t("For an exact minute, type it in the box — birth time matters to the minute.")}</p>
             <button type="button" onClick={() => setOpen(false)} className="mt-3 w-full rounded-full bg-gold py-2 text-sm font-semibold text-on-gold hover:bg-gold-bright">
-              Done
+              {t("Done")}
             </button>
           </motion.div>
         )}

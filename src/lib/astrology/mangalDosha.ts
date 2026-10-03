@@ -1,6 +1,9 @@
 import { aspectsSign } from "./aspects";
 import { signOffsetHouse } from "./math";
 import type { PlanetPlacement } from "./types";
+import type { Locale } from "../i18n/locale";
+import { term } from "../i18n/terms";
+import { ordHi } from "../i18n/hiGrammar";
 
 /**
  * Mangal (Kuja) Dosha, read the way Indian matching software does: Mars in the
@@ -59,8 +62,29 @@ export function analyzeMangalDosha(ascendantSignIndex: number, planets: PlanetPl
   return { houseFrom, sources, cancellations, severity, status };
 }
 
-export function describeMangalDosha(result: MangalDoshaResult): string {
+const REF_HI: Record<MangalReference, string> = { Lagna: "लग्न", Moon: "चंद्र", Venus: "शुक्र" };
+const SEVERITY_HI: Record<MangalDoshaResult["severity"], string> = { none: "शून्य", mild: "हल्का", moderate: "मध्यम", strong: "प्रबल" };
+
+/** A cancellation from analyzeMangalDosha, in Hindi. */
+export function mangalCancellationHi(c: string): string {
+  const own = c.match(/^Mars is in (\w+), (its sign of exaltation|its own sign)/);
+  if (own) return `मंगल ${term("hi", own[1])} में ${own[2] === "its own sign" ? "अपनी राशि" : "अपनी उच्च राशि"} में हैं, जो शास्त्रों के अनुसार दोष को निष्प्रभावी करता है।`;
+  if (c.startsWith("Mars is conjunct Jupiter")) return "मंगल की गुरु से युति है, जिसका शुभ प्रभाव शास्त्रों के अनुसार दोष को भंग करता है।";
+  if (c.startsWith("Jupiter aspects Mars")) return "गुरु की मंगल पर दृष्टि है, जिसका शुभ प्रभाव शास्त्रों के अनुसार दोष को भंग करता है।";
+  return c;
+}
+
+export function describeMangalDosha(result: MangalDoshaResult, locale: Locale = "en"): string {
   const { houseFrom, sources, cancellations, severity, status } = result;
+  if (locale === "hi") {
+    const positions = `मंगल लग्न से ${ordHi(houseFrom.Lagna)}, चंद्र से ${ordHi(houseFrom.Moon)} और शुक्र से ${ordHi(houseFrom.Venus)} भाव में हैं।`;
+    if (status === "absent") return `${positions} इनमें से कोई भी मांगलिक भाव (1, 2, 4, 7, 8, 12) नहीं है, इसलिए मांगलिक दोष नहीं बनता।`;
+    const list = sources.map((x) => REF_HI[x]);
+    const joined = list.length <= 1 ? list.join("") : `${list.slice(0, -1).join(", ")} और ${list[list.length - 1]}`;
+    const flagged = `यह ${joined} से बनता है — संदर्भ-बिंदुओं की सामान्य गणना से ${SEVERITY_HI[severity]} दोष।`;
+    if (status === "cancelled") return `${positions} ${flagged} परंतु: ${cancellations.map(mangalCancellationHi).join(" ")} इसलिए इसे सामान्यतः भंग माना जाता है।`;
+    return `${positions} ${flagged} कुंडली मिलान में इसे ध्यान से तौला जाता है, जहाँ दो मांगलिक कुंडलियाँ एक-दूसरे को संतुलित करती मानी जाती हैं।`;
+  }
   const positions = `Mars is in house ${houseFrom.Lagna} from the Lagna, ${houseFrom.Moon} from the Moon and ${houseFrom.Venus} from Venus.`;
   if (status === "absent") {
     return `${positions} None of these are Mangal houses (1, 2, 4, 7, 8, 12), so Mangal Dosha is not indicated.`;

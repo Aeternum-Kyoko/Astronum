@@ -6,6 +6,7 @@ import { birthInputSchema } from "@/lib/birthSchema";
 
 const schema = z.object({
   birth: birthInputSchema,
+  locale: z.enum(["en", "hi"]).optional(),
   sections: z.array(z.enum(HEAVY_SECTIONS as unknown as [HeavySection, ...HeavySection[]])).min(1).max(HEAVY_SECTIONS.length),
 });
 
@@ -14,8 +15,9 @@ export async function POST(req: NextRequest) {
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   try {
-    const chart = calculateKundali(parsed.data.birth);
-    return NextResponse.json({ sections: buildSections(chart, parsed.data.sections) });
+    const locale = parsed.data.locale ?? "en";
+    const chart = calculateKundali(parsed.data.birth, locale);
+    return NextResponse.json({ sections: buildSections(chart, parsed.data.sections, new Date(), locale) });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Could not calculate" }, { status: 400 });
   }

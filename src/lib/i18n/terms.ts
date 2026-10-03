@@ -39,6 +39,14 @@ const HI: Record<string, string> = {
   Kartika: "कार्तिक", Margashirsha: "मार्गशीर्ष", Pausha: "पौष", Phalguna: "फाल्गुन", Adhika: "अधिक",
   // Tones and statuses
   Favourable: "शुभ", Mixed: "मिश्रित", Challenging: "चुनौतीपूर्ण",
+  // Dignities
+  Exalted: "उच्च", Debilitated: "नीच", Moolatrikona: "मूलत्रिकोण", "Own Sign": "स्वराशि", "Friend's Sign": "मित्र राशि",
+  "Enemy's Sign": "शत्रु राशि", "Neutral Sign": "सम राशि",
+  // Verdicts and grades
+  Strong: "बलवान", Balanced: "संतुलित", Weak: "कमज़ोर", Excellent: "उत्कृष्ट", Good: "अच्छा", Average: "सामान्य", "Very weak": "बहुत कमज़ोर",
+  Difficult: "कठिन", Moderate: "मध्यम", Mitigated: "शमित", Supportive: "सहायक", Demanding: "कठिन",
+  // Dasha levels
+  Mahadasha: "महादशा", Antardasha: "अंतर्दशा", Pratyantardasha: "प्रत्यंतर दशा",
 };
 
 // Three month names are spelled differently from the nakshatras they share an English name with.

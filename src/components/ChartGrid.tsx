@@ -1,19 +1,11 @@
 import { SIGN_SANSKRIT } from "@/lib/astrology/constants";
 import type { Dignity } from "@/lib/astrology/dignity";
 import type { ChartPick } from "@/components/NorthIndianChart";
-import { PLANET_GLYPH } from "@/lib/chartGeometry";
+import { PLANET_GLYPH, markerText, planetAbbr } from "@/lib/chartGeometry";
+import { SIGNS } from "@/lib/astrology/constants";
+import type { Locale } from "@/lib/i18n/locale";
+import { term } from "@/lib/i18n/terms";
 
-const PLANET_ABBR: Record<string, string> = {
-  Sun: "Su",
-  Moon: "Mo",
-  Mars: "Ma",
-  Mercury: "Me",
-  Jupiter: "Ju",
-  Venus: "Ve",
-  Saturn: "Sa",
-  Rahu: "Ra",
-  Ketu: "Ke",
-};
 
 const DIGNITY_COLOR: Record<Dignity, string> = {
   Exalted: "text-gold-bright",
@@ -52,6 +44,7 @@ export default function ChartGrid({
   onPick,
   selected,
   glyphs = false,
+  locale = "en",
 }: {
   ascendantSignIndex: number;
   planets: GridPlanet[];
@@ -59,7 +52,10 @@ export default function ChartGrid({
   selected?: ChartPick | null;
   /** Planet symbols (☉ ☽ ♂…) instead of two-letter names. */
   glyphs?: boolean;
+  locale?: Locale;
 }) {
+  const hi = locale === "hi";
+  const tr = (s: string) => (hi ? term("hi", s) : s);
   const bySign = new Map<number, GridPlanet[]>();
   for (const p of planets) {
     const list = bySign.get(p.signIndex) ?? [];
@@ -68,7 +64,7 @@ export default function ChartGrid({
   }
 
   return (
-    <div className="chart-draw mx-auto grid aspect-square w-full max-w-md grid-cols-4 grid-rows-4 gap-1 rounded-[14px] border border-gold/60 bg-[radial-gradient(circle_at_50%_45%,var(--chart-top),var(--chart-bottom))] p-1.5 shadow-[inset_0_0_0_5px_var(--chart-bottom),inset_0_0_0_6px_color-mix(in_oklab,var(--color-border),transparent_20%)]" role="img" aria-label="Birth chart, South Indian style">
+    <div className="chart-draw mx-auto grid aspect-square w-full max-w-md grid-cols-4 grid-rows-4 gap-1 rounded-[14px] border border-gold/60 bg-[radial-gradient(circle_at_50%_45%,var(--chart-top),var(--chart-bottom))] p-1.5 shadow-[inset_0_0_0_5px_var(--chart-bottom),inset_0_0_0_6px_color-mix(in_oklab,var(--color-border),transparent_20%)]" role="img" aria-label={hi ? "जन्म कुंडली, दक्षिण भारतीय शैली" : "Birth chart, South Indian style"}>
       {GRID_SIGNS.map((row, r) =>
         row.map((signIndex, c) => {
           if (signIndex === null) {
@@ -99,9 +95,9 @@ export default function ChartGrid({
                 isAscendant ? "border-gold/70 bg-[radial-gradient(circle_at_50%_30%,color-mix(in_oklab,var(--color-gold)_16%,transparent),transparent_70%)]" : "border-border/40 bg-ink-deep/25"
               } ${onPick ? "cursor-pointer hover:border-gold/70" : ""} ${selected?.kind === "house" && selected.house === house ? "ring-1 ring-gold" : ""}`}
             >
-              <span className="chart-fade text-[10px] text-muted/80">{SIGN_SANSKRIT[signIndex]}</span>
+              <span className="chart-fade text-[10px] text-muted/80">{hi ? term("hi", SIGNS[signIndex]) : SIGN_SANSKRIT[signIndex]}</span>
               <div className={`mt-1 flex flex-wrap items-center justify-center ${crowded ? "gap-x-1 gap-y-0 leading-tight" : "gap-x-1.5 gap-y-0.5"}`}>
-                {isAscendant && <span className="chart-fade text-[10px] font-semibold text-gold-bright">Lagna</span>}
+                {isAscendant && <span className="chart-fade text-[10px] font-semibold text-gold-bright">{hi ? "लग्न" : "Lagna"}</span>}
                 {occupants.map((p) => (
                   <span
                     key={p.planet}
@@ -123,23 +119,23 @@ export default function ChartGrid({
                         }
                       : {})}
                     title={[
-                      p.planet,
+                      tr(p.planet),
                       p.degreeInSign !== undefined ? `${p.degreeInSign.toFixed(2)}°` : null,
-                      p.house !== undefined ? `House ${p.house}` : null,
-                      p.nakshatra,
-                      p.dignity,
-                      p.retrograde ? "Retrograde" : null,
+                      p.house !== undefined ? (hi ? `भाव ${p.house}` : `House ${p.house}`) : null,
+                      p.nakshatra ? tr(p.nakshatra) : null,
+                      p.dignity ? tr(p.dignity) : null,
+                      p.retrograde ? (hi ? "वक्री" : "Retrograde") : null,
                     ]
                       .filter(Boolean)
                       .join(" · ")}
                     className={`chart-fade font-semibold ${p.dignity ? DIGNITY_COLOR[p.dignity] : "text-cream"} ${glyphs ? (crowded ? "text-[12px]" : "text-[15px]") : crowded ? "text-[11px]" : "text-[13px]"}`}
                     style={glyphs ? { fontFamily: "'Noto Sans Symbols 2','Segoe UI Symbol','Apple Symbols',serif" } : undefined}
                   >
-                    {glyphs ? PLANET_GLYPH[p.planet] : PLANET_ABBR[p.planet]}
+                    {glyphs ? PLANET_GLYPH[p.planet] : planetAbbr(p.planet, locale)}
                     {p.degreeInSign !== undefined && !crowded && <span className="ml-px text-[9px] font-normal text-muted tabular-nums">{Math.floor(p.degreeInSign)}°</span>}
                     {[...(p.markers ?? (p.retrograde ? "R" : ""))].map((m, i) => (
                       <sup key={i} className={m === "↓" || m === "C" || m === "R" ? "text-rose" : "text-gold-bright"}>
-                        {m}
+                        {markerText(m, locale)}
                       </sup>
                     ))}
                   </span>

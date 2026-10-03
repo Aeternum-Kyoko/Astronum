@@ -28,6 +28,8 @@ export interface PlanetPlacement {
 }
 
 export interface Dosha {
+  /** Stable English name, whatever language `name` is shown in. */
+  key?: string;
   name: string;
   present: boolean;
   /** Indicated by the base rule but neutralised by a classical cancellation. */
@@ -36,6 +38,8 @@ export interface Dosha {
 }
 
 export interface Yoga {
+  /** Stable English name, whatever language `name` is shown in. */
+  key?: string;
   name: string;
   present: boolean;
   description: string;

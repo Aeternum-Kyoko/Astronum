@@ -6,7 +6,7 @@ describe("hasHindiVersion", () => {
     for (const p of ["/", "/horoscope", "/horoscope/leo", "/panchang", "/festivals", "/festivals/2026", "/festivals/2026/diwali", "/panchang?date=2024-01-01"]) {
       expect(hasHindiVersion(p)).toBe(true);
     }
-    for (const p of ["/horoscope/leo/weekly", "/horoscope/personal", "/kundali", "/matching", "/learn/planets", "/panchangx"]) {
+    for (const p of ["/horoscope/leo/weekly", "/horoscope/personal", "/matching", "/learn/planets", "/panchangx"]) {
       expect(hasHindiVersion(p)).toBe(false);
     }
   });
@@ -16,7 +16,7 @@ describe("localized links", () => {
   it("prefixes Hindi pages only where a Hindi version exists", () => {
     expect(localizeHref("hi", "/horoscope/leo")).toBe("/hi/horoscope/leo");
     expect(localizeHref("hi", "/")).toBe("/hi");
-    expect(localizeHref("hi", "/kundali")).toBe("/kundali");
+    expect(localizeHref("hi", "/matching")).toBe("/matching");
     expect(localizeHref("en", "/horoscope")).toBe("/horoscope");
   });
 
@@ -25,6 +25,6 @@ describe("localized links", () => {
     expect(switchLocaleHref("/hi/horoscope/leo", "", "en")).toBe("/horoscope/leo");
     expect(switchLocaleHref("/hi", "", "en")).toBe("/");
     expect(switchLocaleHref("/horoscope/leo/weekly", "", "hi")).toBe("/hi");
-    expect(switchLocaleHref("/kundali", "", "hi")).toBe("/hi");
+    expect(switchLocaleHref("/matching", "", "hi")).toBe("/hi");
   });
 });
