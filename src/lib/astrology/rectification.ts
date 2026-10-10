@@ -23,8 +23,8 @@ import { EVENT_KINDS, type Candidate, type CandidateRun, type EventMatch, type L
  * The best-scoring runs of minutes are returned with the reason for every point.
  */
 
-export { EVENT_KINDS, EVENT_KEYS } from "./rectificationEvents";
-export type { EventKind, LifeEvent, EventMatch, Candidate, CandidateRun, RectificationResult } from "./rectificationEvents";
+export { EVENT_KINDS, EVENT_KEYS, EVENT_PRECISIONS, EVENT_CONFIDENCES } from "./rectificationEvents";
+export type { EventKind, EventPrecision, EventConfidence, LifeEvent, EventMatch, Candidate, CandidateRun, RectificationResult } from "./rectificationEvents";
 
 const SPECIAL_ASPECTS: Partial<Record<PlanetName, number[]>> = { Mars: [4, 8], Jupiter: [5, 9], Saturn: [3, 10], Rahu: [5, 9], Ketu: [5, 9] };
 const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
@@ -52,28 +52,55 @@ function significations(chart: KundaliChart, planet: PlanetName): Map<number, st
   return out;
 }
 
+function eventMoment(event: LifeEvent, timezone: string): Date {
+  const precision = event.precision ?? "day";
+  const value = precision === "year" ? `${event.date}-07-01` : precision === "month" ? `${event.date}-15` : event.date;
+  const parsed = DateTime.fromISO(value, { zone: timezone }).set({ hour: 12 });
+  if (!parsed.isValid) throw new Error(`Invalid ${precision}-precision event date.`);
+  return parsed.toJSDate();
+}
+
+function evidenceWeight(event: LifeEvent): number {
+  const precision = event.precision === "year" ? 0.45 : event.precision === "month" ? 0.7 : 1;
+  const confidence = event.confidence === "low" ? 0.6 : event.confidence === "medium" ? 0.8 : 1;
+  const importance = Math.min(5, Math.max(1, event.importance ?? 3)) / 3;
+  return precision * confidence * importance;
+}
+
 function scoreEvent(chart: KundaliChart, ev: LifeEvent): EventMatch {
   const spec = EVENT_KINDS[ev.kind];
-  const at = DateTime.fromISO(ev.date, { zone: chart.input.timezone }).set({ hour: 12 }).toJSDate();
+  const eventHouses: readonly number[] = spec.houses;
+  const at = eventMoment(ev, chart.input.timezone);
   const chain = periodsAt(chart.dashas, at, 3).map((p) => p.lord as PlanetName);
   const reasons: string[] = [];
   let points = 0;
   const levels = ["Mahadasha", "Antardasha", "Pratyantardasha"];
   const weight = [2, 3, 3]; // sub-periods decide the timing most
+  let subPeriodConnection = false;
 
   chain.forEach((lord, i) => {
     const sig = significations(chart, lord);
-    const hits = spec.houses.filter((h) => sig.has(h));
+    const hits = eventHouses.filter((h) => sig.has(h));
     if (hits.length) {
       const pts = Math.min(hits.length, 2) * weight[i];
       points += pts;
       reasons.push(`${levels[i]} lord ${lord} ${hits.map((h) => sig.get(h)).join(" and ")} (+${pts}).`);
+      if (i > 0) subPeriodConnection = true;
     }
     if ((spec.karaka as readonly string[]).includes(lord)) {
       points += 1;
       reasons.push(`${lord} is the natural significator of this event (+1).`);
     }
   });
+
+  // A timing technique is stronger when the candidate chart also carries a basic natal promise.
+  const natalLinks = chart.planets.filter((p) => eventHouses.includes(p.house) || chart.houseLords.some((l) => l.house !== p.house && l.lord === p.planet && eventHouses.includes(l.house))).length;
+  if (natalLinks >= 2) {
+    points += 2;
+    reasons.push(`The natal chart has ${natalLinks} direct planet or lord links to the event houses (+2).`);
+  } else {
+    reasons.push("The natal promise for this event is limited; timing evidence is treated cautiously.");
+  }
 
   // Divisional chart
   const varga = chart.divisionalCharts[spec.varga as keyof typeof chart.divisionalCharts];
@@ -111,7 +138,16 @@ function scoreEvent(chart: KundaliChart, ev: LifeEvent): EventMatch {
     reasons.push(`${jup ? "Jupiter" : "Saturn"} was transiting or aspecting your ${ordinal(eventHouse)} house (+1).`);
   }
 
-  return { kind: ev.kind, date: ev.date, chain, points, reasons };
+  if (!subPeriodConnection) {
+    points = Math.max(0, points - 2);
+    reasons.push("Neither Antardasha nor Pratyantardasha connects to the event houses (−2, floor at zero).");
+  }
+
+  const rawPoints = points;
+  const quality = evidenceWeight(ev);
+  points = Math.round(points * quality);
+  if (quality !== 1) reasons.push(`Evidence weight ${Math.round(quality * 100)}% based on date precision, confidence, and importance: ${rawPoints} becomes ${points}.`);
+  return { kind: ev.kind, date: ev.date, chain, points, rawPoints, evidenceWeight: quality, reasons };
 }
 
 export function rectify(base: BirthInput, windowMinutes: number, events: LifeEvent[], step = 1): RectificationResult {
@@ -145,5 +181,16 @@ export function rectify(base: BirthInput, windowMinutes: number, events: LifeEve
   const offset = (c: Candidate) => Math.abs(candidates.indexOf(c) - Math.floor(candidates.length / 2));
   runs.sort((a, b) => b.best.score - a.best.score || offset(a.best) - offset(b.best));
 
-  return { candidates, runs, boundaries, maxScore: Math.max(...candidates.map((c) => c.score)) };
+  const maxScore = Math.max(...candidates.map((c) => c.score));
+  const runnerUp = runs.find((r) => r.best.score < maxScore)?.best.score ?? maxScore;
+  const bestWidth = runs[0] ? Math.max(1, Math.round(DateTime.fromFormat(runs[0].to, "HH:mm").diff(DateTime.fromFormat(runs[0].from, "HH:mm"), "minutes").minutes) + 1) : 1;
+  const exactHighEvents = events.filter((event) => (event.precision ?? "day") === "day" && (event.confidence ?? "high") === "high").length;
+  const confidence = events.length >= 5 && exactHighEvents >= 3 && maxScore - runnerUp >= 3 && bestWidth <= 6
+    ? "strong" : events.length >= 3 && exactHighEvents >= 2 ? "moderate" : "low";
+  const confidenceReason = confidence === "strong"
+    ? "Several high-quality events support a narrow leading interval, though it remains a rectification hypothesis."
+    : confidence === "moderate"
+      ? "The result has useful supporting evidence, but competing times or limited event precision remain."
+      : "Add more independent, well-dated events before relying on this range for detailed chart work.";
+  return { candidates, runs, boundaries, maxScore, confidence, confidenceReason };
 }

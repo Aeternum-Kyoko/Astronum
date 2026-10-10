@@ -39,7 +39,15 @@ export function evaluateVastu(input: VastuAssessmentInput): VastuAssessment {
       });
     }
     const options = VASTU_ROOM_PREFERENCES[room];
-    if (options && !options.includes(zone)) {
+    if (options?.includes(zone)) {
+      add(findings, {
+        id: `convention-match-${room}-${zone}-${floor}`, title: `${roomTitle[room]} in a commonly preferred ${zone} zone · floor ${floor}`,
+        zone, level: "note",
+        tradition: `This layout matches a common contemporary Vāstu preference for ${roomTitle[room].toLowerCase()}. Preferences vary by text, region, and practitioner.`,
+        practical: room === "kitchen" ? "Continue to check exhaust, appliance clearances, gas or electrical safety, and heat control." : "The direction match does not replace checking comfort, privacy, daylight, ventilation, and accessibility.",
+        action: "Keep the room workable for its occupants. This is a convention match, not a certification of the home.", sourceType: "modern-vastu-convention",
+      });
+    } else if (options) {
     const isAvoided = (room === "prayer" && ["S", "SSW", "SW", "WSW", "CENTER"].includes(zone)) ||
         (room === "mainBedroom" && ["N", "NNE", "NE", "CENTER"].includes(zone)) ||
         (room === "kitchen" && ["N", "NNE", "NE", "CENTER"].includes(zone));

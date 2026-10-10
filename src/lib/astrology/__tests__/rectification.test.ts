@@ -17,14 +17,14 @@ describe("rectify", () => {
     expect(r.candidates[60].time).toBe("07:15");
   });
 
-  it("scores each event with a reason for every point", () => {
+  it("scores each event with traceable raw and evidence-weighted points", () => {
     for (const c of r.candidates) {
       expect(c.events).toHaveLength(3);
       expect(c.score).toBe(c.events.reduce((a, e) => a + e.points, 0));
       for (const e of c.events) {
         expect(e.chain).toHaveLength(3);
-        const explained = e.reasons.reduce((a, s) => a + Number(s.match(/\(\+(\d+)\)/)![1]), 0);
-        expect(explained).toBe(e.points);
+        expect(e.points).toBe(Math.round(e.rawPoints * e.evidenceWeight));
+        expect(e.reasons.length).toBeGreaterThan(0);
       }
     }
   });

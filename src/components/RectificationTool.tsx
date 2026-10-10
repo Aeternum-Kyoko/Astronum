@@ -7,13 +7,15 @@ import TimePicker from "@/components/TimePicker";
 import { haptic } from "@/lib/haptics";
 import PlaceInput, { type PlaceSuggestion } from "@/components/PlaceInput";
 import { toBirthQuery } from "@/lib/birthParams";
-import { EVENT_KEYS, EVENT_KINDS, type CandidateRun, type EventKind } from "@/lib/astrology/rectificationEvents";
+import { EVENT_KEYS, EVENT_KINDS, type CandidateRun, type EventConfidence, type EventKind, type EventPrecision } from "@/lib/astrology/rectificationEvents";
 
 interface Response {
   runs: CandidateRun[];
   strip: { time: string; score: number; lagna: string }[];
   boundaries: { time: string; what: string }[];
   maxScore: number;
+  confidence: "low" | "moderate" | "strong";
+  confidenceReason: string;
 }
 
 const WINDOWS = [15, 30, 60, 120] as const;
@@ -24,9 +26,9 @@ export default function RectificationTool() {
   const [time, setTime] = useState("");
   const [place, setPlace] = useState<PlaceSuggestion | null>(null);
   const [span, setSpan] = useState<(typeof WINDOWS)[number]>(60);
-  const [events, setEvents] = useState<{ id: number; kind: EventKind; date: string }[]>([
-    { id: 1, kind: "marriage", date: "" },
-    { id: 2, kind: "career", date: "" },
+  const [events, setEvents] = useState<{ id: number; kind: EventKind; date: string; precision: EventPrecision; confidence: EventConfidence; importance: number }[]>([
+    { id: 1, kind: "marriage", date: "", precision: "day", confidence: "high", importance: 4 },
+    { id: 2, kind: "career", date: "", precision: "day", confidence: "high", importance: 4 },
   ]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -46,7 +48,7 @@ export default function RectificationTool() {
       const res = await fetch("/api/rectification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ birth, window: span, events: filled.map(({ kind, date }) => ({ kind, date })) }),
+        body: JSON.stringify({ birth, window: span, events: filled.map((event) => ({ kind: event.kind, date: event.date, precision: event.precision, confidence: event.confidence, importance: event.importance })) }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Something went wrong.");
@@ -60,7 +62,7 @@ export default function RectificationTool() {
     }
   }
 
-  const update = (id: number, patch: Partial<{ kind: EventKind; date: string }>) => setEvents(events.map((ev) => (ev.id === id ? { ...ev, ...patch } : ev)));
+  const update = (id: number, patch: Partial<{ kind: EventKind; date: string; precision: EventPrecision; confidence: EventConfidence; importance: number }>) => setEvents(events.map((ev) => (ev.id === id ? { ...ev, ...patch } : ev)));
 
   return (
     <div className="space-y-8">
@@ -98,10 +100,11 @@ export default function RectificationTool() {
         </fieldset>
 
         <fieldset className="mt-6">
-          <legend className="text-xs font-semibold text-muted">Life events with exact dates (the more, the better — 3 to 6 is ideal)</legend>
+          <legend className="text-xs font-semibold text-muted">Life events — use 5 to 8 independent events when possible. Exact dates carry more weight; uncertain events remain useful but are not allowed to dominate.</legend>
           <ul className="mt-2 space-y-3">
             {events.map((ev) => (
-              <li key={ev.id} className="grid gap-2 sm:grid-cols-[1fr_12rem_auto] sm:items-center">
+              <li key={ev.id} className="rounded-2xl border border-border/70 p-3">
+                <div className="grid gap-2 sm:grid-cols-[1fr_11rem_auto] sm:items-center">
                 <select value={ev.kind} onChange={(e) => update(ev.id, { kind: e.target.value as EventKind })} className="input" aria-label="Event">
                   {EVENT_KEYS.map((k) => (
                     <option key={k} value={k}>
@@ -109,7 +112,7 @@ export default function RectificationTool() {
                     </option>
                   ))}
                 </select>
-                <DatePicker value={ev.date} onChange={(d) => update(ev.id, { date: d })} />
+                {ev.precision === "day" ? <DatePicker value={ev.date} onChange={(d) => update(ev.id, { date: d })} /> : <input type={ev.precision === "month" ? "month" : "number"} min={ev.precision === "year" ? "1900" : undefined} max={ev.precision === "year" ? String(new Date().getFullYear()) : undefined} placeholder={ev.precision === "month" ? "YYYY-MM" : "YYYY"} value={ev.date} onChange={(e) => update(ev.id, { date: e.target.value })} className="input" aria-label="Event date" />}
                 <button
                   type="button"
                   onClick={() => setEvents(events.filter((x) => x.id !== ev.id))}
@@ -118,13 +121,15 @@ export default function RectificationTool() {
                 >
                   Remove
                 </button>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3"><Field label="Date precision"><select value={ev.precision} onChange={(e) => update(ev.id, { precision: e.target.value as EventPrecision, date: "" })} className="input"><option value="day">Exact day</option><option value="month">Month only</option><option value="year">Year only</option></select></Field><Field label="How sure is the date?"><select value={ev.confidence} onChange={(e) => update(ev.id, { confidence: e.target.value as EventConfidence })} className="input"><option value="high">High confidence</option><option value="medium">Fairly sure</option><option value="low">Rough memory</option></select></Field><Field label="Event importance"><select value={ev.importance} onChange={(e) => update(ev.id, { importance: Number(e.target.value) })} className="input"><option value={1}>1 · minor</option><option value={2}>2 · modest</option><option value={3}>3 · important</option><option value={4}>4 · major</option><option value={5}>5 · defining</option></select></Field></div>
               </li>
             ))}
           </ul>
           {events.length < 12 && (
             <button
               type="button"
-              onClick={() => setEvents([...events, { id: Math.max(0, ...events.map((e) => e.id)) + 1, kind: "child", date: "" }])}
+              onClick={() => setEvents([...events, { id: Math.max(0, ...events.map((e) => e.id)) + 1, kind: "child", date: "", precision: "day", confidence: "high", importance: 3 }])}
               className="mt-3 text-sm font-semibold text-gold-bright hover:underline"
             >
               Add another event
@@ -155,12 +160,13 @@ function Results({ result, birth, open, setOpen }: { result: Response; birth: No
   return (
     <div className="space-y-6" aria-live="polite">
       <section className="card-edge rounded-3xl p-7">
-        <p className="text-sm font-semibold text-muted">Most likely birth time</p>
+        <p className="text-sm font-semibold text-muted">Leading candidate range</p>
         <p className="font-display mt-1 text-5xl text-gold-bright">{range(best)}</p>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
           {best.best.lagna} Lagna, {best.best.navamsaLagna} Navamsa lagna, Moon in {best.best.moonNakshatra}. Scores {best.best.score} points across your events
           {tied > 1 ? `, tied with ${tied - 1} other window${tied > 2 ? "s" : ""} — add another event to separate them` : ""}.
         </p>
+        <p className={`mt-4 rounded-xl border px-4 py-3 text-sm ${result.confidence === "strong" ? "border-gold/50 bg-gold/5 text-cream" : result.confidence === "moderate" ? "border-border bg-surface/60 text-muted" : "border-rose/30 bg-rose/5 text-muted"}`}><strong className="text-cream">{result.confidence === "strong" ? "Stronger evidence" : result.confidence === "moderate" ? "Moderate evidence" : "Low evidence"}:</strong> {result.confidenceReason}</p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link href={`/kundali?${toBirthQuery({ ...birth, date: best.best.date, time: best.best.time })}`} className="rounded-full bg-gold px-5 py-2 text-sm font-semibold text-on-gold hover:bg-gold-bright">
             Open the chart for {best.best.time}
@@ -173,7 +179,7 @@ function Results({ result, birth, open, setOpen }: { result: Response; birth: No
 
       <section className="card-edge rounded-2xl p-6">
         <h3 className="text-lg font-bold text-cream">Score for every minute</h3>
-        <p className="mt-1 text-sm text-muted">Taller bars fit your events better. Gold marks the best score.</p>
+        <p className="mt-1 text-sm text-muted">Taller bars fit the weighted event evidence better. Gold marks the leading score; it is not proof of an exact minute.</p>
         <div className="mt-4 flex h-28 items-end gap-px" role="img" aria-label={`Scores from ${result.strip[0].time} to ${result.strip[result.strip.length - 1].time}; best ${result.maxScore} at ${range(best)}`}>
           {result.strip.map((s) => (
             <div
@@ -222,10 +228,10 @@ function Results({ result, birth, open, setOpen }: { result: Response; birth: No
                           {EVENT_KINDS[e.kind].label} · {e.date}
                         </span>
                         <span className="text-muted">
-                          Dasha {e.chain.join(" › ")} · <span className="font-semibold text-gold-bright">{e.points} pts</span>
+                          Dasha {e.chain.join(" › ")} · <span className="font-semibold text-gold-bright">{e.points} weighted pts</span>
                         </span>
                       </p>
-                      <p className="mt-1 text-xs text-muted">Looks for houses {EVENT_KINDS[e.kind].houses.join(", ")} and the {EVENT_KINDS[e.kind].varga}.</p>
+                      <p className="mt-1 text-xs text-muted">Looks for natal promise, houses {EVENT_KINDS[e.kind].houses.join(", ")}, the {EVENT_KINDS[e.kind].varga}, dasha links, and slow-planet transits. Evidence weight: {Math.round(e.evidenceWeight * 100)}%.</p>
                       {e.reasons.length ? (
                         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted">
                           {e.reasons.map((why, k) => (

@@ -17,10 +17,19 @@ export const EVENT_KINDS = {
 
 export type EventKind = keyof typeof EVENT_KINDS;
 export const EVENT_KEYS = Object.keys(EVENT_KINDS) as EventKind[];
+export const EVENT_PRECISIONS = ["day", "month", "year"] as const;
+export type EventPrecision = (typeof EVENT_PRECISIONS)[number];
+export const EVENT_CONFIDENCES = ["high", "medium", "low"] as const;
+export type EventConfidence = (typeof EVENT_CONFIDENCES)[number];
 
 export interface LifeEvent {
   kind: EventKind;
-  date: string; // YYYY-MM-DD
+  /** YYYY-MM-DD, YYYY-MM, or YYYY depending on precision. */
+  date: string;
+  precision?: EventPrecision;
+  confidence?: EventConfidence;
+  /** Lets a well-documented major event count more than a minor one. */
+  importance?: number;
 }
 
 export interface EventMatch {
@@ -28,6 +37,8 @@ export interface EventMatch {
   date: string;
   chain: PlanetName[];
   points: number;
+  rawPoints: number;
+  evidenceWeight: number;
   reasons: string[];
 }
 
@@ -54,4 +65,6 @@ export interface RectificationResult {
   /** Times inside the window where the Lagna or Navamsa lagna changes. */
   boundaries: { time: string; what: string }[];
   maxScore: number;
+  confidence: "low" | "moderate" | "strong";
+  confidenceReason: string;
 }
