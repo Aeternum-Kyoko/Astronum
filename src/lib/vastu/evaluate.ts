@@ -6,7 +6,7 @@ import { term } from "@/lib/i18n/terms";
 import type { Locale } from "@/lib/i18n/locale";
 import type { PersonalVastuContext, VastuAssessment, VastuAssessmentInput, VastuFinding, VastuRoom, VastuZone } from "./types";
 
-const preferred: Partial<Record<VastuRoom, VastuZone[]>> = {
+export const VASTU_ROOM_PREFERENCES: Partial<Record<VastuRoom, VastuZone[]>> = {
   kitchen: ["SE", "SSE", "ESE", "NW", "WNW"],
   mainBedroom: ["SW", "SSW", "WSW", "S", "W"],
   bedroom: ["W", "WNW", "WSW", "NW", "S"],
@@ -38,7 +38,7 @@ export function evaluateVastu(input: VastuAssessmentInput): VastuAssessment {
         action: "If convenient, reduce heavy storage or obstruction here. Do not move plumbing or walls solely for this note.", sourceType: "modern-vastu-convention",
       });
     }
-    const options = preferred[room];
+    const options = VASTU_ROOM_PREFERENCES[room];
     if (options && !options.includes(zone)) {
     const isAvoided = (room === "prayer" && ["S", "SSW", "SW", "WSW", "CENTER"].includes(zone)) ||
         (room === "mainBedroom" && ["N", "NNE", "NE", "CENTER"].includes(zone)) ||
