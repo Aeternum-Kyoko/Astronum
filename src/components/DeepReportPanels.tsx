@@ -1,4 +1,5 @@
 "use client";
+import { ruleSupport } from "@/lib/astrology/ruleSupport";
 
 import SectionSkeleton from "@/components/SectionSkeleton";
 import { useState } from "react";
@@ -297,19 +298,19 @@ export function TimelinePanel({ report }: { report: KundaliReport | null }) {
   return (
     <div className="space-y-6">
       <p className="mx-auto max-w-2xl text-center text-sm leading-relaxed text-muted">
-        Your life by age. Every event is tested against seven independent techniques — the dasha lords, the divisional chart, month-by-month transits, Ashtakavarga, Yogini dasha, Chara dasha and KP — and the confidence shows how many of them agree. Tendencies to plan around, not certainties.
+        Your life by age. Every event is tested against seven traditional indicators — the dasha lords, the divisional chart, month-by-month transits, Ashtakavarga, Yogini dasha, Chara dasha and KP — and the support grade summarizes weighted rule agreement, not an event probability. Tendencies to plan around, not certainties.
       </p>
 
       {t.keyWindows.length > 0 && (
         <section className="card-edge rounded-2xl p-6">
           <h3 className="text-lg font-bold text-cream">Key windows of your life</h3>
-          <p className="mt-1 text-sm text-muted">The single most likely period for each kind of event.</p>
+          <p className="mt-1 text-sm text-muted">The highest-scoring activation window for each event type, based on the included rules.</p>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {keys.map((k) => (
               <li key={k.kind} className={`rounded-xl border p-4 ${k.nature === "caution" ? "border-rose/40" : "border-border/70"}`}>
                 <p className="flex items-start justify-between gap-2">
                   <span className={`text-sm font-semibold ${k.nature === "caution" ? "text-rose" : "text-cream"}`}>{THEME_ICON[k.kind]}</span>
-                  <span className="font-tabular text-sm font-bold text-gold-bright">{k.confidence}%</span>
+                  <span className="font-tabular text-sm font-bold text-gold-bright">{ruleSupport(k.confidence)}</span>
                 </p>
                 <span className="mt-2 block h-1.5 rounded-full bg-border" aria-hidden="true">
                   <span className={`block h-1.5 rounded-full ${k.nature === "caution" ? "bg-rose" : "bg-gold"}`} style={{ width: `${k.confidence}%` }} />
@@ -398,7 +399,7 @@ export function TimelinePanel({ report }: { report: KundaliReport | null }) {
           <li><span className="font-semibold text-cream">Divisional chart</span> — the event&rsquo;s varga (D9 marriage, D10 career, D7 children, D4 property, D24 education, D30 health) must link the running lords to its key house.</li>
           <li><span className="font-semibold text-cream">Transit</span> — checked month by month: Jupiter and Saturn together on the event house or its lord (the double transit).</li>
           <li><span className="font-semibold text-cream">Ashtakavarga</span> — transits through signs with many bindus deliver; weak signs dampen.</li>
-          <li><span className="font-semibold text-cream">Yogini and Chara dasha</span> — two independent dasha systems; agreement raises confidence.</li>
+          <li><span className="font-semibold text-cream">Yogini and Chara dasha</span> — two independent dasha systems; agreement adds rule support.</li>
           <li><span className="font-semibold text-cream">KP</span> — the event&rsquo;s cusp sub lord must promise it; a weak promise lowers every window.</li>
           <li><span className="font-semibold text-cream">Age and natal strength</span> — events outside their usual age and houses that are weak at birth are weighted down; Raj and Dhan yogas activated by the running lords add weight.</li>
         </ol>
@@ -433,7 +434,7 @@ function YearRow({ y, current }: { y: TimelineYear; current: boolean }) {
         <ul className="mt-2 flex flex-wrap gap-1.5">
           {y.highlights.map((h) => (
             <li key={h.label} className={`rounded-full border px-2.5 py-0.5 text-xs ${h.nature === "caution" ? "border-rose/40 text-rose" : "border-gold/40 text-gold-bright"}`}>
-              {h.label} · {h.confidence}%
+              {h.label} · {ruleSupport(h.confidence)}
             </li>
           ))}
         </ul>
@@ -524,7 +525,7 @@ function EventCard({ e }: { e: LifeEvent }) {
         <span className={`text-sm font-semibold ${e.nature === "caution" ? "text-rose" : "text-gold-bright"}`}>{e.label}</span>
         <span className="flex items-center gap-2">
           <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${LEVEL_CLASS[e.level]}`}>{e.level}</span>
-          <span className="font-tabular text-sm font-bold text-cream">{e.confidence}%</span>
+          <span className="font-tabular text-sm font-bold text-cream">{ruleSupport(e.confidence)}</span>
         </span>
       </div>
       {e.peak && (

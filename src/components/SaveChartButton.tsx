@@ -1,10 +1,13 @@
 "use client";
 
+import { useLocale } from "@/lib/i18n/LocaleContext";
+import { pick } from "@/lib/i18n/ui";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { BirthInput } from "@/lib/astrology/types";
 
 export default function SaveChartButton({ input }: { input: BirthInput }) {
+  const L = pick(useLocale());
   const router = useRouter();
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -55,7 +58,7 @@ export default function SaveChartButton({ input }: { input: BirthInput }) {
           />
         </svg>
         <span aria-live="polite">
-          {state === "saving" ? "Saving…" : state === "saved" ? "Saved to My charts" : state === "error" ? "Couldn't save" : "Save chart"}
+          {state === "saving" ? L("Saving…","सहेज रहे हैं…") : state === "saved" ? L("Saved to My charts","मेरी कुंडलियों में सहेजा") : state === "error" ? L("Couldn't save","सहेज नहीं सके") : L("Save chart","कुंडली सहेजें")}
         </span>
       </button>
       {state === "error" && message && <span className="sr-only">{message}</span>}

@@ -1,19 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "@/lib/i18n/LocaleContext";
+import { pick } from "@/lib/i18n/ui";
+import { term } from "@/lib/i18n/terms";
 import SaveChartButton from "@/components/SaveChartButton";
 import { toBirthQuery } from "@/lib/birthParams";
 import type { KundaliChart } from "@/lib/astrology/types";
 
 const dmsText = (deg: number) => `${Math.floor(deg)}°${String(Math.floor((deg % 1) * 60)).padStart(2, "0")}′`;
 
-function formatDate(iso: string) {
+function formatDate(iso: string, locale: "en" | "hi") {
   const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+  return new Date(y, m - 1, d).toLocaleDateString(locale === "hi" ? "hi-IN" : "en-IN", { day: "numeric", month: "long", year: "numeric" });
 }
 function formatTime(hhmm: string) {
-  const [h, m] = hhmm.split(":").map(Number);
-  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+  const [h, m, seconds] = hhmm.split(":").map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")}${seconds === undefined ? "" : `:${String(seconds).padStart(2,"0")}`} ${h >= 12 ? "PM" : "AM"}`;
 }
 
 /**
@@ -21,6 +24,7 @@ function formatTime(hhmm: string) {
  * that define the chart beneath it, one primary action and a menu for the rest.
  */
 export default function KundliHeader({ chart, onEdit }: { chart: KundaliChart; onEdit: () => void }) {
+  const locale = useLocale(); const L = pick(locale);
   const { name, date, time, place } = chart.input;
   const moon = chart.planets.find((p) => p.planet === "Moon")!;
   return (
@@ -29,17 +33,17 @@ export default function KundliHeader({ chart, onEdit }: { chart: KundaliChart; o
         <div className="min-w-0">
           <h1 className="text-4xl leading-[1.02] font-bold tracking-tight text-cream md:text-6xl">{name}</h1>
           <p className="mt-3 text-base text-muted md:text-lg">
-            {formatDate(date)} · {formatTime(time)}
+            {formatDate(date,locale)} · {formatTime(time)}
             {place ? ` · ${place.split(",")[0]}` : ""}
           </p>
           <p className="font-tabular mt-1 text-sm text-muted">
-            <span className="text-cream">{chart.ascendant.sign}</span> Lagna {dmsText(chart.ascendant.degreeInSign)} · Moon in <span className="text-cream">{moon.sign}</span> ({moon.nakshatra}) · Lahiri {chart.ayanamsa.toFixed(2)}°
+            <span className="text-cream">{term(locale,chart.ascendant.sign)}</span> {L("Lagna","लग्न")} {dmsText(chart.ascendant.degreeInSign)} · {L("Moon in","चंद्र राशि")} <span className="text-cream">{term(locale,moon.sign)}</span> ({term(locale,moon.nakshatra)}) · Lahiri {chart.ayanamsa.toFixed(2)}°
           </p>
         </div>
         <div className="flex items-center gap-2">
           <SaveChartButton input={chart.input} />
           <a href={`/api/kundali/pdf?${toBirthQuery(chart.input)}`} className="rounded-full bg-gold px-5 py-2 text-sm font-semibold text-on-gold transition-colors hover:bg-gold-bright">
-            Download PDF
+            {L("Download PDF","PDF डाउनलोड करें")}
           </a>
           <ActionsMenu onEdit={onEdit} />
         </div>
@@ -49,6 +53,7 @@ export default function KundliHeader({ chart, onEdit }: { chart: KundaliChart; o
 }
 
 function ActionsMenu({ onEdit }: { onEdit: () => void }) {
+  const L = pick(useLocale());
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -82,7 +87,7 @@ function ActionsMenu({ onEdit }: { onEdit: () => void }) {
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-haspopup="true"
-        aria-label="More actions"
+        aria-label={L("More actions","अन्य विकल्प")}
         className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-cream transition-colors hover:border-gold"
       >
         <svg width="16" height="4" viewBox="0 0 16 4" aria-hidden="true">
@@ -94,7 +99,7 @@ function ActionsMenu({ onEdit }: { onEdit: () => void }) {
       {open && (
         <div className="card-glass shadow-floating absolute right-0 z-30 mt-2 w-52 rounded-2xl p-1.5">
           <button type="button" className={item} onClick={copy}>
-            {copied ? "Link copied" : "Copy link"}
+            {copied ? L("Link copied","लिंक कॉपी हुआ") : L("Copy link","लिंक कॉपी करें")}
           </button>
           <button
             type="button"
@@ -104,7 +109,7 @@ function ActionsMenu({ onEdit }: { onEdit: () => void }) {
               onEdit();
             }}
           >
-            Edit birth details
+            {L("Edit birth details","जन्म विवरण बदलें")}
           </button>
           <button
             type="button"
@@ -114,7 +119,7 @@ function ActionsMenu({ onEdit }: { onEdit: () => void }) {
               window.print();
             }}
           >
-            Print
+            {L("Print","प्रिंट करें")}
           </button>
         </div>
       )}

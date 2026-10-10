@@ -38,16 +38,23 @@ import { pick } from "@/lib/i18n/ui";
 import { term } from "@/lib/i18n/terms";
 import { houseSignification, planetKeynote, signKeynote, vargaInfo } from "@/lib/astrology/content";
 import { markerText } from "@/lib/chartGeometry";
+import ReadingContextPanel from "@/components/ReadingContextPanel";
+import EventJournalPanel from "./EventJournalPanel";
+import AstrologerWorkbench from "./AstrologerWorkbench";
+import CalculationDetailsPanel from "./CalculationDetailsPanel";
+import BirthPrecisionPanel from "./BirthPrecisionPanel";
+import ChartComparisonPanel from "./ChartComparisonPanel";
+import TopicReadingPanel from "./TopicReadingPanel";
+import { useDeviceStore } from "@/lib/useDeviceStore";
 import VastuTool from "@/components/VastuTool";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 /** The kundli's sections, grouped so the page opens on a summary and each area is one tap away. */
 const GROUPS = [
-  { name: "Start", tabs: ["Summary", "Dashboard", "Overview"] },
-  { name: "Predictions", tabs: ["Monthly Forecast", "Life Report", "Life Sectors", "Life Timeline", "Career", "Houses", "Planet Readings", "Transits"] },
-  { name: "Charts", tabs: ["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Ashtakavarga", "Shadbala", "House Lords"] },
-  { name: "Dashas", tabs: ["Dashas", "Yogini Dasha", "Chara Dasha"] },
-  { name: "Advanced", tabs: ["Yogas & Doshas", "KP System", "Lal Kitab", "Special Tables"] },
+  { name: "Start", tabs: ["Summary", "Astrologer Workspace", "Dashboard", "Overview", "Birth Precision", "Event Journal", "Calculation Details"] },
+  { name: "Life areas", tabs: ["Relationships", "Wealth", "Education", "Property", "Career", "Life Report", "Life Sectors", "Houses", "Planet Readings"] },
+  { name: "Timing", tabs: ["Transits", "Monthly Forecast", "Life Timeline", "Dashas", "Yogini Dasha", "Chara Dasha"] },
+  { name: "Charts & systems", tabs: ["Compare Charts", "D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Ashtakavarga", "Shadbala", "House Lords", "Yogas & Doshas", "KP System", "Lal Kitab", "Special Tables"] },
   { name: "Guidance", tabs: ["Remedies", "Rudraksha", "Vastu & Home"] },
 ] as const;
 type Tab = (typeof GROUPS)[number]["tabs"][number];
@@ -70,6 +77,9 @@ const TAB_SECTIONS: Partial<Record<Tab, HeavySection[]>> = {
 /** URL-friendly names for deep links such as /kundali?tab=dashas. */
 export const TAB_SLUGS: Record<string, Tab> = {
   summary: "Summary",
+  workbench: "Astrologer Workspace", precision: "Birth Precision", journal: "Event Journal",
+  calculations: "Calculation Details", compare: "Compare Charts",
+  relationships: "Relationships", wealth: "Wealth", education: "Education", property: "Property",
   dashboard: "Dashboard",
   overview: "Overview",
   report: "Life Report",
@@ -122,7 +132,15 @@ export default function KundaliResult({
 }) {
   const tr = useT();
   const locale = useLocale();
-  const [tab, setTabState] = useState<Tab>((initialTab && TAB_SLUGS[initialTab]) || "Summary");
+  const [savedMode, saveMode] = useDeviceStore<string>("astronum-kundli-mode", "user");
+  const mode = savedMode === "astrologer" ? "astrologer" : "user";
+  const [search, setSearch] = useState("");
+  const visibleGroups = GROUPS.map(g => ({ ...g, tabs: g.tabs.filter(t =>
+    (mode === "astrologer" || !["Astrologer Workspace", "Dashboard", "Overview"].includes(t)) &&
+    (!search || `${t} ${tr(t)}`.toLowerCase().includes(search.toLowerCase()))
+  ) })).filter(g => g.tabs.length);
+  const [chosenTab, setTabState] = useState<Tab | null>((initialTab && TAB_SLUGS[initialTab]) || null);
+  const tab = chosenTab ?? (mode === "astrologer" ? "Astrologer Workspace" : "Summary");
   const setTab = (t: Tab) => {
     setTabState(t);
     // Keep the section in the URL so it can be shared or bookmarked.
@@ -134,7 +152,7 @@ export default function KundaliResult({
     }
   };
   // Swipe left or right on a phone to move between sections, like pages in an app.
-  const ORDER = GROUPS.flatMap((g) => g.tabs) as Tab[];
+  const ORDER = (GROUPS.flatMap((g) => g.tabs) as Tab[]).filter(t => mode === "astrologer" || !["Astrologer Workspace", "Dashboard", "Overview"].includes(t));
   const touch = useRef<{ x: number; y: number; t: number } | null>(null);
   function onTouchStart(e: React.TouchEvent) {
     const target = e.target as Element;
@@ -183,12 +201,18 @@ export default function KundaliResult({
   return (
     <div>
       <div className="print:hidden">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gold/25 bg-surface/40 p-4">
+          <div><p className="font-semibold text-cream">{pick(locale)("Your reading workspace", "आपका कुंडली कार्यक्षेत्र")}</p><p className="mt-1 text-xs text-muted">{mode === "user" ? pick(locale)("Guided readings with the chart evidence close by.", "व्याख्या के साथ कुंडली के प्रमाण।") : pick(locale)("Technical tables, chart comparisons and detailed timing.", "तकनीकी तालिकाएँ, कुंडली तुलना और विस्तृत दशाएँ।")}</p></div>
+          <SegmentedControl layoutId="reading-mode" value={mode} options={[{value:"user",label:pick(locale)("User","उपयोगकर्ता")},{value:"astrologer",label:pick(locale)("Astrologer","ज्योतिषी")}]} onChange={(value) => { setSearch(""); saveMode(value); setTab(value === "astrologer" ? "Astrologer Workspace" : "Summary"); }} />
+        </div>
         <div id="kundli-sections" className="scroll-mt-24 lg:grid lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-8">
           <nav aria-label={tr("Chart sections")} className="lg:sticky lg:top-24 lg:self-start">
+            <label className="mb-3 block"><span className="sr-only">{pick(locale)("Find a section", "भाग खोजें")}</span><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder={pick(locale)("Find a section…", "भाग खोजें…")} className="input w-full text-sm" /></label>
+            {visibleGroups.length === 0 && <p className="p-3 text-sm text-muted">{pick(locale)("No matching sections.", "कोई भाग नहीं मिला।")}</p>}
             {/* Phones: a row of groups, then the sections in the chosen group. */}
             <div className="lg:hidden">
               <ul className="scrollbar-none -mx-5 flex gap-1.5 overflow-x-auto px-5 pb-2">
-                {GROUPS.map((g) => (
+                {visibleGroups.map((g) => (
                   <li key={g.name} className="shrink-0">
                     <button
                       type="button"
@@ -202,7 +226,7 @@ export default function KundaliResult({
                 ))}
               </ul>
               <ul ref={tabStripRef} className="scrollbar-none -mx-5 mt-1 flex gap-1.5 overflow-x-auto px-5 pb-2">
-                {groupOf(tab).tabs.map((t) => (
+                {(search ? visibleGroups.flatMap(g=>g.tabs) : groupOf(tab).tabs.filter(t=>mode === "astrologer" || !["Astrologer Workspace", "Dashboard", "Overview"].includes(t))).map((t) => (
                   <li key={t} className="shrink-0">
                     <button
                       type="button"
@@ -218,9 +242,9 @@ export default function KundaliResult({
             </div>
             {/* Desktop: grouped sidebar. */}
             <div className="hidden lg:block lg:rounded-2xl lg:border lg:border-border lg:bg-ink-deep/60 lg:p-2">
-              {GROUPS.map((g) => (
-                <div key={g.name} className="mb-2 last:mb-0">
-                  <p className="px-3 pt-2 pb-1 text-[11px] font-semibold text-muted">{tr(g.name)}</p>
+              {visibleGroups.map((g) => (
+                <details key={g.name} open={!!search || groupOf(tab).name === g.name} className="mb-2 last:mb-0">
+                  <summary className="cursor-pointer px-3 pt-2 pb-1 text-[11px] font-semibold text-muted">{tr(g.name)}</summary>
                   <ul className="flex flex-col gap-0.5">
                     {g.tabs.map((t) => (
                       <li key={t}>
@@ -236,7 +260,7 @@ export default function KundaliResult({
                       </li>
                     ))}
                   </ul>
-                </div>
+                </details>
               ))}
             </div>
           </nav>
@@ -251,6 +275,15 @@ export default function KundaliResult({
               transition={{ duration: 0.35, ease: EASE_OUT_EXPO }}
             >
               {tab === "Summary" && <KundliSummary chart={chart} report={report} go={go} style={style} setStyle={setStyle} />}
+              {tab === "Astrologer Workspace" && <AstrologerWorkbench chart={chart} report={report} go={go} />}
+              {tab === "Event Journal" && <EventJournalPanel chart={chart} />}
+              {tab === "Calculation Details" && <CalculationDetailsPanel chart={chart} />}
+              {tab === "Birth Precision" && <BirthPrecisionPanel chart={chart} />}
+              {tab === "Compare Charts" && <ChartComparisonPanel chart={chart} />}
+              {tab === "Relationships" && <TopicReadingPanel chart={chart} report={report} topic="relationships" />}
+              {tab === "Wealth" && <TopicReadingPanel chart={chart} report={report} topic="wealth" />}
+              {tab === "Education" && <TopicReadingPanel chart={chart} report={report} topic="education" />}
+              {tab === "Property" && <TopicReadingPanel chart={chart} report={report} topic="property" />}
               {tab === "Dashboard" && <AstroDashboard chart={chart} />}
               {tab === "Overview" && <OverviewTab chart={chart} />}
               {tab === "Lal Kitab" && <LalKitabPanel chart={chart} />}
@@ -265,7 +298,7 @@ export default function KundaliResult({
               {tab === "Yogini Dasha" && <YoginiPanel report={report} />}
               {tab === "Chara Dasha" && <CharaPanel report={report} />}
               {tab === "KP System" && <KpPanel report={report} />}
-              {tab === "Transits" && <TransitsPanel report={report} chart={chart} />}
+              {tab === "Transits" && <TransitsPanel report={report} chart={chart} detailed={mode === "astrologer"} />}
               {tab === "Vastu & Home" && <VastuTool locale={locale} chart={chart} transits={report?.transits} />}
               {tab === "D1 · Rasi Chart" && <RasiTab chart={chart} style={style} setStyle={setStyle} />}
               {tab === "D9 · Navamsa" && (
@@ -295,6 +328,7 @@ export default function KundaliResult({
               {tab === "Remedies" && <RemediesPanel chart={chart} />}
               {tab === "Rudraksha" && <RudrakshaPanel chart={chart} locale={locale} />}
               {tab === "House Lords" && <HouseLordsTab chart={chart} />}
+              <ReadingContextPanel chart={chart} report={report} section={tab} />
             </motion.div>
           </AnimatePresence>
         </div>

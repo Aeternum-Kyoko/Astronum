@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/lib/i18n/LocaleContext";
+import { pick } from "@/lib/i18n/ui";
 import { useState } from "react";
 import { haptic } from "@/lib/haptics";
 
@@ -25,6 +27,7 @@ export default function ShareBar({
   /** Or an image made in the browser. */
   makeImage?: () => Promise<Blob>;
 }) {
+  const L = pick(useLocale());
   const [status, setStatus] = useState<string | null>(null);
   const fullUrl = () => (url.startsWith("/") ? `${window.location.origin}${url}` : url);
 
@@ -46,11 +49,11 @@ export default function ShareBar({
         haptic("success");
       } else {
         await navigator.clipboard.writeText(fullUrl());
-        setStatus("Link copied");
+        setStatus(L("Link copied","लिंक कॉपी हुआ"));
         haptic("success");
       }
     } catch (err) {
-      if ((err as Error).name !== "AbortError") setStatus("Couldn't share — the link is in the address bar");
+      if ((err as Error).name !== "AbortError") setStatus(L("Couldn't share — the link is in the address bar","साझा नहीं कर सके — लिंक पता पट्टी में है"));
     }
   }
 
@@ -63,21 +66,21 @@ export default function ShareBar({
       a.download = fileName;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-      setStatus("Image saved");
+      setStatus(L("Image saved","चित्र सहेजा"));
       haptic("success");
     } catch {
-      setStatus("Couldn't create the image");
+      setStatus(L("Couldn't create the image","चित्र नहीं बना सके"));
     }
   }
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <button type="button" onClick={share} className="rounded-full border border-gold/50 px-4 py-2 text-xs font-semibold text-gold-bright transition-colors hover:bg-gold/10">
-        Share
+        {L("Share","साझा करें")}
       </button>
       {(imageUrl || makeImage) && (
         <button type="button" onClick={save} className="rounded-full border border-gold/50 px-4 py-2 text-xs font-semibold text-gold-bright transition-colors hover:bg-gold/10">
-          Save image
+          {L("Save image","चित्र सहेजें")}
         </button>
       )}
       <span role="status" className="text-xs text-muted">

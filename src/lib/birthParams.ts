@@ -39,7 +39,7 @@ export function fromBirthQuery(q: URLSearchParams, prefix = ""): BirthParams | n
   const longitude = Number(get("lon"));
 
   if (!name || !place || !timezone) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(time)) return null;
   if (!get("lat") || !get("lon")) return null;
   if (!Number.isFinite(latitude) || Math.abs(latitude) > 90) return null;
   if (!Number.isFinite(longitude) || Math.abs(longitude) > 180) return null;

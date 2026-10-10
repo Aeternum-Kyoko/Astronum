@@ -489,7 +489,7 @@ export function LifeSectorsPanel({ report }: { report: KundaliReport | null }) {
   return (
     <div className="space-y-6">
       <p className="mx-auto max-w-2xl text-center text-sm leading-relaxed text-muted">
-        Each area of your life as your kundli describes it — what the chart promises and why, what is specific to you, and how it develops through every stage of life.
+        Each area combines natal placements, divisional context and timing. Scores summarize traditional rule support, not your quality of life or the probability of an event.
       </p>
       <nav aria-label="Life sector" className="flex flex-wrap justify-center gap-1.5">
         {report.sectors.map((x) => (

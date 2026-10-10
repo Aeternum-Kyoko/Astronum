@@ -167,7 +167,7 @@ function MoreSheet({ locale, close, pathname }: { locale: Locale; close: () => v
           <li className="flex items-center justify-between px-4 py-3">
             <span className="text-cream">{hi ? "भाषा" : "Language"}</span>
             {/* Crossing languages changes the root layout, so a full page load is intended. */}
-            <a href={switchLocaleHref(pathname, "", hi ? "en" : "hi")} hrefLang={hi ? "en" : "hi"} className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-gold-bright">
+            <a href={switchLocaleHref(pathname, "", hi ? "en" : "hi")} onClick={e => { e.currentTarget.href = switchLocaleHref(window.location.pathname, window.location.search, hi ? "en" : "hi"); }} onAuxClick={e => { e.currentTarget.href = switchLocaleHref(window.location.pathname, window.location.search, hi ? "en" : "hi"); }} hrefLang={hi ? "en" : "hi"} className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-gold-bright">
               {hi ? "English" : "हिन्दी"}
             </a>
           </li>

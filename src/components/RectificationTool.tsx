@@ -6,7 +6,9 @@ import DatePicker from "@/components/DatePicker";
 import TimePicker from "@/components/TimePicker";
 import { haptic } from "@/lib/haptics";
 import PlaceInput, { type PlaceSuggestion } from "@/components/PlaceInput";
-import { toBirthQuery } from "@/lib/birthParams";
+import { readJournal } from "@/lib/eventJournal";
+import { birthInputSchema } from "@/lib/birthSchema";
+import { fromBirthQuery, toBirthQuery } from "@/lib/birthParams";
 import { EVENT_KEYS, EVENT_KINDS, type CandidateRun, type EventConfidence, type EventKind, type EventPrecision } from "@/lib/astrology/rectificationEvents";
 
 interface Response {
@@ -16,6 +18,9 @@ interface Response {
   maxScore: number;
   confidence: "low" | "moderate" | "strong";
   confidenceReason: string;
+  warnings: string[];
+  leadingCandidateCount: number;
+  scoreMargin: number;
 }
 
 const WINDOWS = [15, 30, 60, 120] as const;
@@ -62,10 +67,21 @@ export default function RectificationTool() {
     }
   }
 
+  function importChart() {
+    const query = new URLSearchParams(window.location.search);
+    const parsed = birthInputSchema.safeParse(fromBirthQuery(query));
+    if (!parsed.success) { setError("Open this tool from a Kundli birth precision or event journal section to import its details."); return; }
+    const b = parsed.data; setName(b.name); setDate(b.date); setTime(b.time);
+    setPlace({displayName:b.place, latitude:b.latitude, longitude:b.longitude, timezone:b.timezone});
+    const journal = readJournal(b);
+    if (query.get("journal") === "1" && journal.length) setEvents(journal.map((e,i)=>({id:i+1,kind:e.kind,date:e.date,precision:e.precision,confidence:e.confidence,importance:e.importance})));
+    setResult(null); setError(null);
+  }
   const update = (id: number, patch: Partial<{ kind: EventKind; date: string; precision: EventPrecision; confidence: EventConfidence; importance: number }>) => setEvents(events.map((ev) => (ev.id === id ? { ...ev, ...patch } : ev)));
 
   return (
     <div className="space-y-8">
+      <button type="button" onClick={importChart} className="rounded-full border border-gold/40 px-5 py-2 text-sm font-semibold text-gold-bright">Import linked Kundli and saved events</button>
       <form onSubmit={submit} className="card-edge rounded-3xl p-6 md:p-8">
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Name">
@@ -167,6 +183,7 @@ function Results({ result, birth, open, setOpen }: { result: Response; birth: No
           {tied > 1 ? `, tied with ${tied - 1} other window${tied > 2 ? "s" : ""} — add another event to separate them` : ""}.
         </p>
         <p className={`mt-4 rounded-xl border px-4 py-3 text-sm ${result.confidence === "strong" ? "border-gold/50 bg-gold/5 text-cream" : result.confidence === "moderate" ? "border-border bg-surface/60 text-muted" : "border-rose/30 bg-rose/5 text-muted"}`}><strong className="text-cream">{result.confidence === "strong" ? "Stronger evidence" : result.confidence === "moderate" ? "Moderate evidence" : "Low evidence"}:</strong> {result.confidenceReason}</p>
+        {result.warnings?.length > 0 && <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted">{result.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>}
         <div className="mt-5 flex flex-wrap gap-3">
           <Link href={`/kundali?${toBirthQuery({ ...birth, date: best.best.date, time: best.best.time })}`} className="rounded-full bg-gold px-5 py-2 text-sm font-semibold text-on-gold hover:bg-gold-bright">
             Open the chart for {best.best.time}

@@ -1,5 +1,9 @@
 "use client";
 
+import { useLocale } from "@/lib/i18n/LocaleContext";
+import { pick } from "@/lib/i18n/ui";
+import { term } from "@/lib/i18n/terms";
+import TransitModifiersPanel from "./TransitModifiersPanel";
 import SectionSkeleton from "@/components/SectionSkeleton";
 import { useMemo, useState } from "react";
 import type { KundaliReport } from "@/lib/astrology/report";
@@ -102,7 +106,7 @@ export function PlanetReadingsPanel({ report }: { report: KundaliReport | null }
             {r.strength && <p>{r.strength}</p>}
           </div>
           {r.flags.length > 0 && (
-            <ul className="mt-3 space-y-1 text-xs text-rose/90">
+            <ul className="mt-3 space-y-1 text-xs text-muted">
               {r.flags.map((f) => (
                 <li key={f}>• {f}</li>
               ))}
@@ -114,17 +118,18 @@ export function PlanetReadingsPanel({ report }: { report: KundaliReport | null }
   );
 }
 
-export function TransitsPanel({ report, chart }: { report: KundaliReport | null; chart: KundaliChart }) {
+export function TransitsPanel({ report, chart, detailed = false }: { report: KundaliReport | null; chart: KundaliChart; detailed?: boolean }) {
   if (!report) return <Missing />;
-  return <TransitExplorer report={report} chart={chart} />;
+  return <TransitExplorer report={report} chart={chart} detailed={detailed} />;
 }
 
-function TransitExplorer({ report, chart }: { report: KundaliReport; chart: KundaliChart }) {
+function TransitExplorer({ report, chart, detailed }: { report: KundaliReport; chart: KundaliChart; detailed: boolean }) {
+  const locale = useLocale(); const L = pick(locale); const n = (text:string)=>term(locale,text);
   const zone = chart.input.timezone;
   const today = DateTime.now().setZone(zone).toISODate()!;
   const [date, setDate] = useState(today);
   const [month, setMonth] = useState(() => DateTime.fromISO(today).startOf("month"));
-  const at = DateTime.fromISO(date, { zone }).set({ hour: 12 }).toJSDate();
+  const at = useMemo(() => DateTime.fromISO(date, { zone }).set({ hour: 12 }).toJSDate(), [date, zone]);
   const moon = chart.planets.find((p) => p.planet === "Moon")!;
   const transits = useMemo(() => currentTransits(moon.signIndex, chart.ascendant.signIndex, at), [at, moon.signIndex, chart.ascendant.signIndex]);
   const panchang = useMemo(() => {
@@ -135,7 +140,7 @@ function TransitExplorer({ report, chart }: { report: KundaliReport; chart: Kund
   const status = (t: KundaliReport["transits"][number]) => {
     const d = getDignity(t.planet, t.signIndex);
     const parts = [d && d !== "Neutral Sign" ? d : null, marks[t.planet].includes("C") ? "Combust" : null, t.retrograde && t.planet !== "Rahu" && t.planet !== "Ketu" ? "Retrograde" : null].filter(Boolean);
-    return { text: parts.join(", ") || "—", weak: d === "Debilitated" || d === "Enemy's Sign" || marks[t.planet].includes("C"), strong: d === "Exalted" || d === "Own Sign" };
+    return { text: parts.map(p=>n(p!)).join(", ") || "—", weak: d === "Debilitated" || d === "Enemy's Sign" || marks[t.planet].includes("C"), strong: d === "Exalted" || d === "Own Sign" };
   };
 
   const days = Array.from({ length: month.daysInMonth! }, (_, i) => month.set({ day: i + 1 }));
@@ -149,30 +154,29 @@ function TransitExplorer({ report, chart }: { report: KundaliReport; chart: Kund
   return (
     <div className="space-y-6">
       <p className="mx-auto max-w-2xl text-center text-sm leading-relaxed text-muted">
-        Explore past or future planetary positions against your natal Moon ({moon.sign}) and
-        your Lagna ({chart.ascendant.sign}).
+        {L(`Explore past or future positions against your natal Moon (${moon.sign}) and Lagna (${chart.ascendant.sign}).`, `जन्म चंद्र (${n(moon.sign)}) और लग्न (${n(chart.ascendant.sign)}) से भूत या भविष्य के गोचर देखें।`)}
       </p>
 
       <section className="card-edge rounded-2xl p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><h3 className="text-lg font-bold text-cream">Transit calendar</h3><p className="text-xs text-muted">Choose any date to view your personal gochara and Panchang.</p></div>
+          <div><h3 className="text-lg font-bold text-cream">{L("Transit calendar","गोचर कैलेंडर")}</h3><p className="text-xs text-muted">{L("Choose a date to view your personal gochara and Panchang.","अपने गोचर और पंचांग के लिए तिथि चुनें।")}</p></div>
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => stepDate(-1, "day")} className="rounded-lg border border-border px-3 py-2 text-sm text-cream" aria-label="Previous day">←</button>
-            <input type="date" value={date} onChange={(e) => { if (e.target.value) { setDate(e.target.value); setMonth(DateTime.fromISO(e.target.value).startOf("month")); } }} className="rounded-lg border border-border bg-ink-deep px-3 py-2 text-sm text-cream" />
-            <button type="button" onClick={() => stepDate(1, "day")} className="rounded-lg border border-border px-3 py-2 text-sm text-cream" aria-label="Next day">→</button>
-            <button type="button" onClick={() => { setDate(today); setMonth(DateTime.fromISO(today).startOf("month")); }} className="rounded-lg border border-gold/50 px-3 py-2 text-sm font-semibold text-gold-bright">Today</button>
+            <button type="button" onClick={() => stepDate(-1, "day")} className="rounded-lg border border-border px-3 py-2 text-sm text-cream" aria-label={L("Previous day","पिछला दिन")}>←</button>
+            <input aria-label={L("Transit date", "गोचर तिथि")} type="date" value={date} onChange={(e) => { if (e.target.value) { setDate(e.target.value); setMonth(DateTime.fromISO(e.target.value).startOf("month")); } }} className="rounded-lg border border-border bg-ink-deep px-3 py-2 text-sm text-cream" />
+            <button type="button" onClick={() => stepDate(1, "day")} className="rounded-lg border border-border px-3 py-2 text-sm text-cream" aria-label={L("Next day","अगला दिन")}>→</button>
+            <button type="button" onClick={() => { setDate(today); setMonth(DateTime.fromISO(today).startOf("month")); }} className="rounded-lg border border-gold/50 px-3 py-2 text-sm font-semibold text-gold-bright">{L("Today","आज")}</button>
           </div>
         </div>
         <div className="mt-5 max-w-md">
           <div className="mb-2 flex items-center justify-between">
-            <button type="button" onClick={() => setMonth(month.minus({ months: 1 }))} className="rounded-lg border border-border px-3 py-1.5 text-sm text-cream" aria-label="Previous month">←</button>
+            <button type="button" onClick={() => setMonth(month.minus({ months: 1 }))} className="rounded-lg border border-border px-3 py-1.5 text-sm text-cream" aria-label={L("Previous month","पिछला महीना")}>←</button>
             <div className="flex items-center gap-2 font-semibold text-cream">
-              <select aria-label="Month" value={month.month} onChange={(e) => setMonth(month.set({ month: Number(e.target.value) }))} className="rounded-lg border border-border bg-ink-deep px-2 py-1.5">{Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{DateTime.local(2024, i + 1).toFormat("LLLL")}</option>)}</select>
-              <select aria-label="Year" value={month.year} onChange={(e) => setMonth(month.set({ year: Number(e.target.value) }))} className="rounded-lg border border-border bg-ink-deep px-2 py-1.5">{Array.from({ length: 201 }, (_, i) => month.year - 100 + i).map((y) => <option key={y}>{y}</option>)}</select>
+              <select aria-label={L("Month","महीना")} value={month.month} onChange={(e) => setMonth(month.set({ month: Number(e.target.value) }))} className="rounded-lg border border-border bg-ink-deep px-2 py-1.5">{Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{DateTime.local(2024, i + 1).setLocale(locale).toFormat("LLLL")}</option>)}</select>
+              <select aria-label={L("Year","वर्ष")} value={month.year} onChange={(e) => setMonth(month.set({ year: Number(e.target.value) }))} className="rounded-lg border border-border bg-ink-deep px-2 py-1.5">{Array.from({ length: 201 }, (_, i) => month.year - 100 + i).map((y) => <option key={y}>{y}</option>)}</select>
             </div>
-            <button type="button" onClick={() => setMonth(month.plus({ months: 1 }))} className="rounded-lg border border-border px-3 py-1.5 text-sm text-cream" aria-label="Next month">→</button>
+            <button type="button" onClick={() => setMonth(month.plus({ months: 1 }))} className="rounded-lg border border-border px-3 py-1.5 text-sm text-cream" aria-label={L("Next month","अगला महीना")}>→</button>
           </div>
-          <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted">{["M", "T", "W", "T", "F", "S", "S"].map((d, i) => <span key={`${d}${i}`} className="py-1">{d}</span>)}
+          <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted">{(locale === "hi" ? ["सो","मं","बु","गु","शु","श","र"] : ["M", "T", "W", "T", "F", "S", "S"]).map((d, i) => <span key={`${d}${i}`} className="py-1">{d}</span>)}
             {Array.from({ length: blanks }, (_, i) => <span key={`blank${i}`} />)}
             {days.map((d) => { const iso = d.toISODate()!; return <button type="button" key={iso} onClick={() => setDate(iso)} aria-pressed={date === iso} className={`rounded-lg py-2 font-tabular ${date === iso ? "bg-gold font-bold text-on-gold" : iso === today ? "border border-gold/50 text-gold-bright" : "text-cream hover:bg-surface-raised"}`}>{d.day}</button>; })}
           </div>
@@ -182,35 +186,35 @@ function TransitExplorer({ report, chart }: { report: KundaliReport; chart: Kund
       <TransitChart transits={transits} chart={chart} date={date} />
 
       {panchang ? <section className="card-edge rounded-2xl p-5">
-        <h3 className="text-lg font-bold text-cream">Panchang · {DateTime.fromISO(date, { zone }).toFormat("cccc, d LLLL yyyy")}</h3>
-        <p className="mt-1 text-xs text-muted">For {chart.input.place} · {zone} · Panchang limbs at local sunrise</p>
+        <h3 className="text-lg font-bold text-cream">{L("Panchang","पंचांग")} · {DateTime.fromISO(date, { zone }).setLocale(locale).toFormat("cccc, d LLLL yyyy")}</h3>
+        <p className="mt-1 text-xs text-muted">{chart.input.place} · {zone} · {L("Panchang limbs at local sunrise","पंचांग अंग स्थानीय सूर्योदय पर")}</p>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {[["Vara", `${panchang.vara.name} · ${panchang.vara.sanskrit}`], ["Tithi", `${panchang.tithi.paksha} ${panchang.tithi.name}`], ["Nakshatra", panchang.nakshatra.name], ["Yoga", panchang.yoga.name], ["Karana", panchang.karana.name], ["Moon sign", panchang.moonSign.name], ["Sun sign", panchang.sunSign], ["Sunrise", DateTime.fromJSDate(panchang.sunrise).setZone(zone).toFormat("h:mm a")], ["Sunset", DateTime.fromJSDate(panchang.sunset).setZone(zone).toFormat("h:mm a")], ["Rahu Kaal", `${DateTime.fromJSDate(panchang.rahuKaal.start).setZone(zone).toFormat("h:mm a")} – ${DateTime.fromJSDate(panchang.rahuKaal.end).setZone(zone).toFormat("h:mm a")}`]].map(([label, value]) => <div key={label} className="rounded-xl bg-surface/70 p-3"><p className="text-[11px] uppercase tracking-wide text-muted">{label}</p><p className="mt-1 text-sm font-semibold text-cream">{value}</p></div>)}
+          {[["Vara", `${panchang.vara.name} · ${panchang.vara.sanskrit}`], ["Tithi", `${panchang.tithi.paksha} ${panchang.tithi.name}`], ["Nakshatra", panchang.nakshatra.name], ["Yoga", panchang.yoga.name], ["Karana", panchang.karana.name], ["Moon sign", panchang.moonSign.name], ["Sun sign", panchang.sunSign], ["Sunrise", DateTime.fromJSDate(panchang.sunrise).setZone(zone).toFormat("h:mm a")], ["Sunset", DateTime.fromJSDate(panchang.sunset).setZone(zone).toFormat("h:mm a")], ["Rahu Kaal", `${DateTime.fromJSDate(panchang.rahuKaal.start).setZone(zone).toFormat("h:mm a")} – ${DateTime.fromJSDate(panchang.rahuKaal.end).setZone(zone).toFormat("h:mm a")}`]].map(([label, value]) => <div key={label} className="rounded-xl bg-surface/70 p-3"><p className="text-[11px] uppercase tracking-wide text-muted">{n(label)}</p><p className="mt-1 text-sm font-semibold text-cream">{n(value)}</p></div>)}
         </div>
-      </section> : <section className="card-edge rounded-2xl p-5 text-sm text-muted">Panchang timings are unavailable for this date and location.</section>}
+      </section> : <section className="card-edge rounded-2xl p-5 text-sm text-muted">{L("Panchang timings are unavailable for this date and location.","इस तिथि और स्थान का पंचांग समय उपलब्ध नहीं है।")}</section>}
 
       <section className="card-edge overflow-x-auto rounded-2xl">
         <table className="w-full text-sm">
           <caption className="px-5 pt-5 text-left">
-            <span className="block text-lg font-bold text-cream">Transits on {DateTime.fromISO(date, { zone }).toFormat("d LLL yyyy")}</span>
-            <span className="text-xs text-muted">Calculated for your natal Moon and Lagna</span>
+            <span className="block text-lg font-bold text-cream">{L("Transits on","गोचर तिथि")} {DateTime.fromISO(date, { zone }).toFormat("d LLL yyyy")}</span>
+            <span className="text-xs text-muted">{L("Calculated at 12:00 in the birth-place timezone, from your natal Moon and Lagna", "जन्मस्थान समय क्षेत्र में 12:00 बजे की गणना, जन्म चंद्र और लग्न से")}</span>
           </caption>
           <thead>
             <tr className="border-b border-border text-left text-xs whitespace-nowrap text-muted">
-              <th className="px-4 py-3">Planet</th>
-              <th className="px-4 py-3">Transit sign</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">From Moon</th>
-              <th className="px-4 py-3">From Lagna</th>
-              <th className="px-4 py-3">Effect</th>
-              <th className="px-4 py-3">Next sign change</th>
+              <th className="px-4 py-3">{L("Planet","ग्रह")}</th>
+              <th className="px-4 py-3">{L("Transit sign","गोचर राशि")}</th>
+              <th className="px-4 py-3">{L("Status","स्थिति")}</th>
+              <th className="px-4 py-3">{L("From Moon","चंद्र से")}</th>
+              <th className="px-4 py-3">{L("From Lagna","लग्न से")}</th>
+              <th className="px-4 py-3">{L("Effect","फल")}</th>
+              <th className="px-4 py-3">{L("Next sign change","अगला राशि प्रवेश")}</th>
             </tr>
           </thead>
           <tbody>
             {transits.map((t) => (
-              <tr key={t.planet} className="border-b border-border/50 whitespace-nowrap last:border-0">
+              <tr key={n(t.planet)} className="border-b border-border/50 whitespace-nowrap last:border-0">
                 <td className="px-4 py-2.5 font-medium text-cream">
-                  {t.planet}
+                  {n(t.planet)}
                   {marks[t.planet] && (
                     <span className="ml-1 text-xs">
                       {[...marks[t.planet]].map((m, i) => (
@@ -222,20 +226,21 @@ function TransitExplorer({ report, chart }: { report: KundaliReport; chart: Kund
                   )}
                 </td>
                 <td className="px-4 py-2.5 text-muted">
-                  {t.sign} {t.degree.toFixed(1)}°
+                  {n(t.sign)} {t.degree.toFixed(1)}°
                 </td>
                 <td className={`px-4 py-2.5 ${status(t).strong ? "font-semibold text-gold-bright" : status(t).weak ? "text-rose" : "text-muted"}`}>{status(t).text}</td>
-                <td className="px-4 py-2.5 text-muted">{ordinal(t.houseFromMoon)}</td>
-                <td className="px-4 py-2.5 text-muted">{ordinal(t.houseFromLagna)}</td>
-                <td className={`px-4 py-2.5 font-semibold ${t.favourable ? "text-gold-bright" : "text-rose"}`}>{t.favourable ? "Favourable" : "Challenging"}</td>
-                <td className="px-4 py-2.5 text-muted">{t.next ? `${t.next.sign} · ${fullDate(t.next.date)}` : "—"}</td>
+                <td className="px-4 py-2.5 text-muted">{t.houseFromMoon}</td>
+                <td className="px-4 py-2.5 text-muted">{t.houseFromLagna}</td>
+                <td className={`px-4 py-2.5 font-semibold ${t.favourable ? "text-gold-bright" : "text-rose"}`}>{t.favourable ? L("Favourable","अनुकूल") : L("Challenging","चुनौतीपूर्ण")}</td>
+                <td className="px-4 py-2.5 text-muted">{t.next ? `${n(t.next.sign)} · ${new Date(t.next.date).toLocaleDateString(locale === "hi" ? "hi-IN" : "en-IN", {timeZone:zone})}` : "—"}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </section>
 
-      <SaturnTimeline report={report} now={new Date()} />
+      <TransitModifiersPanel chart={chart} transits={transits} at={at} detailed={detailed} />
+      <SaturnTimeline report={report} now={at} />
     </div>
   );
 }

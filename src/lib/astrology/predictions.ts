@@ -2,8 +2,8 @@ import { SIGN_LORDS, SIGNS, type PlanetName } from "./constants";
 import { HOUSE_SIGNIFICATION, PLANET_KEYNOTE, SIGN_KEYNOTE } from "./content";
 import { analyzeBhavaStrength, type StrengthVerdict } from "./bhavaStrength";
 import { isCombust } from "./birthDetails";
-import { FRIENDS, ENEMIES, type Dignity } from "./dignity";
-import { BENEFIC_PLANETS } from "./aspects";
+import { FRIENDS, ENEMIES, getDignity, type Dignity } from "./dignity";
+import { BENEFIC_PLANETS, getAspectedHouses } from "./aspects";
 import { PLANET_REFERENCE } from "./reference/planets";
 import { analyzeYogas } from "./yogaAnalysis";
 import { SIGN_REFERENCE } from "./reference/signs";
@@ -96,6 +96,24 @@ export function planetReadings(chart: KundaliChart, locale: Locale = "en"): Plan
     const flags: string[] = [];
     if (p.retrograde && p.planet !== "Rahu" && p.planet !== "Ketu") flags.push(L("Retrograde — its results turn inward, arrive in revisited or unconventional ways", "वक्री — इनके फल भीतर की ओर मुड़ते हैं, दोहराए या अपरंपरागत ढंग से आते हैं"));
     if (isCombust(p, sun)) flags.push(L("Combust — overshadowed by the Sun, so its significations need conscious effort", "अस्त — सूर्य से ढके हुए, इसलिए इनके कारकत्वों के लिए सजग प्रयास चाहिए"));
+    const chalit = chart.chalitHouses.find((placement) => placement.planet === p.planet);
+    if (chalit && chalit.house !== p.house) flags.push(L(
+      `Bhava Chalit places ${p.planet} in bhava ${chalit.house}, compared with D1 house ${p.house}. Use the bhava for expression while retaining D1 sign dignity and ownership.`,
+      `भाव चलित में ${n(p.planet)} भाव ${chalit.house} में हैं, D1 के भाव ${p.house} के मुकाबले। फल के क्षेत्र के लिए भाव देखें; D1 राशि बल और स्वामित्व वही हैं।`
+    ));
+    const aspects = chart.planets.filter((other) => other.planet !== p.planet && getAspectedHouses(other.planet).includes(((p.signIndex - other.signIndex + 12) % 12) + 1));
+    if (aspects.length) flags.push(L(
+      `Receives full aspects from ${aspects.map((other) => other.planet).join(", ")}; read their strength and house ownership alongside this planet.`,
+      `${aspects.map((other) => n(other.planet)).join(", ")} की पूर्ण दृष्टि है; इनके बल और भाव स्वामित्व साथ पढ़ें।`
+    ));
+    for (const key of ["D9", "D10"] as const) {
+      const vp = chart.divisionalCharts[key].planets.find((placement) => placement.planet === p.planet)!;
+      const dignity = getDignity(p.planet, vp.signIndex);
+      flags.push(L(
+        `${key} (${key === "D9" ? "Navamsa" : "career"}): ${vp.sign}, house ${vp.house}${dignity ? `, ${dignity.toLowerCase()}` : ""}${vp.signIndex === p.signIndex ? "; repeats the D1 sign" : ""}. This is a subject-specific supporting lens; divisional houses depend on birth-time precision.`,
+        `${key} (${key === "D9" ? "नवांश" : "करियर"}): ${n(vp.sign)}, भाव ${vp.house}${dignity ? `, ${n(dignity)}` : ""}${vp.signIndex === p.signIndex ? "; D1 जैसी राशि" : ""}। यह विषय का सहायक संदर्भ है; वर्ग भाव जन्म-समय की सटीकता पर निर्भर हैं।`
+      ));
+    }
     if (hi) {
       const nh = NAKSHATRA_HI[p.nakshatraIndex];
       return {

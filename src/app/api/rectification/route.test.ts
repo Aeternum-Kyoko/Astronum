@@ -16,7 +16,7 @@ function request(body: unknown, id: string) {
 }
 
 describe("POST /api/rectification", () => {
-  it("returns chart candidates, ranked runs, and calibrated confidence for valid events", async () => {
+  it("returns chart candidates, ranked runs, and evidence quality for valid events", async () => {
     const response = await POST(request({
       birth, window: 15,
       events: [
@@ -45,4 +45,9 @@ describe("POST /api/rectification", () => {
       expect(response.status).toBe(400);
     }
   });
+  it("reviews journal links at the entered time without searching candidates", async () => {
+    const response = await POST(request({birth,window:0,events:[{kind:"career",date:"2012-07-02"}]},"journal"));
+    const result=await response.json();expect(response.status).toBe(200);expect(result.strip).toHaveLength(1);expect(result.runs[0].best.time).toBe(birth.time);expect(result.confidence).toBe("low");
+  });
+
 });

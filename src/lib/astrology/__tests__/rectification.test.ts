@@ -47,3 +47,40 @@ describe("rectify", () => {
 });
 
 const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
+
+ describe("rectification evidence quality", () => {
+  it("does not gain points or confidence from duplicate events", () => {
+    const single = rectify(base, 2, [events[0]]);
+    const duplicated = rectify(base, 2, Array(6).fill(events[0]));
+    expect(duplicated.candidates.map((c) => c.score)).toEqual(single.candidates.map((c) => c.score));
+    expect(duplicated.confidence).toBe("low");
+    expect(duplicated.warnings.some((w) => w.startsWith("Repeated"))).toBe(true);
+  });
+
+  it("keeps unresolved and boundary-limited searches at low confidence", () => {
+    const result = rectify(base, 0, events);
+    expect(result.confidence).toBe("low");
+    expect(result.leadingCandidateCount).toBe(1);
+    expect(result.warnings.some((w) => w.includes("All tested times tie"))).toBe(true);
+  });
+
+  it("averages approximate-date evidence and avoids fine timing for year-only events", () => {
+    const result = rectify(base, 1, [{ kind: "career", date: "2012", precision: "year" }]);
+    for (const candidate of result.candidates) {
+      const match = candidate.events[0];
+      expect(match.chain).toHaveLength(2);
+      expect(match.points).toBe(Math.round(match.rawPoints * match.evidenceWeight));
+      expect(match.reasons[0]).toContain("Averaged 12 dates");
+    }
+  });
+
+  it("rejects invalid search steps and calendar dates", () => {
+    expect(() => rectify(base, 2, events, 0)).toThrow();
+    expect(() => rectify(base, 2, [{ kind: "career", date: "2012-02-30" }])).toThrow();
+  });
+  it("retains documented seconds throughout the minute search", () => {
+    const result=rectify({...base,time:"06:45:32"},1,[events[0]]);
+    expect(result.candidates.map(c=>c.time)).toEqual(["06:44:32","06:45:32","06:46:32"]);
+  });
+
+});

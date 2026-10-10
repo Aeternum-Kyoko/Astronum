@@ -1,3 +1,4 @@
+import { ruleSupport } from "@/lib/astrology/ruleSupport";
 import { Document, Page, Text, View, StyleSheet, Svg, Polygon, Line, Rect, Text as SvgText } from "@react-pdf/renderer";
 import type { KundaliChart } from "@/lib/astrology/types";
 import type { FullReport as KundaliReport } from "@/lib/astrology/report";
@@ -261,12 +262,12 @@ export default function KundaliPdf({ chart, report, remedies }: { chart: Kundali
 
       <Page size="A4" style={s.page}>
         <Text style={s.h2}>Life timeline by age</Text>
-        <Text style={[s.p, s.muted]}>Each sub-period with the events it most likely brings. Tendencies to plan around, not certainties.</Text>
+        <Text style={[s.p, s.muted]}>Each sub-period with rule-based activation themes. Support grades summarize traditional indicators, not calibrated event probabilities.</Text>
         <Text style={s.h3}>Key windows</Text>
         <Table
-          head={["Event", "Age", "Period", "Peak", "Confidence"]}
+          head={["Event", "Age", "Period", "Peak", "Rule support"]}
           widths={[34, 10, 18, 26, 12]}
-          rows={report.timeline.keyWindows.map((k) => [k.label, k.ages, k.dasha, k.peak ? `${fmtMonth(k.peak.start)} – ${fmtMonth(k.peak.end)}` : "—", `${k.confidence}%`])}
+          rows={report.timeline.keyWindows.map((k) => [k.label, k.ages, k.dasha, k.peak ? `${fmtMonth(k.peak.start)} – ${fmtMonth(k.peak.end)}` : "—", `${ruleSupport(k.confidence)}`])}
         />
         {report.timeline.mahas.map((m) => (
           <View key={m.lord + String(m.start)} style={{ marginTop: 6 }}>
@@ -278,7 +279,7 @@ export default function KundaliPdf({ chart, report, remedies }: { chart: Kundali
               .filter((a) => a.themes.length)
               .map((a) => (
                 <Text key={a.lord + String(a.start)} style={s.p}>
-                  • Age {Math.floor(a.ageStart)}–{Math.floor(a.ageEnd)}, {m.lord}–{a.lord}: {a.events.map((e) => `${e.label} (${e.confidence}%${e.peak ? `, peak ${fmtMonth(e.peak.start)}–${fmtMonth(e.peak.end)}` : ""})`).join("; ")}
+                  • Age {Math.floor(a.ageStart)}–{Math.floor(a.ageEnd)}, {m.lord}–{a.lord}: {a.events.map((e) => `${e.label} (${ruleSupport(e.confidence)}${e.peak ? `, peak ${fmtMonth(e.peak.start)}–${fmtMonth(e.peak.end)}` : ""})`).join("; ")}
                 </Text>
               ))}
           </View>

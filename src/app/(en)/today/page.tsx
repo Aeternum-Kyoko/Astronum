@@ -1,3 +1,4 @@
+import { ruleSupport } from "@/lib/astrology/ruleSupport";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DateTime } from "luxon";
@@ -148,7 +149,7 @@ export default async function TodayPage() {
                 <li key={k.kind}>
                   <span className={`font-semibold ${k.nature === "caution" ? "text-rose" : "text-gold-bright"}`}>{k.label}</span>
                   <span className="block text-xs text-muted">
-                    Age {k.ages} · {DateTime.fromJSDate(new Date(k.start)).toFormat("LLL yyyy")} – {DateTime.fromJSDate(new Date(k.end)).toFormat("LLL yyyy")} · {k.confidence}%
+                    Age {k.ages} · {DateTime.fromJSDate(new Date(k.start)).toFormat("LLL yyyy")} – {DateTime.fromJSDate(new Date(k.end)).toFormat("LLL yyyy")} · {ruleSupport(k.confidence)}
                   </span>
                 </li>
               ))}

@@ -3,7 +3,7 @@ import RectificationTool from "@/components/RectificationTool";
 import { EVENT_KEYS, EVENT_KINDS } from "@/lib/astrology/rectificationEvents";
 
 export const metadata: Metadata = {
-  title: "Birth Time Rectification — Find Your Exact Birth Time",
+  title: "Birth Time Rectification — Explore Your Birth-Time Interval",
   description:
     "Not sure of your birth time? Enter an approximate time and dated life events; every minute in the window is tested against Vimshottari dasha, divisional charts and Jupiter–Saturn transits, with the reason for every point.",
   alternates: { canonical: "/rectification" },
@@ -15,9 +15,9 @@ export default function RectificationPage() {
       <div className="relative mx-auto max-w-5xl px-5 py-14 md:py-20">
         <header className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold text-gold-bright">Birth time rectification</p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-cream md:text-5xl">Find your exact birth time from your life</h1>
+          <h1 className="mt-3 text-4xl font-bold tracking-tight text-cream md:text-5xl">Explore your birth time through life events</h1>
           <p className="mt-4 text-base leading-relaxed text-muted">
-            The Lagna changes every two hours and the Navamsa every thirteen minutes, so a rough birth time can give the wrong chart. Tell us what happened in your life and when; we test every minute around your time and show which one fits.
+            The Lagna and divisional ascendants can change within a birth-time interval. Add documented milestones with their date precision; we compare candidate times and show their rule matches, competing intervals and unresolved evidence.
           </p>
         </header>
 
@@ -30,14 +30,14 @@ export default function RectificationPage() {
             <h2 className="text-lg font-bold text-cream">How it works</h2>
             <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-muted">
               <li>Every minute in your window becomes a candidate birth time, and a full chart is cast for each.</li>
-              <li>For each event, we find the Mahadasha, Antardasha and Pratyantardasha running on that date. A small change in birth time moves the Moon, which moves every dasha date — so only the right time puts the right lords on your events.</li>
+              <li>For each event, we find the Mahadasha, Antardasha and Pratyantardasha running on that date. A small change in birth time moves the Moon, which moves every dasha date — so competing birth times can produce different rule matches.</li>
               <li>Those lords score when they occupy, rule or aspect the houses of the event, or act for a sign lord that does. Sub-periods count most because they pin the timing.</li>
               <li>The event&rsquo;s divisional chart — D9 for marriage, D10 for career, D7 for children — checks the same lords. Vargas change every few minutes, which separates neighbouring times.</li>
               <li>Jupiter and Saturn both touching the event house on the date (the double transit) adds weight.</li>
             </ol>
           </section>
           <section className="card-edge rounded-2xl p-6">
-            <h2 className="text-lg font-bold text-cream">Getting a reliable answer</h2>
+            <h2 className="text-lg font-bold text-cream">Improving the evidence</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-muted">
               <li>Use events with exact dates from documents — a wedding card, a joining letter, a child&rsquo;s birth certificate.</li>
               <li>Mix kinds of events. Three different kinds separate candidates far better than three of the same.</li>

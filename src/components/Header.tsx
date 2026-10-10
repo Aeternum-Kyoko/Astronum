@@ -131,7 +131,7 @@ export default function Header({ locale }: { locale: Locale }) {
             );
           })}
           {/* Crossing languages changes root layout, so a plain <a> (full load) is intended. */}
-          <a href={switchHref} hrefLang={hi ? "en" : "hi"} lang={hi ? "en" : "hi"} title={t.languageLabel} className="ml-1 rounded-full px-3 py-2 text-sm text-muted transition-colors hover:text-gold-bright">
+          <a href={switchHref} onClick={e => { e.currentTarget.href = switchLocaleHref(window.location.pathname, window.location.search, hi ? "en" : "hi"); }} onAuxClick={e => { e.currentTarget.href = switchLocaleHref(window.location.pathname, window.location.search, hi ? "en" : "hi"); }} hrefLang={hi ? "en" : "hi"} lang={hi ? "en" : "hi"} title={t.languageLabel} className="ml-1 rounded-full px-3 py-2 text-sm text-muted transition-colors hover:text-gold-bright">
             {t.language}
           </a>
           <ThemeToggle className="ml-1" />

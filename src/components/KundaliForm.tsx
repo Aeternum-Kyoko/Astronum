@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "motion/react";
 import type { KundaliChart } from "@/lib/astrology/types";
 import type { HeavySection, KundaliReport } from "@/lib/astrology/report";
 import { fromBirthQuery, toBirthQuery, type BirthParams } from "@/lib/birthParams";
-import KundaliResult from "@/components/KundaliResult";
+import KundaliResult, { TAB_SLUGS } from "@/components/KundaliResult";
 import KundaliIntro from "@/components/KundaliIntro";
 import DatePicker from "@/components/DatePicker";
 import TimePicker from "@/components/TimePicker";
@@ -54,6 +54,9 @@ export default function KundaliForm() {
   const [chart, setChart] = useState<KundaliChart | null>(null);
   const [report, setReport] = useState<KundaliReport | null>(null);
   const pending = useRef(new Set<HeavySection>());
+  const generation = useRef(0);
+  const failedSections = useRef(new Set<HeavySection>());
+  const [sectionError, setSectionError] = useState<string | null>(null);
   const [offlineFrom, setOfflineFrom] = useState<number | null>(null);
 
   // Keep the latest version (with any sections loaded since) on this device for offline use.
@@ -64,7 +67,8 @@ export default function KundaliForm() {
   /** Fetch the heavy report sections a tab needs, once each, and merge them in. */
   async function loadSections(sections: HeavySection[]) {
     if (!chart) return;
-    const missing = sections.filter((s) => !(report && s in report) && !pending.current.has(s));
+    const epoch = generation.current;
+    const missing = sections.filter((s) => !(report && s in report) && !pending.current.has(s) && !failedSections.current.has(s));
     if (!missing.length) return;
     missing.forEach((s) => pending.current.add(s));
     try {
@@ -74,15 +78,21 @@ export default function KundaliForm() {
         body: JSON.stringify({ birth: chart.input, sections: missing, locale }),
       });
       const data = await res.json();
-      if (res.ok) setReport((r) => (r ? { ...r, ...data.sections } : r));
+      if (!res.ok) throw new Error(data.error ?? "Could not load the detailed readings.");
+      if (generation.current === epoch) setReport((r) => (r ? { ...r, ...data.sections } : r));
+    } catch {
+      if (generation.current === epoch) {
+        missing.forEach(s => failedSections.current.add(s));
+        setSectionError(locale === "hi" ? "कुछ विस्तृत व्याख्याएँ लोड नहीं हो सकीं। पुनः प्रयास करें।" : "Some detailed readings could not load. You can retry them.");
+      }
     } finally {
-      missing.forEach((s) => pending.current.delete(s));
+      if (generation.current === epoch) missing.forEach((s) => pending.current.delete(s));
     }
   }
   const anchorRef = useRef<HTMLDivElement>(null);
   const autoLoaded = useRef(false);
   // Home-page tool tiles link to e.g. /kundali?tab=dashas; open the result on that section.
-  const [initialTab] = useState(() => searchParams.get("tab"));
+  const [initialTab, setInitialTab] = useState(() => searchParams.get("tab"));
 
   const view: View = loading ? "loading" : chart ? "result" : "form";
 
@@ -92,6 +102,8 @@ export default function KundaliForm() {
   }, [view]);
 
   async function generate(params: BirthParams) {
+    const epoch = ++generation.current;
+    pending.current.clear(); failedSections.current.clear(); setSectionError(null);
     setError(null);
     setLoading(true);
     const startedAt = Date.now();
@@ -108,15 +120,21 @@ export default function KundaliForm() {
       if (elapsed < MIN_LOADING_MS) {
         await new Promise((r) => setTimeout(r, MIN_LOADING_MS - elapsed));
       }
+      if (generation.current !== epoch) return;
+      const nextQuery = new URLSearchParams(toBirthQuery(params));
+      const selectedTab = new URLSearchParams(window.location.search).get("tab");
+      if (selectedTab && TAB_SLUGS[selectedTab]) nextQuery.set("tab", selectedTab);
+      setInitialTab(selectedTab && TAB_SLUGS[selectedTab] ? selectedTab : null);
       setChart(data.chart);
       setReport(data.report);
       setOfflineFrom(null);
       haptic("success");
       // Reflect the chart in the URL so it can be bookmarked or shared.
-      router.replace(`${locale === "hi" ? "/hi" : ""}/kundali?${toBirthQuery(params)}`, { scroll: false });
+      router.replace(`${locale === "hi" ? "/hi" : ""}/kundali?${nextQuery.toString()}`, { scroll: false });
     } catch (err) {
       // No connection: open the copy kept on this device, if there is one.
       const stored = err instanceof TypeError ? await loadChart(params) : null;
+      if (generation.current !== epoch) return;
       if (stored) {
         setChart(stored.chart);
         setReport(stored.report);
@@ -127,7 +145,7 @@ export default function KundaliForm() {
         haptic("error");
       }
     } finally {
-      setLoading(false);
+      if (generation.current === epoch) setLoading(false);
     }
   }
 
@@ -200,7 +218,8 @@ export default function KundaliForm() {
                         <DatePicker value={date} onChange={setDate} />
                       </Field>
                       <Field label={t("Time of birth")}>
-                        <TimePicker value={time} onChange={setTime} />
+                        <TimePicker value={time.slice(0,5)} onChange={v=>setTime(v && time.length>5 ? `${v}:${time.slice(6)}` : v)} />
+                        <label className="mt-2 block text-xs text-muted">{locale === "hi" ? "सेकंड (वैकल्पिक, केवल दर्ज होने पर)" : "Seconds (optional, only if recorded)"}<input type="number" min={0} max={59} step={1} className="input mt-1 max-w-24" disabled={!time} value={time.length>5?Number(time.slice(6)):""} onChange={e=>{const seconds=e.target.value;setTime(seconds===""?time.slice(0,5):`${time.slice(0,5)}:${String(Math.min(59,Math.max(0,Math.trunc(Number(seconds))))).padStart(2,"0")}`);}} /></label>
                       </Field>
                     </div>
                   </div>
@@ -263,6 +282,7 @@ export default function KundaliForm() {
                 {t("You're offline — showing the copy saved on this device on")} {new Date(offlineFrom).toLocaleString(locale === "hi" ? "hi-IN" : undefined)}.
               </p>
             )}
+            {sectionError && <p role="alert" className="mb-5 rounded-xl border border-rose/30 p-4 text-sm text-cream">{sectionError} <button type="button" className="ml-2 font-semibold text-gold-bright underline" onClick={() => { const retry = [...failedSections.current]; failedSections.current.clear(); setSectionError(null); void loadSections(retry); }}>{locale === "hi" ? "पुनः प्रयास" : "Retry readings"}</button></p>}
             <KundaliResult chart={chart} report={report} initialTab={initialTab} loadSections={loadSections} />
           </motion.div>
         )}

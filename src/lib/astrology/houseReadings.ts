@@ -1,3 +1,4 @@
+import { getDignity } from "./dignity";
 import type { PlanetName } from "./constants";
 import { HOUSE_SIGNIFICATION } from "./content";
 import { getAspectedHouses } from "./aspects";
@@ -176,6 +177,23 @@ export function houseReadings(chart: KundaliChart, now = new Date(), locale: Loc
     }
     if (lord !== "Sun" && isCombust(lp, sun)) lordParts.push(L(`${lord} is combust, so the house's results need extra conscious effort.`, `${n(lord)} अस्त हैं, इसलिए इस भाव के फलों के लिए अतिरिक्त सजग प्रयास चाहिए।`));
     if (lp.retrograde && lord !== "Rahu" && lord !== "Ketu") lordParts.push(L(`${lord} is retrograde: results come after revisiting, delay or an unconventional route.`, `${n(lord)} वक्री हैं: फल दोहराव, देरी या अपरंपरागत मार्ग से आते हैं।`));
+
+    const lordStrength = chart.shadbala.find((s) => s.planet === lord);
+    if (lordStrength) lordParts.push(L(
+      `Its measured Shadbala is ${lordStrength.rupas.toFixed(2)} rupas against ${lordStrength.requiredRupas} required: ${lordStrength.isStrong ? "adequate capacity" : "below the reference threshold"}. Strength measures capacity, not whether every result is favourable.`,
+      `भावेश का षड्बल ${lordStrength.rupas.toFixed(2)} रूपा है, आवश्यक ${lordStrength.requiredRupas} के मुकाबले: ${lordStrength.isStrong ? "पर्याप्त क्षमता" : "मानक से कम"}। बल क्षमता दिखाता है, हर फल की अनुकूलता नहीं।`
+    ));
+    const chalit = chart.chalitHouses.find((p) => p.planet === lord);
+    if (chalit && chalit.house !== lp.house) lordParts.push(L(
+      `In Bhava Chalit, ${lord} occupies bhava ${chalit.house}; this refines the area of expression while its D1 sign and house ownership stay unchanged.`,
+      `भाव चलित में ${n(lord)} भाव ${chalit.house} में हैं; यह फल के क्षेत्र को स्पष्ट करता है, जबकि D1 राशि और भाव स्वामित्व वही रहते हैं।`
+    ));
+    const navamsa = chart.divisionalCharts.D9.planets.find((p) => p.planet === lord)!;
+    const navDignity = getDignity(lord, navamsa.signIndex);
+    lordParts.push(L(
+      `In D9, the house lord is in ${navamsa.sign}, house ${navamsa.house}${navDignity ? ` (${navDignity.toLowerCase()})` : ""}${navamsa.signIndex === lp.signIndex ? ", repeating its D1 sign (vargottama)" : ""}. Use this as a supporting lens rather than a replacement for D1; the D9 ascendant depends on birth-time precision.`,
+      `D9 में भावेश ${n(navamsa.sign)}, भाव ${navamsa.house} में हैं${navDignity ? ` (${n(navDignity)})` : ""}${navamsa.signIndex === lp.signIndex ? ", D1 जैसी राशि (वर्गोत्तम)" : ""}। इसे D1 के सहायक संदर्भ की तरह देखें; D9 लग्न जन्म-समय की सटीकता पर निर्भर है।`
+    ));
 
     // Occupants
     const occupants = chart.planets

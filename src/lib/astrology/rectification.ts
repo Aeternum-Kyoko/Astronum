@@ -1,5 +1,6 @@
 import { DateTime } from "luxon";
 import { calculateKundali } from "./kundali";
+import { getAspectedHouses } from "./aspects";
 import { periodsAt } from "./dashaTree";
 import { siderealLongitude } from "./ephemeris";
 import { SIGNS, SIGN_LORDS, type PlanetName } from "./constants";
@@ -26,13 +27,12 @@ import { EVENT_KINDS, type Candidate, type CandidateRun, type EventMatch, type L
 export { EVENT_KINDS, EVENT_KEYS, EVENT_PRECISIONS, EVENT_CONFIDENCES } from "./rectificationEvents";
 export type { EventKind, EventPrecision, EventConfidence, LifeEvent, EventMatch, Candidate, CandidateRun, RectificationResult } from "./rectificationEvents";
 
-const SPECIAL_ASPECTS: Partial<Record<PlanetName, number[]>> = { Mars: [4, 8], Jupiter: [5, 9], Saturn: [3, 10], Rahu: [5, 9], Ketu: [5, 9] };
 const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
 const houseOf = (sign: number, asc: number) => ((sign - asc + 12) % 12) + 1;
 
 /** Houses (from the Lagna) a planet aspects from `house`: the 7th always, plus its special aspects. */
 function aspected(planet: PlanetName, house: number): number[] {
-  return [7, ...(SPECIAL_ASPECTS[planet] ?? [])].map((n) => ((house + n - 2) % 12) + 1);
+  return getAspectedHouses(planet).map((n) => ((house + n - 2) % 12) + 1);
 }
 
 /** How a planet connects to each house in the chart, as readable links. */
@@ -52,12 +52,18 @@ function significations(chart: KundaliChart, planet: PlanetName): Map<number, st
   return out;
 }
 
-function eventMoment(event: LifeEvent, timezone: string): Date {
+/** Sample the stated interval rather than treating an approximate date as exact. */
+export function eventMoments(event: LifeEvent, timezone: string): Date[] {
   const precision = event.precision ?? "day";
-  const value = precision === "year" ? `${event.date}-07-01` : precision === "month" ? `${event.date}-15` : event.date;
-  const parsed = DateTime.fromISO(value, { zone: timezone }).set({ hour: 12 });
-  if (!parsed.isValid) throw new Error(`Invalid ${precision}-precision event date.`);
-  return parsed.toJSDate();
+  const pattern = precision === "year" ? /^\d{4}$/ : precision === "month" ? /^\d{4}-\d{2}$/ : /^\d{4}-\d{2}-\d{2}$/;
+  const value = precision === "year" ? `${event.date}-01-01` : precision === "month" ? `${event.date}-01` : event.date;
+  const start = DateTime.fromISO(value, { zone: timezone }).startOf("day");
+  if (!pattern.test(event.date) || !start.isValid) throw new Error(`Invalid ${precision}-precision event date.`);
+  if (precision === "day") return [start.set({ hour: 12 }).toJSDate()];
+  const end = start.plus(precision === "year" ? { years: 1 } : { months: 1 });
+  const count = precision === "year" ? 12 : 5;
+  const span = end.toMillis() - start.toMillis();
+  return Array.from({ length: count }, (_, i) => new Date(start.toMillis() + span * (i + 0.5) / count));
 }
 
 function evidenceWeight(event: LifeEvent): number {
@@ -67,11 +73,11 @@ function evidenceWeight(event: LifeEvent): number {
   return precision * confidence * importance;
 }
 
-function scoreEvent(chart: KundaliChart, ev: LifeEvent): EventMatch {
+function scoreEventAt(chart: KundaliChart, ev: LifeEvent, at: Date): EventMatch {
   const spec = EVENT_KINDS[ev.kind];
   const eventHouses: readonly number[] = spec.houses;
-  const at = eventMoment(ev, chart.input.timezone);
-  const chain = periodsAt(chart.dashas, at, 3).map((p) => p.lord as PlanetName);
+  const depth = ev.precision === "year" ? 2 : 3;
+  const chain = periodsAt(chart.dashas, at, depth).map((p) => p.lord as PlanetName);
   const reasons: string[] = [];
   let points = 0;
   const levels = ["Mahadasha", "Antardasha", "Pratyantardasha"];
@@ -150,16 +156,38 @@ function scoreEvent(chart: KundaliChart, ev: LifeEvent): EventMatch {
   return { kind: ev.kind, date: ev.date, chain, points, rawPoints, evidenceWeight: quality, reasons };
 }
 
+function scoreEvent(chart: KundaliChart, ev: LifeEvent, moments: Date[]): EventMatch {
+  const samples = moments.map((at) => scoreEventAt(chart, ev, at));
+  const rawPoints = samples.reduce((sum, sample) => sum + sample.rawPoints, 0) / samples.length;
+  const quality = evidenceWeight(ev);
+  const representative = samples[Math.floor(samples.length / 2)];
+  if (samples.length === 1) return representative;
+  return {
+    ...representative, rawPoints, points: Math.round(rawPoints * quality),
+    reasons: [
+      `Averaged ${samples.length} dates across the stated ${ev.precision}; raw scores range from ${Math.min(...samples.map((s) => s.rawPoints))} to ${Math.max(...samples.map((s) => s.rawPoints))}.`,
+      ...(ev.precision === "year" ? ["Year-only evidence uses Mahadasha and Antardasha; finer periods would imply unsupported date precision."] : []),
+      "The dasha chain and explanations below describe the middle sample, not every date in the interval.",
+      ...representative.reasons.filter((reason) => !reason.startsWith("Evidence weight")),
+      `Average ${rawPoints.toFixed(2)} × evidence weight ${Math.round(quality * 100)}% = ${Math.round(rawPoints * quality)} points.`,
+    ],
+  };
+}
+
 export function rectify(base: BirthInput, windowMinutes: number, events: LifeEvent[], step = 1): RectificationResult {
   const center = DateTime.fromISO(`${base.date}T${base.time}`, { zone: base.timezone });
+  if (!center.isValid || !Number.isInteger(windowMinutes) || windowMinutes < 0 || windowMinutes > 120 || !Number.isInteger(step) || step < 1) throw new Error("Invalid birth time, search window, or minute step.");
+  if (!events.length) throw new Error("Add at least one life event.");
+  const unique = events.filter((event, i) => events.findIndex((other) => other.kind === event.kind && other.date === event.date && (other.precision ?? "day") === (event.precision ?? "day")) === i);
+  const moments = unique.map((event) => eventMoments(event, base.timezone));
   const candidates: Candidate[] = [];
   for (let m = -windowMinutes; m <= windowMinutes; m += step) {
     const t = center.plus({ minutes: m });
-    const chart = calculateKundali({ ...base, date: t.toISODate()!, time: t.toFormat("HH:mm") });
-    const matches = events.map((ev) => scoreEvent(chart, ev));
+    const chart = calculateKundali({ ...base, date: t.toISODate()!, time: t.toFormat(base.time.length > 5 ? "HH:mm:ss" : "HH:mm") });
+    const matches = unique.map((ev, i) => scoreEvent(chart, ev, moments[i]));
     candidates.push({
       date: t.toISODate()!,
-      time: t.toFormat("HH:mm"),
+      time: t.toFormat(base.time.length > 5 ? "HH:mm:ss" : "HH:mm"),
       score: matches.reduce((a, e) => a + e.points, 0),
       lagna: chart.ascendant.sign,
       navamsaLagna: SIGNS[chart.divisionalCharts.D9.ascendant.signIndex],
@@ -182,15 +210,26 @@ export function rectify(base: BirthInput, windowMinutes: number, events: LifeEve
   runs.sort((a, b) => b.best.score - a.best.score || offset(a.best) - offset(b.best));
 
   const maxScore = Math.max(...candidates.map((c) => c.score));
-  const runnerUp = runs.find((r) => r.best.score < maxScore)?.best.score ?? maxScore;
-  const bestWidth = runs[0] ? Math.max(1, Math.round(DateTime.fromFormat(runs[0].to, "HH:mm").diff(DateTime.fromFormat(runs[0].from, "HH:mm"), "minutes").minutes) + 1) : 1;
-  const exactHighEvents = events.filter((event) => (event.precision ?? "day") === "day" && (event.confidence ?? "high") === "high").length;
-  const confidence = events.length >= 5 && exactHighEvents >= 3 && maxScore - runnerUp >= 3 && bestWidth <= 6
-    ? "strong" : events.length >= 3 && exactHighEvents >= 2 ? "moderate" : "low";
+  const leading = candidates.filter((c) => c.score === maxScore);
+  const bestWidth = leading.length * step;
+  const runnerUp = Math.max(0, ...candidates.filter((c) => c.score < maxScore).map((c) => c.score));
+  const margin = maxScore - runnerUp;
+  const edge = leading.includes(candidates[0]) || leading.includes(candidates[candidates.length - 1]);
+  const exactHighEvents = unique.filter((event) => (event.precision ?? "day") === "day" && (event.confidence ?? "high") === "high").length;
+  const diversity = new Set(unique.map((event) => event.kind)).size;
+  const distinctDates = new Set(unique.map((event) => event.date)).size;
+  const resolved = maxScore > 0 && leading.length < candidates.length && !edge;
+  const confidence = resolved && runs.filter((run) => run.best.score === maxScore).length === 1 && unique.length >= 5 && exactHighEvents >= 3 && diversity >= 3 && distinctDates >= 5 && margin >= 3 && bestWidth <= 6
+    ? "strong" : resolved && unique.length >= 3 && exactHighEvents >= 2 && diversity >= 2 && distinctDates >= 3 && bestWidth <= 15 ? "moderate" : "low";
+  const warnings: string[] = [];
+  if (unique.length < events.length) warnings.push("Repeated events with the same kind, date and precision count only once.");
+  if (edge) warnings.push("A leading candidate touches the search boundary; try a wider window before choosing a time.");
+  if (leading.length === candidates.length) warnings.push("All tested times tie; these events do not distinguish the birth time.");
+  if (leading.length > 1) warnings.push(`${leading.length} sampled times share the leading score across the full search, including intervals outside the displayed shortlist.`);
   const confidenceReason = confidence === "strong"
-    ? "Several high-quality events support a narrow leading interval, though it remains a rectification hypothesis."
+    ? "Distinct, well-dated events support a narrow interval with a score margin. This is heuristic evidence, not a validated probability or proof of birth time."
     : confidence === "moderate"
-      ? "The result has useful supporting evidence, but competing times or limited event precision remain."
-      : "Add more independent, well-dated events before relying on this range for detailed chart work.";
-  return { candidates, runs, boundaries, maxScore, confidence, confidenceReason };
+      ? "Several well-dated events distinguish a limited interval, but competing times remain. This is a rectification hypothesis."
+      : "The evidence does not resolve a reliable narrow interval. Add independent, well-dated events or widen a boundary-limited search.";
+  return { candidates, runs, boundaries, maxScore, confidence, confidenceReason, warnings, leadingCandidateCount: leading.length, scoreMargin: margin };
 }

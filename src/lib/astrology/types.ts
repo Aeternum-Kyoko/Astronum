@@ -5,7 +5,7 @@ import type { MangalDoshaResult } from "./mangalDosha";
 
 export interface BirthInput {
   date: string; // YYYY-MM-DD
-  time: string; // HH:mm, 24h, local to the birth place
+  time: string; // HH:mm or HH:mm:ss, 24h, local to the birth place
   latitude: number;
   longitude: number;
   timezone: string; // IANA zone, e.g. "Asia/Kolkata"

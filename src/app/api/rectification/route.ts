@@ -6,7 +6,7 @@ import { EVENT_CONFIDENCES, EVENT_KEYS, EVENT_PRECISIONS, rectify, type EventKin
 
 const schema = z.object({
   birth: birthInputSchema,
-  window: z.union([z.literal(15), z.literal(30), z.literal(60), z.literal(120)]),
+  window: z.union([z.literal(0), z.literal(15), z.literal(30), z.literal(60), z.literal(120)]),
   events: z
     .array(z.object({
       kind: z.enum(EVENT_KEYS as [EventKind, ...EventKind[]]),
@@ -48,6 +48,9 @@ export async function POST(req: NextRequest) {
       maxScore: result.maxScore,
       confidence: result.confidence,
       confidenceReason: result.confidenceReason,
+      warnings: result.warnings,
+      leadingCandidateCount: result.leadingCandidateCount,
+      scoreMargin: result.scoreMargin,
     });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Could not rectify" }, { status: 400 });

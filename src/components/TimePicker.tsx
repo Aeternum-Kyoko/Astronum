@@ -10,7 +10,7 @@ const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
 const MINUTE_STEPS = Array.from({ length: 12 }, (_, i) => i * 5);
 
 function parseValue(value: string): { hour12: number; minute: number; meridiem: Meridiem } | null {
-  const m = /^(\d{2}):(\d{2})$/.exec(value);
+  const m = /^(\d{2}):(\d{2})(?::[0-5]\d)?$/.exec(value);
   if (!m) return null;
   const h24 = Number(m[1]);
   return { hour12: h24 % 12 === 0 ? 12 : h24 % 12, minute: Number(m[2]), meridiem: h24 >= 12 ? "PM" : "AM" };

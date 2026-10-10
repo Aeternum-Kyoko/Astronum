@@ -4,7 +4,7 @@ import { z } from "zod";
 export const birthInputSchema = z.object({
   name: z.string().trim().min(1, "Please enter a name.").max(100),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  time: z.string().regex(/^\d{2}:\d{2}$/),
+  time: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   timezone: z.string().min(1),

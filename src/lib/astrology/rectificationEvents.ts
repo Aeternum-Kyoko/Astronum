@@ -67,4 +67,7 @@ export interface RectificationResult {
   maxScore: number;
   confidence: "low" | "moderate" | "strong";
   confidenceReason: string;
+  warnings: string[];
+  leadingCandidateCount: number;
+  scoreMargin: number;
 }

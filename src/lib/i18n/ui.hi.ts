@@ -1,5 +1,7 @@
 /** Hindi for interface strings, keyed by the English text. */
 export const UI_HI: Record<string, string> = {
+  "Astrologer Workspace": "ज्योतिषी कार्यक्षेत्र", "Birth Precision": "जन्म-समय सटीकता", "Event Journal": "घटना विवरण", "Calculation Details": "गणना विवरण", "Compare Charts": "कुंडली तुलना", "Relationships": "संबंध", "Wealth": "धन", "Education": "शिक्षा", "Property": "संपत्ति", "Life areas": "जीवन विषय", "Timing": "समय", "Charts & systems": "कुंडलियाँ और पद्धतियाँ",
+
   // Charts
   "North Indian": "उत्तर भारतीय",
   "South Indian": "दक्षिण भारतीय",
