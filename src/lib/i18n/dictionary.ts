@@ -83,6 +83,7 @@ const en = {
     personal: ["Personal Horoscope", "Today from your own chart: Tarabala, Chandrabala, transits and dasha"],
     rectification: ["Birth Time Rectification", "Unsure of your birth time? Find it from your life events"],
     remedies: ["Remedies", "Gemstones, mantras and charity for your chart"],
+    vastu: ["Vāstu Calculator", "Assess your home layout and add personal Kundli context"],
   },
   horoscope: {
     eyebrow: "Daily horoscope",
@@ -334,6 +335,7 @@ const hi: Dictionary = {
     personal: ["व्यक्तिगत राशिफल", "आपकी कुंडली से आज: ताराबल, चंद्रबल, गोचर और दशा"],
     rectification: ["जन्म समय शोधन", "जन्म समय पक्का नहीं? जीवन की घटनाओं से पता करें"],
     remedies: ["उपाय", "आपकी कुंडली के लिए रत्न, मंत्र और दान"],
+    vastu: ["वास्तु कैलकुलेटर", "घर के नक्शे का आकलन और कुंडली का व्यक्तिगत संदर्भ"],
   },
   horoscope: {
     eyebrow: "दैनिक राशिफल",

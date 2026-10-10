@@ -48,6 +48,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     page("/sade-sati", "monthly", 0.8),
     page("/nakshatra-finder", "monthly", 0.7),
     page("/varshphal", "monthly", 0.7),
+    page("/vastu", "monthly", 0.7),
     page("/muhurat", "weekly", 0.8),
     ...[year, year + 1].flatMap((y) => [
       page(`/festivals/${y}`, "weekly", 0.8),

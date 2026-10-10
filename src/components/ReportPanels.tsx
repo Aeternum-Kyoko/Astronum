@@ -1,13 +1,16 @@
 "use client";
 
 import SectionSkeleton from "@/components/SectionSkeleton";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { KundaliReport } from "@/lib/astrology/report";
 import type { KundaliChart } from "@/lib/astrology/types";
 import KundliChart, { type ChartPoint } from "@/components/KundliChart";
 import SegmentedControl from "@/components/SegmentedControl";
 import { transitMarkers } from "@/lib/astrology/chartMarkers";
 import { getDignity } from "@/lib/astrology/dignity";
+import { currentTransits, type CurrentTransit } from "@/lib/astrology/transits";
+import { computeDailyPanchang } from "@/lib/astrology/panchang";
+import { DateTime } from "luxon";
 
 // Report dates arrive from the API as ISO strings; wrap every one in new Date().
 const monthYear = (d: Date | string) => new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "short" });
@@ -113,29 +116,84 @@ export function PlanetReadingsPanel({ report }: { report: KundaliReport | null }
 
 export function TransitsPanel({ report, chart }: { report: KundaliReport | null; chart: KundaliChart }) {
   if (!report) return <Missing />;
-  const now = new Date(report.generatedAt);
+  return <TransitExplorer report={report} chart={chart} />;
+}
+
+function TransitExplorer({ report, chart }: { report: KundaliReport; chart: KundaliChart }) {
+  const zone = chart.input.timezone;
+  const today = DateTime.now().setZone(zone).toISODate()!;
+  const [date, setDate] = useState(today);
+  const [month, setMonth] = useState(() => DateTime.fromISO(today).startOf("month"));
+  const at = DateTime.fromISO(date, { zone }).set({ hour: 12 }).toJSDate();
   const moon = chart.planets.find((p) => p.planet === "Moon")!;
-  const marks = transitMarkers(report.transits.map((t) => ({ planet: t.planet, signIndex: t.signIndex, longitude: t.signIndex * 30 + t.degree, retrograde: t.retrograde })));
+  const transits = useMemo(() => currentTransits(moon.signIndex, chart.ascendant.signIndex, at), [at, moon.signIndex, chart.ascendant.signIndex]);
+  const panchang = useMemo(() => {
+    try { return computeDailyPanchang(date, chart.input.latitude, chart.input.longitude, zone); }
+    catch { return null; }
+  }, [date, chart.input.latitude, chart.input.longitude, zone]);
+  const marks = transitMarkers(transits.map((t) => ({ planet: t.planet, signIndex: t.signIndex, longitude: t.signIndex * 30 + t.degree, retrograde: t.retrograde })));
   const status = (t: KundaliReport["transits"][number]) => {
     const d = getDignity(t.planet, t.signIndex);
     const parts = [d && d !== "Neutral Sign" ? d : null, marks[t.planet].includes("C") ? "Combust" : null, t.retrograde && t.planet !== "Rahu" && t.planet !== "Ketu" ? "Retrograde" : null].filter(Boolean);
     return { text: parts.join(", ") || "—", weak: d === "Debilitated" || d === "Enemy's Sign" || marks[t.planet].includes("C"), strong: d === "Exalted" || d === "Own Sign" };
   };
 
+  const days = Array.from({ length: month.daysInMonth! }, (_, i) => month.set({ day: i + 1 }));
+  const blanks = (month.weekday + 6) % 7;
+  const stepDate = (amount: number, unit: "day" | "month" | "year") => {
+    const next = DateTime.fromISO(date, { zone }).plus({ [unit]: amount }).toISODate()!;
+    setDate(next);
+    setMonth(DateTime.fromISO(next).startOf("month"));
+  };
+
   return (
     <div className="space-y-6">
       <p className="mx-auto max-w-2xl text-center text-sm leading-relaxed text-muted">
-        Where the planets are today, read from your natal Moon ({moon.sign}) — the classical gochara method — and from
+        Explore past or future planetary positions against your natal Moon ({moon.sign}) and
         your Lagna ({chart.ascendant.sign}).
       </p>
 
-      <TransitChart report={report} chart={chart} />
+      <section className="card-edge rounded-2xl p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><h3 className="text-lg font-bold text-cream">Transit calendar</h3><p className="text-xs text-muted">Choose any date to view your personal gochara and Panchang.</p></div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => stepDate(-1, "day")} className="rounded-lg border border-border px-3 py-2 text-sm text-cream" aria-label="Previous day">←</button>
+            <input type="date" value={date} onChange={(e) => { if (e.target.value) { setDate(e.target.value); setMonth(DateTime.fromISO(e.target.value).startOf("month")); } }} className="rounded-lg border border-border bg-ink-deep px-3 py-2 text-sm text-cream" />
+            <button type="button" onClick={() => stepDate(1, "day")} className="rounded-lg border border-border px-3 py-2 text-sm text-cream" aria-label="Next day">→</button>
+            <button type="button" onClick={() => { setDate(today); setMonth(DateTime.fromISO(today).startOf("month")); }} className="rounded-lg border border-gold/50 px-3 py-2 text-sm font-semibold text-gold-bright">Today</button>
+          </div>
+        </div>
+        <div className="mt-5 max-w-md">
+          <div className="mb-2 flex items-center justify-between">
+            <button type="button" onClick={() => setMonth(month.minus({ months: 1 }))} className="rounded-lg border border-border px-3 py-1.5 text-sm text-cream" aria-label="Previous month">←</button>
+            <div className="flex items-center gap-2 font-semibold text-cream">
+              <select aria-label="Month" value={month.month} onChange={(e) => setMonth(month.set({ month: Number(e.target.value) }))} className="rounded-lg border border-border bg-ink-deep px-2 py-1.5">{Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{DateTime.local(2024, i + 1).toFormat("LLLL")}</option>)}</select>
+              <select aria-label="Year" value={month.year} onChange={(e) => setMonth(month.set({ year: Number(e.target.value) }))} className="rounded-lg border border-border bg-ink-deep px-2 py-1.5">{Array.from({ length: 201 }, (_, i) => month.year - 100 + i).map((y) => <option key={y}>{y}</option>)}</select>
+            </div>
+            <button type="button" onClick={() => setMonth(month.plus({ months: 1 }))} className="rounded-lg border border-border px-3 py-1.5 text-sm text-cream" aria-label="Next month">→</button>
+          </div>
+          <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted">{["M", "T", "W", "T", "F", "S", "S"].map((d, i) => <span key={`${d}${i}`} className="py-1">{d}</span>)}
+            {Array.from({ length: blanks }, (_, i) => <span key={`blank${i}`} />)}
+            {days.map((d) => { const iso = d.toISODate()!; return <button type="button" key={iso} onClick={() => setDate(iso)} aria-pressed={date === iso} className={`rounded-lg py-2 font-tabular ${date === iso ? "bg-gold font-bold text-on-gold" : iso === today ? "border border-gold/50 text-gold-bright" : "text-cream hover:bg-surface-raised"}`}>{d.day}</button>; })}
+          </div>
+        </div>
+      </section>
+
+      <TransitChart transits={transits} chart={chart} date={date} />
+
+      {panchang ? <section className="card-edge rounded-2xl p-5">
+        <h3 className="text-lg font-bold text-cream">Panchang · {DateTime.fromISO(date, { zone }).toFormat("cccc, d LLLL yyyy")}</h3>
+        <p className="mt-1 text-xs text-muted">For {chart.input.place} · {zone} · Panchang limbs at local sunrise</p>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {[["Vara", `${panchang.vara.name} · ${panchang.vara.sanskrit}`], ["Tithi", `${panchang.tithi.paksha} ${panchang.tithi.name}`], ["Nakshatra", panchang.nakshatra.name], ["Yoga", panchang.yoga.name], ["Karana", panchang.karana.name], ["Moon sign", panchang.moonSign.name], ["Sun sign", panchang.sunSign], ["Sunrise", DateTime.fromJSDate(panchang.sunrise).setZone(zone).toFormat("h:mm a")], ["Sunset", DateTime.fromJSDate(panchang.sunset).setZone(zone).toFormat("h:mm a")], ["Rahu Kaal", `${DateTime.fromJSDate(panchang.rahuKaal.start).setZone(zone).toFormat("h:mm a")} – ${DateTime.fromJSDate(panchang.rahuKaal.end).setZone(zone).toFormat("h:mm a")}`]].map(([label, value]) => <div key={label} className="rounded-xl bg-surface/70 p-3"><p className="text-[11px] uppercase tracking-wide text-muted">{label}</p><p className="mt-1 text-sm font-semibold text-cream">{value}</p></div>)}
+        </div>
+      </section> : <section className="card-edge rounded-2xl p-5 text-sm text-muted">Panchang timings are unavailable for this date and location.</section>}
 
       <section className="card-edge overflow-x-auto rounded-2xl">
         <table className="w-full text-sm">
           <caption className="px-5 pt-5 text-left">
-            <span className="block text-lg font-bold text-cream">Current transits</span>
-            <span className="text-xs text-muted">As of {fullDate(now)}</span>
+            <span className="block text-lg font-bold text-cream">Transits on {DateTime.fromISO(date, { zone }).toFormat("d LLL yyyy")}</span>
+            <span className="text-xs text-muted">Calculated for your natal Moon and Lagna</span>
           </caption>
           <thead>
             <tr className="border-b border-border text-left text-xs whitespace-nowrap text-muted">
@@ -149,7 +207,7 @@ export function TransitsPanel({ report, chart }: { report: KundaliReport | null;
             </tr>
           </thead>
           <tbody>
-            {report.transits.map((t) => (
+            {transits.map((t) => (
               <tr key={t.planet} className="border-b border-border/50 whitespace-nowrap last:border-0">
                 <td className="px-4 py-2.5 font-medium text-cream">
                   {t.planet}
@@ -177,18 +235,18 @@ export function TransitsPanel({ report, chart }: { report: KundaliReport | null;
         </table>
       </section>
 
-      <SaturnTimeline report={report} now={now} />
+      <SaturnTimeline report={report} now={new Date()} />
     </div>
   );
 }
 
 /** Today's planets placed in the natal chart's houses — from the Lagna, or from the Moon as gochara is read. */
-function TransitChart({ report, chart }: { report: KundaliReport; chart: KundaliChart }) {
+function TransitChart({ transits, chart, date }: { transits: CurrentTransit[]; chart: KundaliChart; date: string }) {
   const [from, setFrom] = useState<"lagna" | "moon">("lagna");
   const moonSign = chart.planets.find((p) => p.planet === "Moon")!.signIndex;
   const reference = from === "lagna" ? chart.ascendant.signIndex : moonSign;
-  const marks = transitMarkers(report.transits.map((t) => ({ planet: t.planet, signIndex: t.signIndex, longitude: t.signIndex * 30 + t.degree, retrograde: t.retrograde })));
-  const points: ChartPoint[] = report.transits.map((t) => ({
+  const marks = transitMarkers(transits.map((t) => ({ planet: t.planet, signIndex: t.signIndex, longitude: t.signIndex * 30 + t.degree, retrograde: t.retrograde })));
+  const points: ChartPoint[] = transits.map((t) => ({
     planet: t.planet,
     signIndex: t.signIndex,
     house: from === "lagna" ? t.houseFromLagna : t.houseFromMoon,
@@ -200,9 +258,9 @@ function TransitChart({ report, chart }: { report: KundaliReport; chart: Kundali
   }));
   return (
     <section className="card-edge rounded-2xl p-6">
-      <h3 className="text-lg font-bold text-cream">Transit chart</h3>
+      <h3 className="text-lg font-bold text-cream">Transit chart · {DateTime.fromISO(date).toFormat("d LLL yyyy")}</h3>
       <p className="mt-1 text-xs text-muted">
-        Where the planets are today, drawn in your own houses. The highlighted house is your {from === "lagna" ? `Lagna (${chart.ascendant.sign})` : `Moon sign`}.
+        Planet positions drawn in your natal houses. The highlighted house is your {from === "lagna" ? `Lagna (${chart.ascendant.sign})` : `Moon sign`}.
       </p>
       <div className="mt-4 mb-5 flex justify-center">
         <SegmentedControl

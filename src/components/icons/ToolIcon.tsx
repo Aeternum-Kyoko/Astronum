@@ -83,6 +83,13 @@ const PATHS: Record<string, React.ReactNode> = {
       <path d="M12 9v4l2.5 2M9.5 2.5h5M12 2.5v3" />
     </>
   ),
+  vastu: (
+    <>
+      <path d="M3.5 10.5 12 3l8.5 7.5v9a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z" />
+      <path d="M12 7v10M7 12h10M9 9l6 6M15 9l-6 6" />
+      <circle cx="12" cy="12" r="1.2" />
+    </>
+  ),
 };
 
 export default function ToolIcon({ name, className = "h-6 w-6" }: { name: string; className?: string }) {

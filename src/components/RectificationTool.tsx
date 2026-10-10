@@ -162,7 +162,7 @@ function Results({ result, birth, open, setOpen }: { result: Response; birth: No
           {tied > 1 ? `, tied with ${tied - 1} other window${tied > 2 ? "s" : ""} — add another event to separate them` : ""}.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
-          <Link href={`/kundali?${toBirthQuery({ ...birth, time: best.best.time })}`} className="rounded-full bg-gold px-5 py-2 text-sm font-semibold text-on-gold hover:bg-gold-bright">
+          <Link href={`/kundali?${toBirthQuery({ ...birth, date: best.best.date, time: best.best.time })}`} className="rounded-full bg-gold px-5 py-2 text-sm font-semibold text-on-gold hover:bg-gold-bright">
             Open the chart for {best.best.time}
           </Link>
           <Link href="/consultation" className="rounded-full border border-border px-5 py-2 text-sm font-semibold text-cream hover:border-gold hover:text-gold-bright">

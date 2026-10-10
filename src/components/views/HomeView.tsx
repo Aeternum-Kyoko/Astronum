@@ -25,6 +25,7 @@ const TOOLS = [
   { key: "numerology", href: "/numerology" },
   { key: "palmistry", href: "/palmistry" },
   { key: "rectification", href: "/rectification" },
+  { key: "vastu", href: "/vastu" },
 ] as const;
 
 export default async function HomeView({ locale }: { locale: Locale }) {

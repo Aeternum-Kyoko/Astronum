@@ -38,6 +38,7 @@ import { pick } from "@/lib/i18n/ui";
 import { term } from "@/lib/i18n/terms";
 import { houseSignification, planetKeynote, signKeynote, vargaInfo } from "@/lib/astrology/content";
 import { markerText } from "@/lib/chartGeometry";
+import VastuTool from "@/components/VastuTool";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 /** The kundli's sections, grouped so the page opens on a summary and each area is one tap away. */
@@ -47,7 +48,7 @@ const GROUPS = [
   { name: "Charts", tabs: ["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Ashtakavarga", "Shadbala", "House Lords"] },
   { name: "Dashas", tabs: ["Dashas", "Yogini Dasha", "Chara Dasha"] },
   { name: "Advanced", tabs: ["Yogas & Doshas", "KP System", "Lal Kitab", "Special Tables"] },
-  { name: "Guidance", tabs: ["Remedies", "Rudraksha"] },
+  { name: "Guidance", tabs: ["Remedies", "Rudraksha", "Vastu & Home"] },
 ] as const;
 type Tab = (typeof GROUPS)[number]["tabs"][number];
 const groupOf = (t: Tab) => GROUPS.find((g) => (g.tabs as readonly string[]).includes(t))!;
@@ -94,6 +95,7 @@ export const TAB_SLUGS: Record<string, Tab> = {
   lords: "House Lords",
   lalkitab: "Lal Kitab",
   tables: "Special Tables",
+  vastu: "Vastu & Home",
 };
 
 const MORE_VARGA_KEYS = VARGA_KEYS.filter((k) => k !== "D1" && k !== "D9");
@@ -264,6 +266,7 @@ export default function KundaliResult({
               {tab === "Chara Dasha" && <CharaPanel report={report} />}
               {tab === "KP System" && <KpPanel report={report} />}
               {tab === "Transits" && <TransitsPanel report={report} chart={chart} />}
+              {tab === "Vastu & Home" && <VastuTool locale={locale} chart={chart} transits={report?.transits} />}
               {tab === "D1 · Rasi Chart" && <RasiTab chart={chart} style={style} setStyle={setStyle} />}
               {tab === "D9 · Navamsa" && (
                 <VargaTab

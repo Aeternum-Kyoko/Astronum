@@ -122,6 +122,7 @@ export function rectify(base: BirthInput, windowMinutes: number, events: LifeEve
     const chart = calculateKundali({ ...base, date: t.toISODate()!, time: t.toFormat("HH:mm") });
     const matches = events.map((ev) => scoreEvent(chart, ev));
     candidates.push({
+      date: t.toISODate()!,
       time: t.toFormat("HH:mm"),
       score: matches.reduce((a, e) => a + e.points, 0),
       lagna: chart.ascendant.sign,

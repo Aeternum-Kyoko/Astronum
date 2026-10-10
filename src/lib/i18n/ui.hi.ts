@@ -82,6 +82,7 @@ export const UI_HI: Record<string, string> = {
   "Special Tables": "विशेष तालिकाएँ",
   "Remedies": "उपाय",
   "Rudraksha": "रुद्राक्ष",
+  "Vastu & Home": "वास्तु और घर",
   "Chart sections": "चार्ट के भाग",
   "Shadbala weighs each planet's overall classical strength across six components — a planet with low Shadbala is read as needing support from the rest of the chart to deliver its significations fully.": "षड्बल छह घटकों में हर ग्रह के समग्र शास्त्रीय बल को तौलता है — कम षड्बल वाला ग्रह अपने कारकत्व पूरी तरह देने के लिए शेष कुंडली के सहारे पर निर्भर माना जाता है।",
   "Ascendant (Lagna)": "लग्न",

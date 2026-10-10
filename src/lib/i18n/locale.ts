@@ -8,7 +8,7 @@ export const LOCALES: Locale[] = ["en", "hi"];
  * Panchang, the festival calendar and festival pages, and the palmistry,
  * Lo Shu and rudraksha tools.
  */
-const HINDI_PATTERNS = [/^\/$/, /^\/horoscope(\/(?!personal$)[a-z]+)?$/, /^\/panchang$/, /^\/festivals(\/\d{4}(\/[a-z0-9-]+)?)?$/, /^\/(palmistry|lo-shu|rudraksha|kundali)$/];
+const HINDI_PATTERNS = [/^\/$/, /^\/horoscope(\/(?!personal$)[a-z]+)?$/, /^\/panchang$/, /^\/festivals(\/\d{4}(\/[a-z0-9-]+)?)?$/, /^\/(palmistry|lo-shu|rudraksha|kundali|vastu)$/];
 
 export function hasHindiVersion(path: string): boolean {
   const pathname = path.split("?")[0];

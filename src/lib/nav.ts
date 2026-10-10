@@ -32,6 +32,7 @@ export const KUNDLI_LINKS: NavItem[] = [
   { href: "/prashna", label: "Prashna (Ask a Question)", description: "An answer from the chart of this moment — no birth time needed", labelHi: "प्रश्न कुंडली", descriptionHi: "इस क्षण की कुंडली से उत्तर — जन्म समय की ज़रूरत नहीं" },
   { href: "/baby-names", label: "Baby Names", description: "Names by nakshatra and pada, with meanings", labelHi: "शिशु नाम", descriptionHi: "नक्षत्र और चरण के अनुसार नाम, अर्थ सहित" },
   { href: "/varshphal", label: "Varshphal", description: "Your annual solar-return chart", labelHi: "वर्षफल", descriptionHi: "आपकी वार्षिक कुंडली" },
+  { href: "/vastu", label: "Vāstu Calculator", description: "Review your home's directions, layout and personal Kundli context", labelHi: "वास्तु कैलकुलेटर", descriptionHi: "घर की दिशा, नक्शा और कुंडली के अनुसार संकेत देखें" },
   { href: "/learn/gemstones", label: "Gemstones", description: "Which navaratna suits which planet", labelHi: "रत्न", descriptionHi: "कौन सा रत्न किस ग्रह के लिए" },
 ];
 
@@ -63,7 +64,7 @@ export type NavEntry = NavItem | NavGroup;
 export const isGroup = (e: NavEntry): e is NavGroup => "items" in e;
 
 export const PRIMARY_NAV: NavEntry[] = [
-  { label: "Kundli", labelHi: "कुंडली", blurbHi: "कुंडली, मिलान और अंक ज्योतिष — असली खगोल गणना से।", matches: ["/kundali", "/matching", "/numerology", "/palmistry", "/lo-shu", "/rudraksha"], blurb: "Charts, matching and numerology — computed from real astronomy.", items: KUNDLI_LINKS },
+  { label: "Kundli", labelHi: "कुंडली", blurbHi: "कुंडली, मिलान और अंक ज्योतिष — असली खगोल गणना से।", matches: ["/kundali", "/matching", "/numerology", "/palmistry", "/lo-shu", "/rudraksha", "/vastu"], blurb: "Charts, matching and numerology — computed from real astronomy.", items: KUNDLI_LINKS },
   { label: "Horoscope", labelHi: "राशिफल", blurbHi: "राशि से या आपकी अपनी कुंडली से — हर फल का कारण सहित।", matches: ["/horoscope"], blurb: "By sign or from your own chart — every reading with its reasons.", items: HOROSCOPE_LINKS },
   { label: "Panchang", labelHi: "पंचांग", blurbHi: "किसी भी दिन, त्योहार या अवसर के लिए हिंदू पंचांग।", matches: ["/panchang", "/festivals", "/muhurat"], blurb: "The Hindu calendar for any day, festival or occasion.", items: PANCHANG_LINKS },
   { label: "Learn", labelHi: "सीखें", blurbHi: "आपकी कुंडली के हर पहलू की सरल जानकारी।", matches: ["/learn"], blurb: "Plain-language guides to every building block of your kundli.", items: [{ href: "/learn", label: "All topics", description: "The full reference library", labelHi: "सभी विषय", descriptionHi: "पूरी संदर्भ लाइब्रेरी" }, ...LEARN_LINKS] },

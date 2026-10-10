@@ -32,6 +32,7 @@ export interface EventMatch {
 }
 
 export interface Candidate {
+  date: string; // YYYY-MM-DD, may differ from the approximate date at midnight
   time: string; // HH:mm
   score: number;
   lagna: string;
