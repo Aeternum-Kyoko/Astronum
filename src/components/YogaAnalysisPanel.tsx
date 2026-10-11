@@ -1,5 +1,6 @@
 "use client";
 
+import { useAnalysis } from "./kundli/AnalysisContext";
 import { useMemo, useState } from "react";
 import type { KundaliChart } from "@/lib/astrology/types";
 import { analyzeYogas, type YogaCategory, type YogaFinding, type YogaStrength } from "@/lib/astrology/yogaAnalysis";
@@ -40,7 +41,8 @@ const STRENGTH_CLASS: Record<YogaStrength, string> = {
 const fmt = (d: Date) => d.toLocaleDateString(undefined, { month: "short", year: "numeric" });
 
 export default function YogaAnalysisPanel({ chart }: { chart: KundaliChart }) {
-  const analysis = useMemo(() => analyzeYogas(chart), [chart]);
+  const workspace = useAnalysis();
+  const analysis = useMemo(() => analyzeYogas(chart, workspace?.at), [chart, workspace?.at]);
   const count = (c: YogaCategory) => analysis.findings.filter((f) => f.category === c && f.strength !== "Weak").length;
 
   return (

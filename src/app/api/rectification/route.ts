@@ -13,6 +13,7 @@ const schema = z.object({
       date: z.string(),
       precision: z.enum(EVENT_PRECISIONS).default("day"),
       confidence: z.enum(EVENT_CONFIDENCES).default("high"),
+      useFor: z.enum(["fit", "validation"]).default("fit"),
       importance: z.number().int().min(1).max(5).default(3),
     }).superRefine((event, context) => {
       const pattern = event.precision === "day" ? /^\d{4}-\d{2}-\d{2}$/ : event.precision === "month" ? /^\d{4}-\d{2}$/ : /^\d{4}$/;
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
       warnings: result.warnings,
       leadingCandidateCount: result.leadingCandidateCount,
       scoreMargin: result.scoreMargin,
+      validation: result.validation,
     });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Could not rectify" }, { status: 400 });

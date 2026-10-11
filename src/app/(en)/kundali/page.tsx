@@ -10,8 +10,8 @@ export const metadata: Metadata = {
 
 export default function KundaliPage() {
   return (
-    <section className="relative overflow-hidden">
-      <div className="relative mx-auto max-w-6xl px-5 py-16 md:py-24">
+    <section className="relative">
+      <div className="relative mx-auto max-w-[1600px] px-5 py-16 md:py-24">
         {/* KundaliForm reads the birth details from the URL (shared links, home page form). */}
         {/* The fallback reserves the form's height so nothing below jumps when it hydrates. */}
         <Suspense

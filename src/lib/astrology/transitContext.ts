@@ -1,4 +1,6 @@
 import { NAKSHATRAS, SIGN_LORDS, SIGNS, type PlanetName, type AshtakavargaPlanet } from "./constants";
+import { rawTransitModifiers } from "./transitModifiers";
+import { periodsAt } from "./dashaTree";
 import { nakshatraLord } from "./dasha";
 import { siderealLongitude } from "./ephemeris";
 import { signOffsetHouse } from "./math";
@@ -61,6 +63,7 @@ export function transitNakshatra(longitude: number, natalMoonNakshatra: number) 
 export function transitContext(chart: KundaliChart, transits: CurrentTransit[], at: Date) {
   const moon = chart.planets.find((p) => p.planet === "Moon")!;
   const maitri = panchadhaMaitri(transits);
+  const chain = periodsAt(chart.dashas, at, 3);
   return transits.map((t) => {
     const ingress = currentSignIngress(t.planet, at);
     const moonSignIndex = ingress ? Math.floor(siderealLongitude("Moon", ingress) / 30) : null;
@@ -70,8 +73,12 @@ export function transitContext(chart: KundaliChart, transits: CurrentTransit[], 
     const bav = chart.ashtakavarga.bhinna[t.planet as AshtakavargaPlanet];
     return {
       planet: t.planet,
+      ...rawTransitModifiers(chart, t, transits),
       nakshatra: transitNakshatra(t.signIndex * 30 + t.degree, moon.nakshatraIndex),
       signLord, relationship,
+      natal: chart.planets.find(p => p.planet === t.planet)!,
+      strength: chart.shadbala.find(p => p.planet === t.planet) ?? null,
+      activeLevels: chain.flatMap((p, i) => p.lord === t.planet ? [i] : []),
       moorti: ingress && moonHouse !== null && moonSignIndex !== null ? { ...moortiFromHouse(moonHouse), ingress, moonHouse, moonSign: SIGNS[moonSignIndex] } : null,
       bav: bav?.[t.signIndex] ?? null,
       sav: chart.ashtakavarga.sarva[t.signIndex],

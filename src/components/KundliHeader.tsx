@@ -28,10 +28,10 @@ export default function KundliHeader({ chart, onEdit }: { chart: KundaliChart; o
   const { name, date, time, place } = chart.input;
   const moon = chart.planets.find((p) => p.planet === "Moon")!;
   return (
-    <header className="mb-10 print:hidden">
+    <header className="mb-4 print:hidden">
       <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-6">
         <div className="min-w-0">
-          <h1 className="text-4xl leading-[1.02] font-bold tracking-tight text-cream md:text-6xl">{name}</h1>
+          <h1 className="text-3xl leading-tight font-bold tracking-tight text-cream md:text-4xl">{name}</h1>
           <p className="mt-3 text-base text-muted md:text-lg">
             {formatDate(date,locale)} · {formatTime(time)}
             {place ? ` · ${place.split(",")[0]}` : ""}

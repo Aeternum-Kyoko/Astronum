@@ -62,24 +62,21 @@ export default async function HomeView({ locale }: { locale: Locale }) {
     <>
       {/* Hero: always the night sky, whatever the page theme. */}
       <section className="theme-night relative overflow-hidden">
-        <div className="mx-auto max-w-6xl px-5 pt-10 pb-16 text-center sm:pt-16 md:pt-24 md:pb-20">
-          <h1 className="mx-auto max-w-4xl text-5xl leading-[0.95] font-semibold text-cream sm:text-6xl md:text-8xl">{t.heroTitle}</h1>
-          <p className="mx-auto mt-5 max-w-xs text-lg leading-snug text-muted sm:hidden">{t.heroShort}</p>
-          <p className="mx-auto mt-6 hidden max-w-2xl text-lg leading-relaxed text-muted sm:block md:text-xl">{t.heroBody}</p>
-
-          <SkyDial sky={sky} className="mx-auto mt-8 w-full max-w-[600px] sm:mt-12" />
-
-          <p className="mx-auto mt-8 max-w-xl text-base text-cream md:text-lg">{t.heroNow(moonSign, nakshatra, tithiLabel)}</p>
-          <p className="mt-1 text-sm text-muted">{t.updated(now.toFormat("h:mm a"))}</p>
-
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
-            <a href="#kundli-form" className="rounded-full bg-gold px-7 py-3.5 text-base font-semibold text-on-gold transition-colors hover:bg-gold-bright">
-              {t.makeKundli}
-            </a>
-            <Link href={href("/panchang")} className="text-base font-medium text-gold-bright underline-offset-4 hover:underline">
-              {t.seePanchang}
-            </Link>
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 pt-10 pb-16 text-center sm:pt-14 md:py-10 lg:grid-cols-[.9fr_1.1fr] lg:gap-14 lg:text-left">
+          <div>
+            <h1 className="mx-auto max-w-4xl text-5xl leading-[0.95] font-semibold text-cream sm:text-6xl lg:text-7xl">{t.heroTitle}</h1>
+            <p className="mx-auto mt-5 max-w-xs text-lg leading-snug text-muted sm:hidden">{t.heroShort}</p>
+            <p className="mx-auto mt-6 hidden max-w-2xl text-lg leading-relaxed text-muted sm:block">{t.heroBody}</p>
+            <div className="mt-8 border-l-2 border-gold pl-4 text-left">
+              <p className="max-w-xl text-base leading-relaxed text-cream">{t.heroNow(moonSign, nakshatra, tithiLabel)}</p>
+              <p className="mt-2 text-xs text-muted">{t.updated(now.toFormat("h:mm a"))}</p>
+            </div>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 lg:justify-start">
+              <a href="#kundli-form" className="rounded-full bg-gold px-7 py-3.5 text-base font-semibold text-on-gold transition-colors hover:bg-gold-bright">{t.makeKundli}</a>
+              <Link href={href("/panchang")} className="text-base font-medium text-gold-bright underline-offset-4 hover:underline">{t.seePanchang}</Link>
+            </div>
           </div>
+          <SkyDial sky={sky} locale={locale} className="mx-auto w-full max-w-[600px] text-center" />
         </div>
       </section>
 

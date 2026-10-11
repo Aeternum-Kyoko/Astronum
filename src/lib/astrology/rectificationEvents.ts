@@ -30,9 +30,12 @@ export interface LifeEvent {
   confidence?: EventConfidence;
   /** Lets a well-documented major event count more than a minor one. */
   importance?: number;
+  /** Validation events are scored but never used to choose or order candidate times. */
+  useFor?: "fit" | "validation";
 }
 
 export interface EventMatch {
+  useFor?: "fit" | "validation";
   kind: EventKind;
   date: string;
   chain: PlanetName[];
@@ -70,4 +73,13 @@ export interface RectificationResult {
   warnings: string[];
   leadingCandidateCount: number;
   scoreMargin: number;
+  validation: RectificationValidation;
+}
+
+export interface RectificationValidation {
+  fitEventCount: number;
+  heldOutEventCount: number;
+  leaveOneOut: { omittedKind: EventKind; omittedDate: string; leadingTimes: string[]; overlapCount: number; nearestShiftMinutes: number; edge: boolean }[];
+  stableAcrossOmissions: boolean | null;
+  heldOut: { selectedScoreMin: number; selectedScoreMax: number; bestScore: number; allCandidatesTie: boolean; selectedContainsValidationLeader: boolean; events: { kind: EventKind; date: string; pointsMin: number; pointsMax: number }[] } | null;
 }

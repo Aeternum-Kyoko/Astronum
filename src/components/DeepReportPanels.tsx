@@ -1,4 +1,5 @@
 "use client";
+import { useAnalysis } from "./kundli/AnalysisContext";
 import { ruleSupport } from "@/lib/astrology/ruleSupport";
 
 import SectionSkeleton from "@/components/SectionSkeleton";
@@ -286,8 +287,9 @@ export function TimelinePanel({ report }: { report: KundaliReport | null }) {
   const [view, setView] = useState<"dasha" | "years">("dasha");
   const [openMaha, setOpenMaha] = useState<number | null>(null);
   const [allYears, setAllYears] = useState(false);
+  const analysis = useAnalysis();
   if (!report?.timeline) return <Missing />;
-  const now = new Date(report.generatedAt);
+  const now = analysis?.at ?? new Date(report.generatedAt);
   const t = report.timeline;
   const currentIdx = t.mahas.findIndex((m) => new Date(m.start) <= now && now < new Date(m.end));
   const shownMaha = openMaha ?? currentIdx;

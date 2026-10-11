@@ -1,5 +1,7 @@
 "use client";
 
+import { DateTime } from "luxon";
+import { useAnalysis } from "./kundli/AnalysisContext";
 import { useMemo, useState } from "react";
 import type { KundaliChart } from "@/lib/astrology/types";
 import type { PlanetName } from "@/lib/astrology/constants";
@@ -30,8 +32,10 @@ export default function DashaExplorer({ chart }: { chart: KundaliChart }) {
     [chart.dashas]
   );
   const [path, setPath] = useState<TreePeriod[]>([]);
-  const now = new Date();
-  const running = useMemo(() => periodsAt(chart.dashas, now), [chart.dashas]); // eslint-disable-line react-hooks/exhaustive-deps
+  const analysis = useAnalysis();
+  const today = new Date();
+  const now = analysis?.at ?? today;
+  const running = periodsAt(chart.dashas, now);
 
   const depth = path.length; // 0 = choosing a Mahadasha
   const list = depth === 0 ? roots : childPeriods(path[depth - 1]);
@@ -41,7 +45,8 @@ export default function DashaExplorer({ chart }: { chart: KundaliChart }) {
 
   const place = (lord: PlanetName) => chart.planets.find((p) => p.planet === lord)!;
   const rules = (lord: PlanetName) => chart.houseLords.filter((h) => h.lord === lord).map((h) => h.house);
-  const isRunning = (p: TreePeriod) => running[p.chain.length - 1]?.chain.join() === p.chain.join();
+  // Planet sequences repeat across cycles; the dates identify the actual running period.
+  const isRunning = (p: TreePeriod) => p.start <= now && now < p.end;
 
   function reason(p: TreePeriod): string {
     const lord = p.lord as PlanetName;
@@ -65,7 +70,7 @@ export default function DashaExplorer({ chart }: { chart: KundaliChart }) {
           <p className="mt-1 max-w-xl text-sm text-muted">Drill from the Mahadasha down to the Prana dasha — the finest level, timed to the minute.</p>
         </div>
         <button type="button" onClick={() => setPath(running.slice(0, MAX_DEPTH - 1))} className="rounded-full bg-gold px-4 py-2 text-xs font-semibold text-on-gold hover:bg-gold-bright">
-          Go to now
+          Go to analysis date
         </button>
       </div>
 
@@ -101,13 +106,15 @@ export default function DashaExplorer({ chart }: { chart: KundaliChart }) {
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="font-semibold text-cream">
                   {p.chain.join(" › ")}
-                  {live && <span className="ml-2 rounded-full bg-gold px-2 py-0.5 text-[10px] font-bold text-on-gold">Now</span>}
+                  {p.start <= today && today < p.end && <span className="ml-2 rounded-full border border-border px-2 py-0.5 text-[10px] text-cream">Today</span>}
+                  {live && <span className="ml-2 rounded-full bg-gold px-2 py-0.5 text-[10px] font-bold text-on-gold">At analysis date</span>}
                 </p>
                 <p className="font-tabular text-sm text-muted">
                   {fmt(p.start)} – {fmt(p.end)} <span className="text-xs">({formatSpan(p.end.getTime() - p.start.getTime())})</span>
                 </p>
               </div>
               <p className="mt-1 text-sm leading-relaxed text-muted">{reason(p)}</p>
+              {analysis && <button type="button" onClick={() => { const start = DateTime.fromMillis(Math.ceil(p.start.getTime() / 1000) * 1000).setZone(analysis.zone); analysis.update({ date: start.toISODate()!, time: start.toFormat("HH:mm:ss") }); }} className="mr-4 mt-1.5 text-xs font-semibold text-[#55B6A4] hover:underline">Preview this period</button>}
               {canDrill && (
                 <button type="button" onClick={() => setPath([...path, p])} className="mt-1.5 text-xs font-semibold text-gold-bright hover:underline">
                   Open {LEVEL_NAMES[p.chain.length]}s

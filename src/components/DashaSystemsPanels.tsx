@@ -1,5 +1,6 @@
 "use client";
 
+import { useAnalysis } from "./kundli/AnalysisContext";
 import SectionSkeleton from "@/components/SectionSkeleton";
 import { useState } from "react";
 import type { KundaliReport } from "@/lib/astrology/report";
@@ -29,7 +30,8 @@ function H({ children }: { children: React.ReactNode }) {
 // ——— Vimshottari in depth ——————————————————————————————————————————
 
 export function VimshottariDetail({ report }: { report: KundaliReport | null }) {
-  const now = report ? new Date(report.generatedAt) : new Date();
+  const analysis = useAnalysis();
+  const now = analysis?.at ?? (report ? new Date(report.generatedAt) : new Date());
   const current = report?.dashaDetail?.findIndex((m) => isNow(m.start, m.end, now)) ?? -1;
   const [open, setOpen] = useState<number | null>(null);
   if (!report?.dashaDetail) return null;
@@ -57,7 +59,7 @@ function MahaCard({ m, open, current, now, toggle }: { m: MahaInterpretation; op
         <span>
           <span className="text-lg font-bold text-cream">
             {m.lord} Mahadasha
-            {current && <span className="ml-2 rounded-full bg-gold px-2 py-0.5 align-middle text-[10px] font-bold text-on-gold">Now</span>}
+            {current && <span className="ml-2 rounded-full bg-gold px-2 py-0.5 align-middle text-[10px] font-bold text-on-gold">At analysis date</span>}
           </span>
           <span className="block text-xs text-muted">
             {monthYear(m.start)} – {monthYear(m.end)} · age {Math.floor(m.ageStart)}–{Math.floor(m.ageEnd)} · {Math.round(m.years)} years
@@ -193,8 +195,9 @@ function MahaCard({ m, open, current, now, toggle }: { m: MahaInterpretation; op
 
 export function YoginiPanel({ report }: { report: KundaliReport | null }) {
   const [open, setOpen] = useState<number | null>(null);
+  const analysis = useAnalysis();
   if (!report?.yogini) return <Missing />;
-  const now = new Date(report.generatedAt);
+  const now = analysis?.at ?? new Date(report.generatedAt);
   const current = report.yogini.findIndex((y) => isNow(y.start, y.end, now));
   const shown = open ?? current;
   const running = report.yogini[current];
@@ -257,8 +260,9 @@ export function YoginiPanel({ report }: { report: KundaliReport | null }) {
 
 export function CharaPanel({ report }: { report: KundaliReport | null }) {
   const [open, setOpen] = useState<number | null>(null);
+  const analysis = useAnalysis();
   if (!report?.chara) return <Missing />;
-  const now = new Date(report.generatedAt);
+  const now = analysis?.at ?? new Date(report.generatedAt);
   const current = report.chara.periods.findIndex((p) => isNow(p.start, p.end, now));
   const shown = open ?? current;
   return (
@@ -299,7 +303,7 @@ export function CharaPanel({ report }: { report: KundaliReport | null }) {
               <span>
                 <span className="font-semibold text-cream">
                   {p.sign} Chara dasha
-                  {i === current && <span className="ml-2 rounded-full bg-gold px-2 py-0.5 align-middle text-[10px] font-bold text-on-gold">Now</span>}
+                  {i === current && <span className="ml-2 rounded-full bg-gold px-2 py-0.5 align-middle text-[10px] font-bold text-on-gold">At analysis date</span>}
                 </span>
                 <span className="block text-xs text-muted">
                   {monthYear(p.start)} – {monthYear(p.end)} · {p.years} years · your {p.house}

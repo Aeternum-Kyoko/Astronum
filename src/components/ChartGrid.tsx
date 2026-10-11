@@ -28,6 +28,7 @@ const GRID_SIGNS: (number | null)[][] = [
 
 interface GridPlanet {
   planet: string;
+  layer?: "natal" | "transit";
   signIndex: number;
   retrograde: boolean;
   /** Status marks (↑ ↓ R C V); defaults to "R" for retrograde planets. */
@@ -100,10 +101,11 @@ export default function ChartGrid({
                 {isAscendant && <span className="chart-fade text-[10px] font-semibold text-gold-bright">{hi ? "लग्न" : "Lagna"}</span>}
                 {occupants.map((p) => (
                   <span
-                    key={p.planet}
+                    key={`${p.layer ?? "natal"}-${p.planet}`}
                     {...(onPick
                       ? {
                           role: "button",
+                          "aria-label": `${p.layer === "transit" ? "Transit " : "Natal "}${tr(p.planet)}`,
                           tabIndex: 0,
                           onClick: (e: React.MouseEvent) => {
                             e.stopPropagation();
@@ -128,10 +130,10 @@ export default function ChartGrid({
                     ]
                       .filter(Boolean)
                       .join(" · ")}
-                    className={`chart-fade font-semibold ${p.dignity ? DIGNITY_COLOR[p.dignity] : "text-cream"} ${glyphs ? (crowded ? "text-[12px]" : "text-[15px]") : crowded ? "text-[11px]" : "text-[13px]"}`}
+                    className={`chart-fade font-semibold ${p.layer === "transit" ? "text-[#55B6A4]" : p.layer === "natal" ? "text-gold-bright" : p.dignity ? DIGNITY_COLOR[p.dignity] : "text-cream"} ${glyphs ? (crowded ? "text-[12px]" : "text-[15px]") : crowded ? "text-[11px]" : "text-[13px]"}`}
                     style={glyphs ? { fontFamily: "'Noto Sans Symbols 2','Segoe UI Symbol','Apple Symbols',serif" } : undefined}
                   >
-                    {glyphs ? PLANET_GLYPH[p.planet] : planetAbbr(p.planet, locale)}
+                    {p.layer === "transit" ? "◇" : p.layer === "natal" ? "●" : ""}{glyphs ? PLANET_GLYPH[p.planet] : planetAbbr(p.planet, locale)}
                     {p.degreeInSign !== undefined && !crowded && <span className="ml-px text-[9px] font-normal text-muted tabular-nums">{Math.floor(p.degreeInSign)}°</span>}
                     {[...(p.markers ?? (p.retrograde ? "R" : ""))].map((m, i) => (
                       <sup key={i} className={m === "↓" || m === "C" || m === "R" ? "text-rose" : "text-gold-bright"}>

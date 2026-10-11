@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 
 export default function HindiKundaliPage() {
   return (
-    <section className="relative overflow-hidden">
-      <div className="relative mx-auto max-w-6xl px-5 py-16 md:py-24">
+    <section className="relative">
+      <div className="relative mx-auto max-w-[1600px] px-5 py-16 md:py-24">
         <Suspense
           fallback={
             <div className="mx-auto max-w-4xl">

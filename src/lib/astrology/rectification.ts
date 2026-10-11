@@ -1,3 +1,4 @@
+import { validateRectification } from "./rectificationValidation";
 import { DateTime } from "luxon";
 import { calculateKundali } from "./kundali";
 import { getAspectedHouses } from "./aspects";
@@ -153,7 +154,7 @@ function scoreEventAt(chart: KundaliChart, ev: LifeEvent, at: Date): EventMatch 
   const quality = evidenceWeight(ev);
   points = Math.round(points * quality);
   if (quality !== 1) reasons.push(`Evidence weight ${Math.round(quality * 100)}% based on date precision, confidence, and importance: ${rawPoints} becomes ${points}.`);
-  return { kind: ev.kind, date: ev.date, chain, points, rawPoints, evidenceWeight: quality, reasons };
+  return { useFor: ev.useFor ?? "fit", kind: ev.kind, date: ev.date, chain, points, rawPoints, evidenceWeight: quality, reasons };
 }
 
 function scoreEvent(chart: KundaliChart, ev: LifeEvent, moments: Date[]): EventMatch {
@@ -178,7 +179,13 @@ export function rectify(base: BirthInput, windowMinutes: number, events: LifeEve
   const center = DateTime.fromISO(`${base.date}T${base.time}`, { zone: base.timezone });
   if (!center.isValid || !Number.isInteger(windowMinutes) || windowMinutes < 0 || windowMinutes > 120 || !Number.isInteger(step) || step < 1) throw new Error("Invalid birth time, search window, or minute step.");
   if (!events.length) throw new Error("Add at least one life event.");
+  if (events.some((event, i) => events.slice(0, i).some(other => other.kind === event.kind && other.date === event.date && (other.precision ?? "day") === (event.precision ?? "day") && (other.useFor ?? "fit") !== (event.useFor ?? "fit")))) {
+    throw new Error("The same event cannot be both fitting and reserved validation evidence.");
+  }
   const unique = events.filter((event, i) => events.findIndex((other) => other.kind === event.kind && other.date === event.date && (other.precision ?? "day") === (event.precision ?? "day")) === i);
+  const fitEvents = unique.filter(event => event.useFor !== "validation");
+  if (!fitEvents.length) throw new Error("At least one event must be used for fitting.");
+  if (unique.some(event => event.useFor === "validation") && fitEvents.length < 2) throw new Error("Reserve validation events only when at least two other events are available for fitting.");
   const moments = unique.map((event) => eventMoments(event, base.timezone));
   const candidates: Candidate[] = [];
   for (let m = -windowMinutes; m <= windowMinutes; m += step) {
@@ -188,7 +195,7 @@ export function rectify(base: BirthInput, windowMinutes: number, events: LifeEve
     candidates.push({
       date: t.toISODate()!,
       time: t.toFormat(base.time.length > 5 ? "HH:mm:ss" : "HH:mm"),
-      score: matches.reduce((a, e) => a + e.points, 0),
+      score: matches.reduce((a, e, i) => a + (unique[i].useFor === "validation" ? 0 : e.points), 0),
       lagna: chart.ascendant.sign,
       navamsaLagna: SIGNS[chart.divisionalCharts.D9.ascendant.signIndex],
       moonNakshatra: chart.planets.find((p) => p.planet === "Moon")!.nakshatra,
@@ -215,21 +222,30 @@ export function rectify(base: BirthInput, windowMinutes: number, events: LifeEve
   const runnerUp = Math.max(0, ...candidates.filter((c) => c.score < maxScore).map((c) => c.score));
   const margin = maxScore - runnerUp;
   const edge = leading.includes(candidates[0]) || leading.includes(candidates[candidates.length - 1]);
-  const exactHighEvents = unique.filter((event) => (event.precision ?? "day") === "day" && (event.confidence ?? "high") === "high").length;
-  const diversity = new Set(unique.map((event) => event.kind)).size;
-  const distinctDates = new Set(unique.map((event) => event.date)).size;
+  const exactHighEvents = fitEvents.filter((event) => (event.precision ?? "day") === "day" && (event.confidence ?? "high") === "high").length;
+  const diversity = new Set(fitEvents.map((event) => event.kind)).size;
+  const distinctDates = new Set(fitEvents.map((event) => event.date)).size;
   const resolved = maxScore > 0 && leading.length < candidates.length && !edge;
-  const confidence = resolved && runs.filter((run) => run.best.score === maxScore).length === 1 && unique.length >= 5 && exactHighEvents >= 3 && diversity >= 3 && distinctDates >= 5 && margin >= 3 && bestWidth <= 6
-    ? "strong" : resolved && unique.length >= 3 && exactHighEvents >= 2 && diversity >= 2 && distinctDates >= 3 && bestWidth <= 15 ? "moderate" : "low";
+  let confidence: RectificationResult["confidence"] = resolved && runs.filter((run) => run.best.score === maxScore).length === 1 && fitEvents.length >= 5 && exactHighEvents >= 3 && diversity >= 3 && distinctDates >= 5 && margin >= 3 && bestWidth <= 6
+    ? "strong" : resolved && fitEvents.length >= 3 && exactHighEvents >= 2 && diversity >= 2 && distinctDates >= 3 && bestWidth <= 15 ? "moderate" : "low";
   const warnings: string[] = [];
   if (unique.length < events.length) warnings.push("Repeated events with the same kind, date and precision count only once.");
   if (edge) warnings.push("A leading candidate touches the search boundary; try a wider window before choosing a time.");
   if (leading.length === candidates.length) warnings.push("All tested times tie; these events do not distinguish the birth time.");
   if (leading.length > 1) warnings.push(`${leading.length} sampled times share the leading score across the full search, including intervals outside the displayed shortlist.`);
+  const validation = validateRectification(candidates, unique, step);
+  if (validation.stableAcrossOmissions === false) {
+    warnings.push("Removing a fitting event changes or broadens the leading set; the result is sensitive to event selection.");
+    if (confidence === "strong") confidence = "moderate";
+  }
+  if (validation.heldOut && !validation.heldOut.allCandidatesTie && !validation.heldOut.selectedContainsValidationLeader) {
+    warnings.push("Reserved events favour other sampled times over the fitted leading set. Inspect this disagreement before adopting a time.");
+    confidence = "low";
+  }
   const confidenceReason = confidence === "strong"
     ? "Distinct, well-dated events support a narrow interval with a score margin. This is heuristic evidence, not a validated probability or proof of birth time."
     : confidence === "moderate"
       ? "Several well-dated events distinguish a limited interval, but competing times remain. This is a rectification hypothesis."
       : "The evidence does not resolve a reliable narrow interval. Add independent, well-dated events or widen a boundary-limited search.";
-  return { candidates, runs, boundaries, maxScore, confidence, confidenceReason, warnings, leadingCandidateCount: leading.length, scoreMargin: margin };
+  return { candidates, runs, boundaries, maxScore, confidence, confidenceReason, warnings, leadingCandidateCount: leading.length, scoreMargin: margin, validation };
 }

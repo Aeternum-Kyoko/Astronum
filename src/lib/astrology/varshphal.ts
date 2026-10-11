@@ -43,7 +43,7 @@ export function computeVarshphal(input: BirthInput, natal: KundaliChart, year: n
   const natalSun = natal.planets.find((p) => p.planet === "Sun")!.siderealLongitude;
   const returnMoment = solarReturn(natalSun, birth, year);
   const local = DateTime.fromJSDate(returnMoment, { zone: input.timezone });
-  const chart = calculateKundali({ ...input, date: local.toISODate()!, time: local.toFormat("HH:mm") });
+  const chart = calculateKundali({ ...input, date: local.toISODate()!, time: local.toFormat("HH:mm:ss") });
 
   const age = year - DateTime.fromJSDate(birth, { zone: input.timezone }).year;
   const munthaSign = (natal.ascendant.signIndex + age) % 12;

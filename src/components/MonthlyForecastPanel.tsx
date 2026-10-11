@@ -1,4 +1,5 @@
 "use client";
+import { useAnalysis } from "./kundli/AnalysisContext";
 
 import { useState } from "react";
 import SectionSkeleton from "@/components/SectionSkeleton";
@@ -35,9 +36,13 @@ const shortMonth = (key: string) => new Date(`${key}-01T00:00:00Z`).toLocaleDate
 
 /** The next twelve months read from dasha, gochara, every divisional chart, numerology and planet strength together. */
 export default function MonthlyForecastPanel({ report }: { report: KundaliReport | null }) {
-  const [index, setIndex] = useState(0);
+  const analysis = useAnalysis();
+  const [ownIndex, setOwnIndex] = useState(0);
   const f = report?.monthly;
   if (!f) return <SectionSkeleton label="Working out your next twelve months…" />;
+  const matching = f.months.findIndex(m => m.month === analysis?.date.slice(0, 7));
+  const index = matching >= 0 ? matching : ownIndex;
+  const setIndex = (i: number) => { setOwnIndex(i); if (analysis) analysis.update({ date: `${f.months[i].month}-15` }); };
   const m = f.months[index];
 
   return (
@@ -49,7 +54,8 @@ export default function MonthlyForecastPanel({ report }: { report: KundaliReport
       </p>
 
       <section className="card-edge rounded-3xl p-5 md:p-6" aria-label="Twelve-month outlook">
-        <h3 className="text-sm font-semibold text-cream">Your next 12 months</h3>
+        <h3 className="text-sm font-semibold text-cream">Calculated twelve-month outlook</h3>
+        {analysis && matching < 0 && <p className="mt-2 text-xs text-rose">Your analysis date is outside this report’s calculated window. Choose one of the available months to inspect its forecast.</p>}
         <p className="mt-1 text-sm leading-relaxed text-muted">{f.summary.text}</p>
         <div className="mt-5 flex h-36 items-end gap-1.5" role="tablist" aria-label="Choose a month">
           {f.summary.trend.map((t, i) => {
@@ -242,7 +248,7 @@ function MonthView({ m }: { m: MonthForecast }) {
                 <td className="px-4 py-2.5">
                   {t.favourable ? (
                     t.vedhaBy ? (
-                      <span className="text-cream">Good, blocked by {t.vedhaBy}</span>
+                      <span className="text-cream">Good, blocked by {(t.vedhaBlockers ?? [t.vedhaBy]).join(", ")}</span>
                     ) : (
                       <span className="text-gold-bright">Good</span>
                     )

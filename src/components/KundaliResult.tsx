@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import type { KundaliChart } from "@/lib/astrology/types";
@@ -9,10 +9,10 @@ import { NAKSHATRAS, SIGNS, SIGN_SANSKRIT, ASHTAKAVARGA_PLANETS, VARGA_KEYS, typ
 import { SIGN_KEYNOTE, PLANET_KEYNOTE } from "@/lib/astrology/content";
 import { analyzeBhavaStrength } from "@/lib/astrology/bhavaStrength";
 import { dignityColorClass } from "@/lib/astrology/dignity";
-import { signOffsetHouse } from "@/lib/astrology/math";
 import type { DivisionalChart } from "@/lib/astrology/types";
 import KundliChart, { type ChartPoint } from "@/components/KundliChart";
 import { MARKER_MEANING, WEAK_MARKERS, natalMarkers, planetMarkers, type Marker } from "@/lib/astrology/chartMarkers";
+import { binduBand } from "@/lib/astrology/ashtakavarga";
 import AshtakavargaGrid from "@/components/AshtakavargaGrid";
 import ShadbalaTable from "@/components/ShadbalaTable";
 import ChartDetail from "@/components/ChartDetail";
@@ -29,8 +29,14 @@ import type { HeavySection, KundaliReport } from "@/lib/astrology/report";
 import YogaAnalysisPanel from "@/components/YogaAnalysisPanel";
 import { CareerPanel, HousesPanel, TimelinePanel } from "@/components/DeepReportPanels";
 import { CharaPanel, KpPanel, LifeSectorsPanel, VimshottariDetail, YoginiPanel } from "@/components/DashaSystemsPanels";
-import KundliSummary from "@/components/KundliSummary";
-import { haptic } from "@/lib/haptics";
+import { AnalysisProvider, useAnalysis } from "./kundli/AnalysisContext";
+import AnalysisCalendar from "./kundli/AnalysisCalendar";
+import ChartWorkspace from "./kundli/ChartWorkspace";
+import WorkspaceLayouts from "./kundli/WorkspaceLayouts";
+import { periodsAt } from "@/lib/astrology/dashaTree";
+import TimingStrip from "./kundli/TimingStrip";
+import WorkspaceOverview from "./kundli/WorkspaceOverview";
+import "./kundli/workspace.css";
 import { LalKitabPanel, SpecialTablesPanel } from "@/components/AdvancedPanels";
 import { nakshatraLord } from "@/lib/astrology/dasha";
 import { useLocale, useT } from "@/lib/i18n/LocaleContext";
@@ -38,9 +44,11 @@ import { pick } from "@/lib/i18n/ui";
 import { term } from "@/lib/i18n/terms";
 import { houseSignification, planetKeynote, signKeynote, vargaInfo } from "@/lib/astrology/content";
 import { markerText } from "@/lib/chartGeometry";
+import AnnualReadingPanel from "./AnnualReadingPanel";
+import AshtakavargaAdvancedPanel from "./AshtakavargaAdvancedPanel";
 import ReadingContextPanel from "@/components/ReadingContextPanel";
 import EventJournalPanel from "./EventJournalPanel";
-import AstrologerWorkbench from "./AstrologerWorkbench";
+
 import CalculationDetailsPanel from "./CalculationDetailsPanel";
 import BirthPrecisionPanel from "./BirthPrecisionPanel";
 import ChartComparisonPanel from "./ChartComparisonPanel";
@@ -50,15 +58,7 @@ import VastuTool from "@/components/VastuTool";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 /** The kundli's sections, grouped so the page opens on a summary and each area is one tap away. */
-const GROUPS = [
-  { name: "Start", tabs: ["Summary", "Astrologer Workspace", "Dashboard", "Overview", "Birth Precision", "Event Journal", "Calculation Details"] },
-  { name: "Life areas", tabs: ["Relationships", "Wealth", "Education", "Property", "Career", "Life Report", "Life Sectors", "Houses", "Planet Readings"] },
-  { name: "Timing", tabs: ["Transits", "Monthly Forecast", "Life Timeline", "Dashas", "Yogini Dasha", "Chara Dasha"] },
-  { name: "Charts & systems", tabs: ["Compare Charts", "D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Ashtakavarga", "Shadbala", "House Lords", "Yogas & Doshas", "KP System", "Lal Kitab", "Special Tables"] },
-  { name: "Guidance", tabs: ["Remedies", "Rudraksha", "Vastu & Home"] },
-] as const;
-type Tab = (typeof GROUPS)[number]["tabs"][number];
-const groupOf = (t: Tab) => GROUPS.find((g) => (g.tabs as readonly string[]).includes(t))!;
+type Tab = "Summary" | "Astrologer Workspace" | "Dashboard" | "Overview" | "Birth Precision" | "Event Journal" | "Calculation Details" | "Relationships" | "Wealth" | "Education" | "Property" | "Career" | "Life Report" | "Life Sectors" | "Houses" | "Planet Readings" | "Annual Reading" | "Transits" | "Monthly Forecast" | "Life Timeline" | "Dashas" | "Yogini Dasha" | "Chara Dasha" | "Compare Charts" | "D1 · Rasi Chart" | "D9 · Navamsa" | "More Vargas" | "Ashtakavarga" | "Shadbala" | "House Lords" | "Yogas & Doshas" | "KP System" | "Lal Kitab" | "Special Tables" | "Remedies" | "Rudraksha" | "Vastu & Home";
 
 /** The heavy report sections each tab needs. */
 const TAB_SECTIONS: Partial<Record<Tab, HeavySection[]>> = {
@@ -83,6 +83,7 @@ export const TAB_SLUGS: Record<string, Tab> = {
   dashboard: "Dashboard",
   overview: "Overview",
   report: "Life Report",
+  annual: "Annual Reading",
   monthly: "Monthly Forecast",
   planets: "Planet Readings",
   houses: "Houses",
@@ -118,7 +119,11 @@ function formatDateShort(d: Date | string, locale?: string): string {
   return new Date(d).toLocaleDateString(locale === "hi" ? "hi-IN" : undefined, { year: "numeric", month: "short" });
 }
 
-export default function KundaliResult({
+export default function KundaliResult(props: { chart: KundaliChart; report: KundaliReport | null; initialTab?: string | null; loadSections?: (sections: HeavySection[]) => void }) {
+  return <AnalysisProvider chart={props.chart}><KundaliWorkspace {...props} /></AnalysisProvider>;
+}
+
+function KundaliWorkspace({
   chart,
   report,
   initialTab,
@@ -135,173 +140,108 @@ export default function KundaliResult({
   const [savedMode, saveMode] = useDeviceStore<string>("astronum-kundli-mode", "user");
   const mode = savedMode === "astrologer" ? "astrologer" : "user";
   const [search, setSearch] = useState("");
-  const visibleGroups = GROUPS.map(g => ({ ...g, tabs: g.tabs.filter(t =>
-    (mode === "astrologer" || !["Astrologer Workspace", "Dashboard", "Overview"].includes(t)) &&
-    (!search || `${t} ${tr(t)}`.toLowerCase().includes(search.toLowerCase()))
-  ) })).filter(g => g.tabs.length);
-  const [chosenTab, setTabState] = useState<Tab | null>((initialTab && TAB_SLUGS[initialTab]) || null);
-  const tab = chosenTab ?? (mode === "astrologer" ? "Astrologer Workspace" : "Summary");
-  const setTab = (t: Tab) => {
-    setTabState(t);
-    // Keep the section in the URL so it can be shared or bookmarked.
-    const slug = Object.keys(TAB_SLUGS).find((k) => TAB_SLUGS[k] === t);
-    if (slug) {
-      const url = new URL(window.location.href);
-      url.searchParams.set("tab", slug);
-      window.history.replaceState(null, "", url);
+  const [previousTab, setPreviousTab] = useState<Tab | null>(null);
+  const analysis = useAnalysis()!;
+  const [paneWidth, setPaneWidth] = useDeviceStore<number>("kundli-pane-width", 55);
+  const cleanTab = (value: Tab): Tab => ["Astrologer Workspace", "Dashboard", "Overview"].includes(value) ? "Summary" : value;
+  const initial = cleanTab((initialTab && TAB_SLUGS[initialTab]) || "Summary");
+  const [chosenTab, setTabState] = useState<Tab>(initial);
+  const tab = chosenTab;
+  const [visited, setVisited] = useState<Tab[]>([initial]);
+  const groups = [
+    { name: "Overview", tabs: ["Summary"] as Tab[] },
+    { name: "Charts", tabs: ["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Compare Charts", "Houses", "Planet Readings", "House Lords"] as Tab[] },
+    { name: "Timing", tabs: ["Transits", "Dashas", "Annual Reading", "Monthly Forecast", "Life Timeline", "Yogini Dasha", "Chara Dasha"] as Tab[] },
+    { name: "Life areas", tabs: ["Career", "Relationships", "Wealth", "Education", "Property", "Life Report", "Life Sectors", "Remedies", "Rudraksha", "Vastu & Home"] as Tab[] },
+    { name: "Tools", tabs: ["Ashtakavarga", "Shadbala", "Yogas & Doshas", "KP System", "Lal Kitab", "Special Tables", "Birth Precision", "Event Journal", "Calculation Details"] as Tab[] },
+  ];
+  const activeGroup = groups.find(g => g.tabs.includes(tab))!;
+  const [directory, setDirectory] = useState(false);
+  const setTab = (value: Tab, history = true) => {
+    const t = cleanTab(value);
+    if (t !== tab) setPreviousTab(tab);
+    setVisited(current => current.includes(t) ? current : [...current, t]);
+    setSearch(""); setDirectory(false); setTabState(t);
+    if (t === "D1 · Rasi Chart") analysis.update({ primary: "D1" });
+    if (t === "More Vargas" && ["D1", "D9"].includes(analysis.primary)) analysis.update({ primary: "D10" });
+    if (t === "D9 · Navamsa") analysis.update({ primary: "D9" });
+    if (t === "Transits") analysis.update({ primary: "D1", reference: "lagna", overlay: true });
+    const topicVarga: Partial<Record<Tab, VargaKey>> = { Career: "D10", Relationships: "D9", Wealth: "D2", Education: "D24", Property: "D4" };
+    if (topicVarga[t]) analysis.update({ primary: "D1", secondary: topicVarga[t], compare: mode === "astrologer" });
+    if (t === "Compare Charts") analysis.update({ compare: true });
+    const slug = Object.keys(TAB_SLUGS).find(k => TAB_SLUGS[k] === t);
+    if (history && slug) {
+      const url = new URL(window.location.href); url.searchParams.set("tab", slug);
+      window.history.pushState(null, "", url);
     }
   };
-  // Swipe left or right on a phone to move between sections, like pages in an app.
-  const ORDER = (GROUPS.flatMap((g) => g.tabs) as Tab[]).filter(t => mode === "astrologer" || !["Astrologer Workspace", "Dashboard", "Overview"].includes(t));
-  const touch = useRef<{ x: number; y: number; t: number } | null>(null);
-  function onTouchStart(e: React.TouchEvent) {
-    const target = e.target as Element;
-    // Leave gestures alone inside horizontally scrolling tables, charts' own controls and form fields.
-    if (target.closest(".overflow-x-auto, input, select, textarea, [data-no-swipe]")) {
-      touch.current = null;
-      return;
-    }
-    touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
-  }
-  function onTouchEnd(e: React.TouchEvent) {
-    const start = touch.current;
-    touch.current = null;
-    if (!start) return;
-    const dx = e.changedTouches[0].clientX - start.x;
-    const dy = e.changedTouches[0].clientY - start.y;
-    if (Math.abs(dx) < 70 || Math.abs(dy) > 45 || Date.now() - start.t > 600) return;
-    const i = ORDER.indexOf(tab);
-    const next = ORDER[i + (dx < 0 ? 1 : -1)];
-    if (!next) return;
-    haptic("selection");
-    setTab(next);
-  }
-
+  useEffect(() => {
+    const restore = () => {
+      const slug = new URL(window.location.href).searchParams.get("tab");
+      const t = cleanTab((slug && TAB_SLUGS[slug]) || "Summary");
+      setTabState(t); setVisited(current => current.includes(t) ? current : [...current, t]);
+    };
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, []);
   // Load each tab's heavy sections when it's opened (the summary also prefetches what its cards show).
   useEffect(() => {
     const need = TAB_SECTIONS[tab];
     if (need?.length && report) loadSections?.(need);
   }, [tab, report, loadSections]);
 
-  const go = (slug: string) => {
-    if (TAB_SLUGS[slug]) setTab(TAB_SLUGS[slug]);
-    document.getElementById("kundli-sections")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-  const [style, setStyle] = useState<"north" | "south">("north");
-  const tabStripRef = useRef<HTMLUListElement>(null);
-
-  // On phones the tabs are a horizontal strip; keep the active one visible (e.g. after a ?tab= deep link).
-  useEffect(() => {
-    const strip = tabStripRef.current;
-    const active = strip?.querySelector<HTMLElement>("[aria-current=page]");
-    if (!strip || !active || strip.scrollWidth <= strip.clientWidth) return;
-    strip.scrollTo({ left: active.offsetLeft - (strip.clientWidth - active.offsetWidth) / 2, behavior: "smooth" });
-  }, [tab]);
-
+  const go = (slug: string) => { if (TAB_SLUGS[slug]) setTab(TAB_SLUGS[slug]); };
+  const style = analysis.style;
+  const setStyle = (style: "north" | "south") => analysis.update({ style });
+  const label = (t: Tab) => t === "Summary" ? tr("Overview") : t;
   return (
-    <div>
+    <div className={`kundli-workspace mode-${mode}`} data-mode={mode}>
       <div className="print:hidden">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gold/25 bg-surface/40 p-4">
-          <div><p className="font-semibold text-cream">{pick(locale)("Your reading workspace", "आपका कुंडली कार्यक्षेत्र")}</p><p className="mt-1 text-xs text-muted">{mode === "user" ? pick(locale)("Guided readings with the chart evidence close by.", "व्याख्या के साथ कुंडली के प्रमाण।") : pick(locale)("Technical tables, chart comparisons and detailed timing.", "तकनीकी तालिकाएँ, कुंडली तुलना और विस्तृत दशाएँ।")}</p></div>
-          <SegmentedControl layoutId="reading-mode" value={mode} options={[{value:"user",label:pick(locale)("User","उपयोगकर्ता")},{value:"astrologer",label:pick(locale)("Astrologer","ज्योतिषी")}]} onChange={(value) => { setSearch(""); saveMode(value); setTab(value === "astrologer" ? "Astrologer Workspace" : "Summary"); }} />
+        <header className="workspace-header">
+          <div><h2>{mode === "astrologer" ? pick(locale)("Astrologer view", "ज्योतिषी दृश्य") : pick(locale)("Your chart, explained", "आपकी कुंडली की व्याख्या")}</h2><button type="button" onClick={() => go("precision")} className="mt-2 text-xs text-gold-bright">{pick(locale)("Review birth-time precision", "जन्म-समय सटीकता देखें")}</button></div>
+          <div className="flex flex-wrap items-center gap-3"><SegmentedControl layoutId="reading-mode" value={mode} options={[{value:"user",label:pick(locale)("User","उपयोगकर्ता")},{value:"astrologer",label:pick(locale)("Astrologer","ज्योतिषी")}]} onChange={value => saveMode(value)} /><button type="button" onClick={() => window.print()} className="workspace-export">{pick(locale)("Print / Save PDF", "प्रिंट / PDF")}</button></div>
+        </header>
+        <div id="kundli-sections" className="workspace-navigation">
+          <nav aria-label={pick(locale)("Kundli destinations", "कुंडली भाग")} className="workspace-destinations">{groups.map(g => <button type="button" key={g.name} aria-current={activeGroup.name === g.name ? "page" : undefined} onClick={() => setTab(g.tabs[0])}>{tr(g.name)}</button>)}</nav>
+          <div className="workspace-shortcuts">{(["D1 · Rasi Chart", "D9 · Navamsa", "Transits", "Dashas"] as Tab[]).map(t => <button type="button" key={t} aria-current={tab === t ? "page" : undefined} onClick={() => setTab(t)}>{t.startsWith("D1") ? "D1" : t.startsWith("D9") ? "D9" : tr(t)}</button>)}<button type="button" onClick={() => setDirectory(!directory)} aria-expanded={directory}>{pick(locale)("Find a tool", "उपकरण खोजें")}</button>{previousTab && <button type="button" onClick={() => setTab(previousTab)}>{pick(locale)("Back to", "वापस")}: {label(previousTab)}</button>}</div>
+          <AnalysisCalendar />
         </div>
-        <div id="kundli-sections" className="scroll-mt-24 lg:grid lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-8">
-          <nav aria-label={tr("Chart sections")} className="lg:sticky lg:top-24 lg:self-start">
-            <label className="mb-3 block"><span className="sr-only">{pick(locale)("Find a section", "भाग खोजें")}</span><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder={pick(locale)("Find a section…", "भाग खोजें…")} className="input w-full text-sm" /></label>
-            {visibleGroups.length === 0 && <p className="p-3 text-sm text-muted">{pick(locale)("No matching sections.", "कोई भाग नहीं मिला।")}</p>}
-            {/* Phones: a row of groups, then the sections in the chosen group. */}
-            <div className="lg:hidden">
-              <ul className="scrollbar-none -mx-5 flex gap-1.5 overflow-x-auto px-5 pb-2">
-                {visibleGroups.map((g) => (
-                  <li key={g.name} className="shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setTab(g.tabs[0])}
-                      aria-pressed={groupOf(tab).name === g.name}
-                      className={`rounded-full border px-4 py-1.5 text-xs font-semibold ${groupOf(tab).name === g.name ? "border-gold bg-gold text-on-gold" : "border-border text-muted"}`}
-                    >
-                      {tr(g.name)}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <ul ref={tabStripRef} className="scrollbar-none -mx-5 mt-1 flex gap-1.5 overflow-x-auto px-5 pb-2">
-                {(search ? visibleGroups.flatMap(g=>g.tabs) : groupOf(tab).tabs.filter(t=>mode === "astrologer" || !["Astrologer Workspace", "Dashboard", "Overview"].includes(t))).map((t) => (
-                  <li key={t} className="shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setTab(t)}
-                      aria-current={tab === t ? "page" : undefined}
-                      className={`rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap ${tab === t ? "bg-surface-raised text-cream ring-1 ring-gold/60" : "text-muted"}`}
-                    >
-                      {tr(t)}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            {/* Desktop: grouped sidebar. */}
-            <div className="hidden lg:block lg:rounded-2xl lg:border lg:border-border lg:bg-ink-deep/60 lg:p-2">
-              {visibleGroups.map((g) => (
-                <details key={g.name} open={!!search || groupOf(tab).name === g.name} className="mb-2 last:mb-0">
-                  <summary className="cursor-pointer px-3 pt-2 pb-1 text-[11px] font-semibold text-muted">{tr(g.name)}</summary>
-                  <ul className="flex flex-col gap-0.5">
-                    {g.tabs.map((t) => (
-                      <li key={t}>
-                        <button
-                          type="button"
-                          onClick={() => setTab(t)}
-                          aria-current={tab === t ? "page" : undefined}
-                          className="relative w-full rounded-xl px-3 py-2 text-left text-sm font-semibold"
-                        >
-                          {tab === t && <motion.span layoutId="active-tab-pill" className="absolute inset-0 rounded-xl bg-gold" transition={{ type: "spring", stiffness: 420, damping: 32 }} />}
-                          <span className={`relative z-10 transition-colors ${tab === t ? "text-on-gold" : "text-muted hover:text-cream"}`}>{tr(t)}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              ))}
-            </div>
-          </nav>
+        {directory && <div className="workspace-directory"><label><span className="sr-only">{pick(locale)("Find a section", "भाग खोजें")}</span><input autoFocus type="search" className="input w-full" value={search} onChange={e => setSearch(e.target.value)} placeholder={pick(locale)("Search charts, life areas, and tools", "कुंडलियाँ, जीवन क्षेत्र और उपकरण खोजें")} /></label><div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">{groups.map(g => <section key={g.name}><h3 className="mb-2 text-sm text-cream">{tr(g.name)}</h3>{g.tabs.filter(t => `${t} ${tr(t)}`.toLowerCase().includes(search.toLowerCase())).map(t => <button key={t} type="button" onClick={() => setTab(t)} className="block py-2 text-left text-xs text-muted hover:text-gold-bright">{label(t)}</button>)}</section>)}</div></div>}
+        <div className="workspace-subsections"><label className="lg:hidden text-xs text-muted">{tr(activeGroup.name)}<select aria-label={pick(locale)("Section", "भाग")} value={tab} onChange={e => setTab(e.target.value as Tab)}>{activeGroup.tabs.map(t => <option key={t} value={t}>{label(t)}</option>)}</select></label><nav className="hidden flex-wrap gap-1 lg:flex" aria-label={pick(locale)("Sections in this destination", "इस भाग के अनुभाग")}>{activeGroup.tabs.map(t => <button type="button" key={t} onClick={() => setTab(t)} aria-current={tab === t ? "page" : undefined}>{label(t)}</button>)}</nav></div>
+        {mode === "astrologer" && <WorkspaceLayouts chart={chart} width={paneWidth} setWidth={setPaneWidth} />}
+        <div className="workspace-body" style={{ "--chart-pane-width": `${Math.min(65, Math.max(40, paneWidth))}%` } as React.CSSProperties}>
+          <aside className="workspace-canvas"><ChartWorkspace chart={chart} mode={mode} go={go} /><TimingStrip chart={chart} go={go} /></aside>
+          <main className="workspace-reading" aria-label={pick(locale)("Reading and analysis", "व्याख्या और विश्लेषण")}>
+          {visited.map(panelTab => <div key={panelTab} hidden={panelTab !== tab}>
+              {panelTab === "Transits" && <TransitsPanel report={report} chart={chart} detailed={mode === "astrologer"} />}
+              {panelTab === "Summary" && <WorkspaceOverview chart={chart} expert={mode === "astrologer"} go={go} />}
+              {panelTab === "Event Journal" && <EventJournalPanel chart={chart} />}
+              {panelTab === "Calculation Details" && <CalculationDetailsPanel chart={chart} />}
+              {panelTab === "Birth Precision" && <BirthPrecisionPanel chart={chart} />}
+              {panelTab === "Compare Charts" && <ChartComparisonPanel chart={chart} />}
+              {panelTab === "Relationships" && <TopicReadingPanel chart={chart} report={report} topic="relationships" go={go} />}
+              {panelTab === "Wealth" && <TopicReadingPanel chart={chart} report={report} topic="wealth" go={go} />}
+              {panelTab === "Education" && <TopicReadingPanel chart={chart} report={report} topic="education" go={go} />}
+              {panelTab === "Property" && <TopicReadingPanel chart={chart} report={report} topic="property" go={go} />}
+              {panelTab === "Dashboard" && <AstroDashboard chart={chart} />}
+              {panelTab === "Overview" && <OverviewTab chart={chart} />}
+              {panelTab === "Lal Kitab" && <LalKitabPanel chart={chart} />}
+              {panelTab === "Special Tables" && <SpecialTablesPanel chart={chart} />}
+              {panelTab === "Annual Reading" && <AnnualReadingPanel key={chart.utcDate} chart={chart} active={panelTab === tab} />}
+              {panelTab === "Monthly Forecast" && <MonthlyForecastPanel report={report} />}
+              {panelTab === "Life Report" && <LifeReportPanel report={report} />}
+              {panelTab === "Planet Readings" && <PlanetReadingsPanel report={report} />}
+              {panelTab === "Houses" && <HousesPanel report={report} />}
+              {panelTab === "Career" && <><TopicReadingPanel chart={chart} report={report} topic="career" go={go} /><details className="mt-6"><summary className="cursor-pointer text-gold-bright">{pick(locale)("Detailed career report", "विस्तृत करियर रिपोर्ट")}</summary><CareerPanel report={report} /></details></>}
+              {panelTab === "Life Timeline" && <TimelinePanel report={report} />}
+              {panelTab === "Life Sectors" && <LifeSectorsPanel report={report} />}
+              {panelTab === "Yogini Dasha" && <YoginiPanel report={report} />}
+              {panelTab === "Chara Dasha" && <CharaPanel report={report} />}
+              {panelTab === "KP System" && <KpPanel report={report} />}
 
-        <div className="mt-6 min-w-0 lg:mt-0" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={tab}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -14 }}
-              transition={{ duration: 0.35, ease: EASE_OUT_EXPO }}
-            >
-              {tab === "Summary" && <KundliSummary chart={chart} report={report} go={go} style={style} setStyle={setStyle} />}
-              {tab === "Astrologer Workspace" && <AstrologerWorkbench chart={chart} report={report} go={go} />}
-              {tab === "Event Journal" && <EventJournalPanel chart={chart} />}
-              {tab === "Calculation Details" && <CalculationDetailsPanel chart={chart} />}
-              {tab === "Birth Precision" && <BirthPrecisionPanel chart={chart} />}
-              {tab === "Compare Charts" && <ChartComparisonPanel chart={chart} />}
-              {tab === "Relationships" && <TopicReadingPanel chart={chart} report={report} topic="relationships" />}
-              {tab === "Wealth" && <TopicReadingPanel chart={chart} report={report} topic="wealth" />}
-              {tab === "Education" && <TopicReadingPanel chart={chart} report={report} topic="education" />}
-              {tab === "Property" && <TopicReadingPanel chart={chart} report={report} topic="property" />}
-              {tab === "Dashboard" && <AstroDashboard chart={chart} />}
-              {tab === "Overview" && <OverviewTab chart={chart} />}
-              {tab === "Lal Kitab" && <LalKitabPanel chart={chart} />}
-              {tab === "Special Tables" && <SpecialTablesPanel chart={chart} />}
-              {tab === "Monthly Forecast" && <MonthlyForecastPanel report={report} />}
-              {tab === "Life Report" && <LifeReportPanel report={report} />}
-              {tab === "Planet Readings" && <PlanetReadingsPanel report={report} />}
-              {tab === "Houses" && <HousesPanel report={report} />}
-              {tab === "Career" && <CareerPanel report={report} />}
-              {tab === "Life Timeline" && <TimelinePanel report={report} />}
-              {tab === "Life Sectors" && <LifeSectorsPanel report={report} />}
-              {tab === "Yogini Dasha" && <YoginiPanel report={report} />}
-              {tab === "Chara Dasha" && <CharaPanel report={report} />}
-              {tab === "KP System" && <KpPanel report={report} />}
-              {tab === "Transits" && <TransitsPanel report={report} chart={chart} detailed={mode === "astrologer"} />}
-              {tab === "Vastu & Home" && <VastuTool locale={locale} chart={chart} transits={report?.transits} />}
-              {tab === "D1 · Rasi Chart" && <RasiTab chart={chart} style={style} setStyle={setStyle} />}
-              {tab === "D9 · Navamsa" && (
+              {panelTab === "Vastu & Home" && <VastuTool locale={locale} chart={chart} transits={report?.transits} />}
+              {panelTab === "D1 · Rasi Chart" && <div>{mode === "astrologer" && <PlanetTable chart={chart} />}<ChartDetail vargaKey="D1" ascendantSignIndex={chart.ascendant.signIndex} planets={chart.planets} natal={chart} />{mode === "user" && <details className="mt-6"><summary className="cursor-pointer text-gold-bright">{pick(locale)("Planet positions and degrees", "ग्रह स्थितियाँ और अंश")}</summary><PlanetTable chart={chart} /></details>}<details className="mt-6"><summary className="cursor-pointer text-gold-bright">{pick(locale)("House cusps and Bhava Chalit", "भाव-संधि और भाव चलित")}</summary><BhavaTable chart={chart} /></details></div>}
+              {panelTab === "D9 · Navamsa" && (
                 <VargaTab
                   chart={chart}
                   title="D9"
@@ -311,9 +251,9 @@ export default function KundaliResult({
                   setStyle={setStyle}
                 />
               )}
-              {tab === "More Vargas" && <MoreVargasTab chart={chart} style={style} setStyle={setStyle} />}
-              {tab === "Ashtakavarga" && <AshtakavargaTab chart={chart} style={style} setStyle={setStyle} />}
-              {tab === "Shadbala" && (
+              {panelTab === "More Vargas" && <MoreVargasTab chart={chart} style={style} setStyle={setStyle} />}
+              {panelTab === "Ashtakavarga" && <AshtakavargaTab chart={chart} style={style} setStyle={setStyle} />}
+              {panelTab === "Shadbala" && (
                 <div>
                   <p className="mx-auto max-w-2xl text-center text-sm leading-relaxed text-muted">
                     {tr("Shadbala weighs each planet's overall classical strength across six components — a planet with low Shadbala is read as needing support from the rest of the chart to deliver its significations fully.")}
@@ -323,15 +263,14 @@ export default function KundaliResult({
                   </div>
                 </div>
               )}
-              {tab === "Dashas" && <DashasTab chart={chart} report={report} />}
-              {tab === "Yogas & Doshas" && <YogasDoshasTab chart={chart} />}
-              {tab === "Remedies" && <RemediesPanel chart={chart} />}
-              {tab === "Rudraksha" && <RudrakshaPanel chart={chart} locale={locale} />}
-              {tab === "House Lords" && <HouseLordsTab chart={chart} />}
-              <ReadingContextPanel chart={chart} report={report} section={tab} />
-            </motion.div>
-          </AnimatePresence>
-        </div>
+              {panelTab === "Dashas" && <DashasTab chart={chart} report={report} />}
+              {panelTab === "Yogas & Doshas" && <YogasDoshasTab chart={chart} />}
+              {panelTab === "Remedies" && <RemediesPanel chart={chart} />}
+              {panelTab === "Rudraksha" && <RudrakshaPanel chart={chart} locale={locale} />}
+              {panelTab === "House Lords" && <HouseLordsTab chart={chart} />}
+              <ReadingContextPanel chart={chart} report={report} section={panelTab} go={go} />
+          </div>)}
+          </main>
         </div>
 
         {locale === "hi" ? (
@@ -592,79 +531,6 @@ function SummaryCard({ title, sign, children }: { title: string; sign: string; c
   );
 }
 
-function RasiTab({
-  chart,
-  style,
-  setStyle,
-}: {
-  chart: KundaliChart;
-  style: "north" | "south";
-  setStyle: (s: "north" | "south") => void;
-}) {
-  const tr = useT();
-  const locale = useLocale();
-  const hi = locale === "hi";
-  const name = (x: string) => term(locale, x);
-  const [mode, setMode] = useState<"lagna" | "moon" | "chalit" | "lalkitab">("lagna");
-  const moon = chart.planets.find((p) => p.planet === "Moon")!;
-  const chalit = new Map(chart.chalitHouses.map((c) => [c.planet, c.house]));
-  // Lal Kitab keeps every planet in its natal house but fixes Aries as the 1st house.
-  const referenceSign = mode === "moon" ? moon.signIndex : mode === "lalkitab" ? 0 : chart.ascendant.signIndex;
-  const markers = natalMarkers(chart);
-  // North Indian draws by house, South Indian by sign. For Chalit and Lal Kitab, where a house isn't its sign,
-  // each planet is drawn in the sign that its house represents.
-  const shown: ChartPoint[] = chart.planets.map((p) => {
-    const house = mode === "moon" ? signOffsetHouse(p.signIndex, moon.signIndex) : mode === "chalit" ? chalit.get(p.planet)! : p.house;
-    const signIndex = mode === "chalit" || mode === "lalkitab" ? (referenceSign + house - 1) % 12 : p.signIndex;
-    return { ...p, house, signIndex, markers: markers[p.planet] };
-  });
-  const shifted = chart.planets.filter((p) => chalit.get(p.planet) !== p.house);
-
-  return (
-    <div>
-      <div className="flex flex-wrap justify-center gap-3">
-        <SegmentedControl
-          layoutId="rasi-mode-toggle"
-          value={mode}
-          onChange={setMode}
-          options={[
-            { value: "lagna", label: tr("Lagna") },
-            { value: "moon", label: tr("Chandra (Moon)") },
-            { value: "chalit", label: tr("Bhava Chalit") },
-            { value: "lalkitab", label: tr("Lal Kitab") },
-          ]}
-        />
-        <StyleToggle style={style} setStyle={setStyle} />
-      </div>
-      <p className="mx-auto mt-4 max-w-2xl text-center text-xs leading-relaxed text-muted">
-        {mode === "lagna" && tr("Houses counted from your Ascendant — the main birth chart.")}
-        {mode === "moon" &&
-          (hi
-            ? `चंद्र कुंडली में भाव आपकी चंद्र राशि (${name(moon.sign)}) से गिने जाते हैं; इसे लग्न कुंडली के साथ पढ़ा जाता है, ख़ासकर मन और गोचर के लिए।`
-            : `The Chandra Kundli counts houses from your Moon sign (${moon.sign}) and is read alongside the Lagna chart, especially for the mind and for transits.`)}
-        {mode === "lalkitab" &&
-          tr("The Lal Kitab chart keeps each planet in its birth house but numbers the houses as fixed signs — the 1st house is always Aries, the 2nd Taurus, and so on. Lal Kitab readings and remedies are made from this chart.")}
-        {mode === "chalit" &&
-          (shifted.length === 0
-            ? tr("Bhava Chalit places each planet by Sripati house cusps rather than by sign. In this chart every planet stays in the same house.")
-            : hi
-              ? `भाव चलित में हर ग्रह राशि के बजाय श्रीपति भाव-संधियों से रखा जाता है। ${shifted.map((p) => `${name(p.planet)} भाव ${p.house} से ${chalit.get(p.planet)} में जाते हैं`).join("; ")}।`
-              : `Bhava Chalit places each planet by Sripati house cusps rather than by sign. ${shifted
-                  .map((p) => `${p.planet} moves from house ${p.house} to ${chalit.get(p.planet)}`)
-                  .join("; ")}.`)}
-      </p>
-      <div className="mt-8 grid gap-8">
-        <KundliChart ascendantSignIndex={referenceSign} planets={shown} style={style} onStyleChange={setStyle} />
-
-        {mode === "chalit" && <BhavaTable chart={chart} />}
-        <PlanetTable chart={chart} />
-      </div>
-
-      <ChartDetail vargaKey="D1" ascendantSignIndex={chart.ascendant.signIndex} planets={chart.planets} natal={chart} />
-    </div>
-  );
-}
-
 function PlanetTable({ chart }: { chart: KundaliChart }) {
   const tr = useT();
   const locale = useLocale();
@@ -870,7 +736,10 @@ function MoreVargasTab({
   setStyle: (s: "north" | "south") => void;
 }) {
   const locale = useLocale();
-  const [selected, setSelected] = useState<VargaKey>("D10");
+  const analysis = useAnalysis();
+  const [ownSelected, setOwnSelected] = useState<VargaKey>("D10");
+  const selected = analysis?.primary ?? ownSelected;
+  const setSelected = (primary: VargaKey) => analysis ? analysis.update({ primary }) : setOwnSelected(primary);
   const info = vargaInfo(selected, locale);
 
   return (
@@ -934,6 +803,7 @@ function AshtakavargaTab({ chart, style, setStyle }: { chart: KundaliChart; styl
         />
       </div>
       <AshtakavargaHouseTable chart={chart} bindus={bindus} selected={selected} />
+      <AshtakavargaAdvancedPanel chart={chart} />
     </div>
   );
 }
@@ -943,16 +813,16 @@ function AshtakavargaHouseTable({ chart, bindus, selected }: { chart: KundaliCha
   const locale = useLocale();
   const nm = (x: string) => term(locale, x);
   const sarva = selected === "Sarva";
-  const verdict = (n: number) => (sarva ? (n >= 30 ? "Strong" : n <= 24 ? "Weak" : "Average") : n >= 5 ? "Strong" : n <= 2 ? "Weak" : "Average");
+  const verdict = (n: number) => ({ high: "Strong", low: "Weak", mid: "Average" })[binduBand(n, sarva)];
   const hi = locale === "hi";
   return (
     <div className="card-edge mx-auto mt-8 max-w-3xl overflow-x-auto rounded-2xl p-5">
       <p className="text-sm text-muted">
         {sarva
-          ? tr("Houses with 28 or more bindus give good results, and transits through them go well; below 25, the house and its transits need care.")
+          ? pick(locale)("Raw SAV: 30 or more is supporting, 25–29 mixed, and 24 or fewer demanding. These are reference bands, not event probabilities.", "मूल SAV: 30 या अधिक सहायक, 25–29 मिश्रित और 24 या कम कठिन हैं। ये मानक हैं, घटना के प्रतिशत नहीं।")
           : hi
-            ? `${nm(selected)} उस राशि में गोचर करते समय अच्छा फल देते हैं जिसमें उनके अपने 4 या अधिक बिंदु हों, और 3 या कम बिंदु वाली राशियों में संघर्ष करते हैं।`
-            : `${selected} gives good results when it transits a sign with 4 or more of its own bindus, and struggles in signs with 3 or fewer.`}
+            ? `${nm(selected)} मूल BAV: 5–8 सहायक, 4 मिश्रित और 0–3 कठिन हैं। ये गोचर-सहारे के मानक हैं, घटना की गारंटी नहीं।`
+            : `${selected} raw BAV: 5–8 supporting, 4 mixed, and 0–3 demanding. These describe transit support, not guaranteed outcomes.`}
       </p>
       <table className="mt-3 w-full min-w-[28rem] text-left text-sm">
         <thead className="text-xs text-muted">
@@ -1049,8 +919,14 @@ function DashasTab({ chart, report }: { chart: KundaliChart; report: KundaliRepo
   const tr = useT();
   const locale = useLocale();
   const nm = (x: string) => term(locale, x);
-  // The chart arrives as JSON, so match periods by start time rather than object identity.
-  const same = (a: DashaPeriod, b: DashaPeriod | null) => !!b && String(a.start) === String(b.start) && a.lord === b.lord;
+  const analysis = useAnalysis();
+  const running = periodsAt(chart.dashas, analysis?.at ?? new Date(), 3);
+  const moon = chart.planets.find(p => p.planet === "Moon")!;
+  const saturn = analysis?.transits.find(p => p.planet === "Saturn");
+  const saturnDistance = saturn ? (saturn.signIndex - moon.signIndex + 12) % 12 : null;
+  const selectedMaha = chart.dashas.find(d => new Date(d.start).getTime() === running[0]?.start.getTime());
+  // Match periods by start time rather than object identity.
+  const same = (a: DashaPeriod, b: DashaPeriod | null) => !!b && new Date(a.start).getTime() === new Date(b.start).getTime() && a.lord === b.lord;
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <DashaExplorer chart={chart} />
@@ -1060,7 +936,7 @@ function DashasTab({ chart, report }: { chart: KundaliChart; report: KundaliRepo
         <p className="mt-2 text-xs text-muted">{tr("The 120-year Vimshottari cycle, starting from your Moon's nakshatra at birth.")}</p>
         <ul className="mt-5 text-sm">
           {chart.dashas.map((d, i) => (
-            <DashaRow key={i} period={d} isCurrent={same(d, chart.currentDasha)} />
+            <DashaRow key={i} period={d} isCurrent={same(d, running[0] ?? null)} />
           ))}
         </ul>
       </Card>
@@ -1068,19 +944,19 @@ function DashasTab({ chart, report }: { chart: KundaliChart; report: KundaliRepo
       <div className="space-y-6">
         <Card>
           <h3 className="text-xl font-bold tracking-tight text-cream">
-            {locale === "hi" ? `${chart.currentDasha ? nm(chart.currentDasha.lord) : "—"} महादशा की अंतर्दशाएँ` : `Antardashas within ${chart.currentDasha?.lord ?? "—"} Mahadasha`}
+            {locale === "hi" ? `${selectedMaha ? nm(selectedMaha.lord) : "—"} महादशा की अंतर्दशाएँ` : `Antardashas within ${selectedMaha?.lord ?? "—"} Mahadasha`}
           </h3>
           <p className="mt-2 text-xs text-muted">{tr("Sub-periods of the Mahadasha you are currently running — click one to reveal its Pratyantardashas.")}</p>
           <ul className="mt-5 text-sm">
-            {chart.antardashas.map((d, i) => (
-              <ExpandableAntardashaRow key={i} period={d} isCurrent={same(d, chart.currentAntardasha)} />
+            {(selectedMaha?.subPeriods ?? []).map((d, i) => (
+              <ExpandableAntardashaRow key={i} period={d} isCurrent={same(d, running[1] ?? null)} />
             ))}
           </ul>
         </Card>
 
         <Card>
           <h3 className="text-xl font-bold tracking-tight text-cream">{tr("Sade Sati")}</h3>
-          <p className="mt-4 text-sm leading-relaxed text-muted">{chart.sadeSati.description}</p>
+          <p className="mt-4 text-sm leading-relaxed text-muted">{analysis ? saturnDistance === 11 ? pick(locale)("Rising phase at the analysis date: Saturn is in the sign before your natal Moon.", "विश्लेषण तिथि पर प्रथम चरण: शनि जन्म चंद्र से पिछली राशि में हैं।") : saturnDistance === 0 ? pick(locale)("Peak phase at the analysis date: Saturn is in your natal Moon sign.", "विश्लेषण तिथि पर मध्य चरण: शनि जन्म चंद्र राशि में हैं।") : saturnDistance === 1 ? pick(locale)("Setting phase at the analysis date: Saturn is in the sign after your natal Moon.", "विश्लेषण तिथि पर अंतिम चरण: शनि जन्म चंद्र से अगली राशि में हैं।") : pick(locale)("Sade Sati is not active at the analysis date.", "विश्लेषण तिथि पर साढ़ेसाती सक्रिय नहीं।") : chart.sadeSati.description}</p>
         </Card>
       </div>
 

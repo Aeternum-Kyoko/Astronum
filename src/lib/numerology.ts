@@ -23,6 +23,35 @@ export function reduceToDigit(n: number): number {
   return x;
 }
 
+/** Validate strict calendar dates before calculating with their digits. */
+export function isValidBirthDate(date: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) return false;
+  const y = Number(match[1]);
+  const m = Number(match[2]);
+  const d = Number(match[3]);
+  const parsed = new Date(Date.UTC(y, m - 1, d));
+  return y >= 1900 && parsed.getUTCFullYear() === y && parsed.getUTCMonth() === m - 1 && parsed.getUTCDate() === d && parsed <= new Date();
+}
+
+/** Canonical shared date-digit source used by the Lo Shu page and the numerology page. */
+export function birthDateDigits(date: string): number[] {
+  if (!isValidBirthDate(date)) throw new RangeError("Enter a real birth date from 1900 to today.");
+  return date.replace(/\D/g, "").split("").map(Number).filter((digit) => digit > 0);
+}
+
+export function loShuCounts(date: string, includeDriverConductor = true): Record<number, number> {
+  const digits = birthDateDigits(date);
+  if (includeDriverConductor) digits.push(moolank(date), bhagyank(date));
+  const counts: Record<number, number> = Object.fromEntries(Array.from({ length: 9 }, (_, i) => [i + 1, 0]));
+  for (const digit of digits) counts[digit]++;
+  return counts;
+}
+
+export function chaldeanLetterValues(name: string): { letter: string; value: number }[] {
+  return Array.from(name.toUpperCase()).filter((letter) => /[A-Z]/.test(letter)).map((letter) => ({ letter, value: CHALDEAN[letter] ?? 0 }));
+}
+
 /** Psychic number — the day of the month you were born, reduced. */
 export function moolank(date: string): number {
   return reduceToDigit(Number(date.slice(8, 10)));
@@ -35,10 +64,7 @@ export function bhagyank(date: string): number {
 
 /** Chaldean name number; letters outside A–Z (spaces, dots) are ignored. Returns the compound total and its digit. */
 export function nameNumber(name: string): { compound: number; digit: number } {
-  const compound = name
-    .toUpperCase()
-    .split("")
-    .reduce((sum, ch) => sum + (CHALDEAN[ch] ?? 0), 0);
+  const compound = chaldeanLetterValues(name).reduce((sum, letter) => sum + letter.value, 0);
   return { compound, digit: reduceToDigit(compound) };
 }
 
@@ -173,10 +199,7 @@ export interface LoShu {
 
 /** Lo Shu grid from the birth date, with the Moolank and Bhagyank added as Indian numerology does. */
 export function loShu(date: string): LoShu {
-  const digits = date.replace(/\D/g, "").split("").map(Number).filter((d) => d > 0);
-  digits.push(moolank(date), bhagyank(date));
-  const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 };
-  for (const d of digits) counts[d]++;
+  const counts = loShuCounts(date);
   return {
     counts,
     planes: PLANES.map((p) => ({ ...p, complete: p.numbers.every((n) => counts[n] > 0) })),
@@ -233,6 +256,7 @@ export interface MobileReading {
 
 export function mobileNumerology(phone: string, date: string): MobileReading {
   const digits = phone.replace(/\D/g, "").slice(-10).split("").map(Number);
+  if (digits.length !== 10 || digits.every((digit) => digit === 0)) throw new RangeError("Enter a valid 10-digit number with at least one non-zero digit.");
   const total = digits.reduce((a, d) => a + d, 0);
   const digit = reduceToDigit(total);
   const m = moolank(date);

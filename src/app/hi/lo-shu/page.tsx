@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import LoShuMaker from "@/components/LoShuMaker";
+import LoShuPageClient from "@/components/LoShuPageClient";
 import { languageAlternates } from "@/lib/i18n/locale";
 
 export const metadata: Metadata = {
@@ -24,7 +24,7 @@ export default function HindiLoShuPage() {
         </header>
         <div className="mt-10">
           <Suspense>
-            <LoShuMaker locale="hi" />
+            <LoShuPageClient locale="hi" />
           </Suspense>
         </div>
         <section className="card-edge mt-10 rounded-2xl p-6 text-sm leading-relaxed text-muted">

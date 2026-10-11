@@ -1,11 +1,11 @@
 import * as Astronomy from "astronomy-engine";
 import { DateTime } from "luxon";
-import { NAKSHATRAS, SIGN_LORDS, SIGNS, type AshtakavargaPlanet, type PlanetName, type VargaKey } from "./constants";
+import { NAKSHATRAS, SIGN_LORDS, SIGNS, type PlanetName, type VargaKey } from "./constants";
 import { getAspectedHouses } from "./aspects";
 import { periodsAt, childPeriods, type TreePeriod } from "./dashaTree";
 import { isRetrograde, siderealLongitude, type TransitBody } from "./ephemeris";
 import { GOCHARA_GOOD } from "./transits";
-import { prastarashtakavarga } from "./kundliTables";
+import { rawTransitModifiers } from "./transitModifiers";
 import { planetDiagnosis, type PlanetDiagnosis } from "./planetDiagnosis";
 import { readPlanets, readHora } from "./vargaReading";
 import { PLANET_REMEDIES } from "./remedies";
@@ -24,7 +24,7 @@ import type { KundaliChart } from "./types";
  *    wealth, D30 for health risks).
  *  - Gochara: every planet's transit from the natal Moon (classical good
  *    houses, Vedha obstruction, its own Bhinnashtakavarga bindus, and the
- *    3°45′ kakshya for Jupiter and Saturn) and from the Lagna (which houses the
+ *    3°45′ kakshya for all seven classical planets) and from the Lagna (which houses the
  *    slow planets occupy or aspect, the Jupiter–Saturn double transit, and the
  *    Sarvashtakavarga strength of those signs). Sade Sati and Ashtama Shani.
  *  - Exact events: sign changes, retrograde stations, Pratyantardasha changes,
@@ -49,27 +49,6 @@ const angle = (a: number, b: number) => {
   const d = Math.abs(a - b) % 360;
   return d > 180 ? 360 - d : d;
 };
-
-/** Phaladeepika's Vedha: a good transit house is blocked when another planet sits in its paired house (counted from the Moon). */
-const VEDHA: Partial<Record<PlanetName, Record<number, number>>> = {
-  Sun: { 3: 9, 6: 12, 10: 4, 11: 5 },
-  Mars: { 3: 12, 6: 9, 11: 5 },
-  Mercury: { 2: 5, 4: 3, 6: 9, 8: 1, 10: 8, 11: 12 },
-  Jupiter: { 2: 12, 5: 4, 7: 3, 9: 10, 11: 8 },
-  Venus: { 1: 8, 2: 7, 3: 1, 4: 10, 5: 9, 8: 5, 9: 11, 11: 3, 12: 6 },
-  Saturn: { 3: 12, 6: 9, 11: 5 },
-  Rahu: { 3: 12, 6: 9, 11: 5 },
-  Ketu: { 3: 12, 6: 9, 11: 5 },
-};
-/** Pairs exempt from Vedha on each other. */
-const NO_VEDHA: [PlanetName, PlanetName][] = [
-  ["Sun", "Saturn"],
-  ["Moon", "Mercury"],
-  ["Rahu", "Ketu"],
-];
-
-/** Kakshya lords of the eight 3°45′ divisions of every sign. */
-const KAKSHYA = ["Saturn", "Jupiter", "Mars", "Sun", "Venus", "Mercury", "Moon", "Ascendant"] as const;
 
 const GOCHARA_WEIGHT: Partial<Record<PlanetName, number>> = { Jupiter: 5, Saturn: 5, Rahu: 2, Ketu: 1, Sun: 2, Mars: 2, Venus: 1.5, Mercury: 1.5 };
 
@@ -123,6 +102,7 @@ export interface TransitInfo {
   houseFromSun: number;
   favourable: boolean;
   vedhaBy: PlanetName | null;
+  vedhaBlockers: PlanetName[];
   bindus: number | null;
   sav: number;
   kakshya: { lord: string; good: boolean } | null;
@@ -284,8 +264,6 @@ export function monthlyForecast(chart: KundaliChart, now = new Date(), months = 
   }
 
   const bav = (p: PlanetName) => (chart.ashtakavarga.bhinna as Record<string, number[]>)[p];
-  const prastara = new Map<string, ReturnType<typeof prastarashtakavarga>>();
-  for (const p of ["Jupiter", "Saturn"] as AshtakavargaPlanet[]) prastara.set(p, prastarashtakavarga(chart, p));
 
   const mool = moolank(chart.input.date);
   const bhag = bhagyank(chart.input.date);
@@ -333,31 +311,19 @@ export function monthlyForecast(chart: KundaliChart, now = new Date(), months = 
     const transits: TransitInfo[] = pos.map((p) => {
       const fromMoon = houseFrom(p.signIndex, moon.signIndex);
       const fromLagna = houseFrom(p.signIndex, asc);
-      const favourable = GOCHARA_GOOD[p.planet].includes(fromMoon);
-      let vedhaBy: PlanetName | null = null;
-      const vedhaHouse = favourable ? VEDHA[p.planet]?.[fromMoon] : undefined;
-      if (vedhaHouse) {
-        const blocker = pos.find(
-          (o) => o.planet !== p.planet && o.planet !== "Moon" && houseFrom(o.signIndex, moon.signIndex) === vedhaHouse && !NO_VEDHA.some(([a, b]) => (a === p.planet && b === o.planet) || (b === p.planet && a === o.planet))
-        );
-        vedhaBy = blocker?.planet ?? null;
-      }
+      const shared = rawTransitModifiers(chart, { ...p, degree: p.lon % 30 }, pos.map(o => ({ ...o, degree: o.lon % 30 })));
+      const favourable = shared.gochara.favourable;
+      const vedhaBy = shared.gochara.blockers[0] ?? null;
       const table = bav(p.planet);
       const bindus = table ? table[p.signIndex] : null;
       const sav = chart.ashtakavarga.sarva[p.signIndex];
-      let kakshya: TransitInfo["kakshya"] = null;
-      const pr = prastara.get(p.planet);
-      if (pr) {
-        const lord = KAKSHYA[Math.floor((p.lon % 30) / 3.75)];
-        const good = pr.find((c) => c.contributor === lord)!.bindus[p.signIndex];
-        kakshya = { lord, good };
-      }
+      const kakshya = shared.kakshya;
       const note =
         `${p.planet} in ${SIGNS[p.signIndex]}${p.retrograde && p.planet !== "Rahu" && p.planet !== "Ketu" ? " (retrograde)" : ""}: ${ordinal(fromMoon)} from your Moon` +
-        (favourable ? (vedhaBy ? `, a good house but blocked (vedha) by ${vedhaBy}` : ", a good gochara house") : ", not one of its good houses") +
+        (favourable ? (vedhaBy ? `, a good house but blocked (vedha) by ${shared.gochara.blockers.join(", ")}` : ", a good gochara house") : ", not one of its good houses") +
         `; ${ordinal(fromLagna)} from the Lagna` +
         (bindus !== null ? `; ${bindus}/8 bindus` : "") +
-        (kakshya ? `; in the ${kakshya.lord} kakshya, ${kakshya.good ? "which gives a bindu — results come now" : "which gives none — results wait for a better kakshya"}` : "") +
+        (kakshya ? `; in the ${kakshya.lord} kakshya, ${kakshya.good ? "which contributes a raw bindu" : "which contributes no raw bindu"}` : "") +
         ".";
       if (p.planet !== "Moon") {
         const w = GOCHARA_WEIGHT[p.planet] ?? 1;
@@ -375,6 +341,7 @@ export function monthlyForecast(chart: KundaliChart, now = new Date(), months = 
         houseFromSun: houseFrom(p.signIndex, sunSignNatal),
         favourable,
         vedhaBy,
+        vedhaBlockers: shared.gochara.blockers,
         bindus,
         sav,
         kakshya,

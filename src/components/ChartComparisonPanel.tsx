@@ -1,4 +1,5 @@
 "use client";
+import { useAnalysis } from "./kundli/AnalysisContext";
 import { useState } from "react";
 import { DateTime } from "luxon";
 import KundliChart, { type ChartPick, type ChartStyle } from "./KundliChart";
@@ -10,8 +11,15 @@ import { term } from "@/lib/i18n/terms";
 
 export default function ChartComparisonPanel({ chart }: { chart: KundaliChart }) {
   const locale = useLocale(); const L = pick(locale);
-  const [left, setLeft] = useState<VargaKey>("D1"); const [right, setRight] = useState<VargaKey>("D9");
-  const [style, setStyle] = useState<ChartStyle>("north"); const [selection, setSelection] = useState<ChartPick | null>(null);
+  const analysis = useAnalysis();
+  const [ownLeft, setOwnLeft] = useState<VargaKey>("D1"); const [ownRight, setOwnRight] = useState<VargaKey>("D9");
+  const [ownStyle, setOwnStyle] = useState<ChartStyle>("north"); const [ownSelection, setOwnSelection] = useState<ChartPick | null>(null);
+  const left = analysis?.primary ?? ownLeft; const right = analysis && analysis.secondary !== "transit" ? analysis.secondary : ownRight;
+  const style = analysis?.style ?? ownStyle; const selection = analysis?.selected ?? ownSelection;
+  const setLeft = (primary: VargaKey) => analysis ? analysis.update({ primary }) : setOwnLeft(primary);
+  const setRight = (secondary: VargaKey) => analysis ? analysis.update({ secondary }) : setOwnRight(secondary);
+  const setStyle = (style: ChartStyle) => analysis ? analysis.update({ style }) : setOwnStyle(style);
+  const setSelection = (selected: ChartPick) => analysis ? analysis.update({ selected }) : setOwnSelection(selected);
   const [offset, setOffset] = useState(5); const [candidate, setCandidate] = useState<KundaliChart | null>(null);
   const [busy, setBusy] = useState(false); const [error, setError] = useState("");
   const [timeVarga, setTimeVarga] = useState<VargaKey>("D9");

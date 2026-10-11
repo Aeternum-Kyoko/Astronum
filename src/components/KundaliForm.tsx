@@ -13,20 +13,12 @@ import TimePicker from "@/components/TimePicker";
 import PlaceInput, { type PlaceSuggestion } from "@/components/PlaceInput";
 import ProfileChips from "@/components/ProfileChips";
 import KundliHeader from "@/components/KundliHeader";
+import KundliCalculation from "@/components/kundli/KundliCalculation";
 import { listCharts, loadChart, saveChart, type StoredChart } from "@/lib/offlineCharts";
 import { haptic } from "@/lib/haptics";
 import { useLocale, useT } from "@/lib/i18n/LocaleContext";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
-const MIN_LOADING_MS = 1600;
-
-const LOADING_STEPS = [
-  "Calculating planetary positions",
-  "Building your 16 divisional charts",
-  "Computing Ashtakavarga & Shadbala",
-  "Mapping your Vimshottari Dasha",
-];
-
 type View = "form" | "loading" | "result";
 
 export default function KundaliForm() {
@@ -106,7 +98,6 @@ export default function KundaliForm() {
     pending.current.clear(); failedSections.current.clear(); setSectionError(null);
     setError(null);
     setLoading(true);
-    const startedAt = Date.now();
     try {
       const res = await fetch("/api/kundali", {
         method: "POST",
@@ -116,13 +107,14 @@ export default function KundaliForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? t("Something went wrong"));
 
-      const elapsed = Date.now() - startedAt;
-      if (elapsed < MIN_LOADING_MS) {
-        await new Promise((r) => setTimeout(r, MIN_LOADING_MS - elapsed));
-      }
       if (generation.current !== epoch) return;
       const nextQuery = new URLSearchParams(toBirthQuery(params));
-      const selectedTab = new URLSearchParams(window.location.search).get("tab");
+      const currentQuery = new URLSearchParams(window.location.search);
+      const selectedTab = currentQuery.get("tab");
+      for (const key of ["analysisDate", "analysisTime", "chartA", "chartB", "overlay", "compare"]) {
+        const value = currentQuery.get(key);
+        if (value !== null) nextQuery.set(key, value);
+      }
       if (selectedTab && TAB_SLUGS[selectedTab]) nextQuery.set("tab", selectedTab);
       setInitialTab(selectedTab && TAB_SLUGS[selectedTab] ? selectedTab : null);
       setChart(data.chart);
@@ -264,7 +256,7 @@ export default function KundaliForm() {
             transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
             className="mx-auto max-w-4xl"
           >
-            <LoadingCard />
+            <KundliCalculation name={name} date={date} time={time} place={selectedPlace?.displayName ?? ""} />
           </motion.div>
         )}
 
@@ -287,46 +279,6 @@ export default function KundaliForm() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-function LoadingCard() {
-  const t = useT();
-  const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setStep((s) => Math.min(s + 1, LOADING_STEPS.length - 1));
-    }, MIN_LOADING_MS / LOADING_STEPS.length);
-    return () => clearInterval(id);
-  }, []);
-
-  return (
-    <div className="card-edge flex flex-col items-center rounded-3xl px-7 py-16 text-center md:px-10">
-      <motion.div
-        className="h-14 w-14 rounded-full border-2 border-gold/25 border-t-gold-bright"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-      />
-      <p className="mt-7 font-display text-xl text-cream">{t("Calculating your kundli…")}</p>
-      <ul className="mt-6 space-y-2.5">
-        {LOADING_STEPS.map((label, i) => (
-          <li
-            key={label}
-            className={`flex items-center justify-center gap-2 text-sm transition-colors duration-300 ${
-              i <= step ? "text-gold-bright" : "text-muted"
-            }`}
-          >
-            <span
-              className={`h-1.5 w-1.5 rounded-full transition-colors duration-300 ${
-                i <= step ? "bg-gold-bright" : "bg-muted/40"
-              }`}
-            />
-            {t(label)}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

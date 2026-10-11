@@ -9,7 +9,7 @@ import PlaceInput, { type PlaceSuggestion } from "@/components/PlaceInput";
 import { readJournal } from "@/lib/eventJournal";
 import { birthInputSchema } from "@/lib/birthSchema";
 import { fromBirthQuery, toBirthQuery } from "@/lib/birthParams";
-import { EVENT_KEYS, EVENT_KINDS, type CandidateRun, type EventConfidence, type EventKind, type EventPrecision } from "@/lib/astrology/rectificationEvents";
+import { EVENT_KEYS, EVENT_KINDS, type CandidateRun, type EventConfidence, type EventKind, type EventPrecision, type RectificationValidation } from "@/lib/astrology/rectificationEvents";
 
 interface Response {
   runs: CandidateRun[];
@@ -21,6 +21,7 @@ interface Response {
   warnings: string[];
   leadingCandidateCount: number;
   scoreMargin: number;
+  validation: RectificationValidation;
 }
 
 const WINDOWS = [15, 30, 60, 120] as const;
@@ -31,14 +32,15 @@ export default function RectificationTool() {
   const [time, setTime] = useState("");
   const [place, setPlace] = useState<PlaceSuggestion | null>(null);
   const [span, setSpan] = useState<(typeof WINDOWS)[number]>(60);
-  const [events, setEvents] = useState<{ id: number; kind: EventKind; date: string; precision: EventPrecision; confidence: EventConfidence; importance: number }[]>([
-    { id: 1, kind: "marriage", date: "", precision: "day", confidence: "high", importance: 4 },
-    { id: 2, kind: "career", date: "", precision: "day", confidence: "high", importance: 4 },
+  const [events, setEvents] = useState<{ id: number; kind: EventKind; date: string; precision: EventPrecision; confidence: EventConfidence; importance: number; useFor: "fit" | "validation" }[]>([
+    { id: 1, kind: "marriage", date: "", precision: "day", confidence: "high", importance: 4, useFor: "fit" },
+    { id: 2, kind: "career", date: "", precision: "day", confidence: "high", importance: 4, useFor: "fit" },
   ]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Response | null>(null);
   const [open, setOpen] = useState(0);
+  const [resultBirth, setResultBirth] = useState<Parameters<typeof toBirthQuery>[0] | null>(null);
 
   const birth = place && name.trim() && date && time ? { name: name.trim(), date, time, place: place.displayName, latitude: place.latitude, longitude: place.longitude, timezone: place.timezone } : null;
 
@@ -53,11 +55,12 @@ export default function RectificationTool() {
       const res = await fetch("/api/rectification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ birth, window: span, events: filled.map((event) => ({ kind: event.kind, date: event.date, precision: event.precision, confidence: event.confidence, importance: event.importance })) }),
+        body: JSON.stringify({ birth, window: span, events: filled.map((event) => ({ kind: event.kind, date: event.date, precision: event.precision, confidence: event.confidence, importance: event.importance, useFor: event.useFor })) }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Something went wrong.");
       setResult(json);
+      setResultBirth(birth);
       haptic("success");
       setOpen(0);
     } catch (err) {
@@ -74,10 +77,10 @@ export default function RectificationTool() {
     const b = parsed.data; setName(b.name); setDate(b.date); setTime(b.time);
     setPlace({displayName:b.place, latitude:b.latitude, longitude:b.longitude, timezone:b.timezone});
     const journal = readJournal(b);
-    if (query.get("journal") === "1" && journal.length) setEvents(journal.map((e,i)=>({id:i+1,kind:e.kind,date:e.date,precision:e.precision,confidence:e.confidence,importance:e.importance})));
+    if (query.get("journal") === "1" && journal.length) setEvents(journal.map((e,i)=>({id:i+1,kind:e.kind,date:e.date,precision:e.precision,confidence:e.confidence,importance:e.importance,useFor:"fit"})));
     setResult(null); setError(null);
   }
-  const update = (id: number, patch: Partial<{ kind: EventKind; date: string; precision: EventPrecision; confidence: EventConfidence; importance: number }>) => setEvents(events.map((ev) => (ev.id === id ? { ...ev, ...patch } : ev)));
+  const update = (id: number, patch: Partial<{ kind: EventKind; date: string; precision: EventPrecision; confidence: EventConfidence; importance: number; useFor: "fit" | "validation" }>) => setEvents(events.map((ev) => (ev.id === id ? { ...ev, ...patch } : ev)));
 
   return (
     <div className="space-y-8">
@@ -138,14 +141,14 @@ export default function RectificationTool() {
                   Remove
                 </button>
                 </div>
-                <div className="mt-3 grid gap-2 sm:grid-cols-3"><Field label="Date precision"><select value={ev.precision} onChange={(e) => update(ev.id, { precision: e.target.value as EventPrecision, date: "" })} className="input"><option value="day">Exact day</option><option value="month">Month only</option><option value="year">Year only</option></select></Field><Field label="How sure is the date?"><select value={ev.confidence} onChange={(e) => update(ev.id, { confidence: e.target.value as EventConfidence })} className="input"><option value="high">High confidence</option><option value="medium">Fairly sure</option><option value="low">Rough memory</option></select></Field><Field label="Event importance"><select value={ev.importance} onChange={(e) => update(ev.id, { importance: Number(e.target.value) })} className="input"><option value={1}>1 · minor</option><option value={2}>2 · modest</option><option value={3}>3 · important</option><option value={4}>4 · major</option><option value={5}>5 · defining</option></select></Field></div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-4"><Field label="Use this event for"><select value={ev.useFor} onChange={e => update(ev.id, { useFor: e.target.value as "fit" | "validation" })} className="input"><option value="fit">Fit candidate times</option><option value="validation">Reserve for validation</option></select></Field><Field label="Date precision"><select value={ev.precision} onChange={(e) => update(ev.id, { precision: e.target.value as EventPrecision, date: "" })} className="input"><option value="day">Exact day</option><option value="month">Month only</option><option value="year">Year only</option></select></Field><Field label="How sure is the date?"><select value={ev.confidence} onChange={(e) => update(ev.id, { confidence: e.target.value as EventConfidence })} className="input"><option value="high">High confidence</option><option value="medium">Fairly sure</option><option value="low">Rough memory</option></select></Field><Field label="Event importance"><select value={ev.importance} onChange={(e) => update(ev.id, { importance: Number(e.target.value) })} className="input"><option value={1}>1 · minor</option><option value={2}>2 · modest</option><option value={3}>3 · important</option><option value={4}>4 · major</option><option value={5}>5 · defining</option></select></Field></div>
               </li>
             ))}
           </ul>
           {events.length < 12 && (
             <button
               type="button"
-              onClick={() => setEvents([...events, { id: Math.max(0, ...events.map((e) => e.id)) + 1, kind: "child", date: "", precision: "day", confidence: "high", importance: 3 }])}
+              onClick={() => setEvents([...events, { id: Math.max(0, ...events.map((e) => e.id)) + 1, kind: "child", date: "", precision: "day", confidence: "high", importance: 3, useFor: "fit" }])}
               className="mt-3 text-sm font-semibold text-gold-bright hover:underline"
             >
               Add another event
@@ -153,6 +156,7 @@ export default function RectificationTool() {
           )}
         </fieldset>
 
+        <p className="mt-4 text-xs leading-relaxed text-muted">Reserve one or two independent, well-dated events to check the fitted result. Reserved events never affect candidate scores or ordering. With at least three fitting events, the result also tests removing each event in turn. These checks expose sensitivity; they do not prove the birth time.</p>
         {error && (
           <p role="alert" className="mt-5 rounded-xl border border-rose/30 bg-rose/5 px-4 py-2.5 text-sm text-rose">
             {error}
@@ -163,7 +167,7 @@ export default function RectificationTool() {
         </button>
       </form>
 
-      {result && birth && <Results result={result} birth={birth} open={open} setOpen={setOpen} />}
+      {result && resultBirth && <Results result={result} birth={resultBirth} open={open} setOpen={setOpen} />}
     </div>
   );
 }
@@ -179,7 +183,7 @@ function Results({ result, birth, open, setOpen }: { result: Response; birth: No
         <p className="text-sm font-semibold text-muted">Leading candidate range</p>
         <p className="font-display mt-1 text-5xl text-gold-bright">{range(best)}</p>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
-          {best.best.lagna} Lagna, {best.best.navamsaLagna} Navamsa lagna, Moon in {best.best.moonNakshatra}. Scores {best.best.score} points across your events
+          {best.best.lagna} Lagna, {best.best.navamsaLagna} Navamsa lagna, Moon in {best.best.moonNakshatra}. Scores {best.best.score} points across your fitting events
           {tied > 1 ? `, tied with ${tied - 1} other window${tied > 2 ? "s" : ""} — add another event to separate them` : ""}.
         </p>
         <p className={`mt-4 rounded-xl border px-4 py-3 text-sm ${result.confidence === "strong" ? "border-gold/50 bg-gold/5 text-cream" : result.confidence === "moderate" ? "border-border bg-surface/60 text-muted" : "border-rose/30 bg-rose/5 text-muted"}`}><strong className="text-cream">{result.confidence === "strong" ? "Stronger evidence" : result.confidence === "moderate" ? "Moderate evidence" : "Low evidence"}:</strong> {result.confidenceReason}</p>
@@ -193,6 +197,7 @@ function Results({ result, birth, open, setOpen }: { result: Response; birth: No
           </Link>
         </div>
       </section>
+      <ValidationPanel validation={result.validation} />
 
       <section className="card-edge rounded-2xl p-6">
         <h3 className="text-lg font-bold text-cream">Score for every minute</h3>
@@ -242,7 +247,7 @@ function Results({ result, birth, open, setOpen }: { result: Response; birth: No
                     <li key={`${e.kind}-${e.date}-${j}`} className="rounded-xl border border-border/70 p-4">
                       <p className="flex flex-wrap justify-between gap-2 text-sm">
                         <span className="font-semibold text-cream">
-                          {EVENT_KINDS[e.kind].label} · {e.date}
+                          {EVENT_KINDS[e.kind].label}{e.useFor === "validation" ? " · Reserved validation event" : ""} · {e.date}
                         </span>
                         <span className="text-muted">
                           Dasha {e.chain.join(" › ")} · <span className="font-semibold text-gold-bright">{e.points} weighted pts</span>
@@ -277,4 +282,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       {children}
     </label>
   );
+}
+
+function ValidationPanel({ validation: v }: { validation: RectificationValidation }) {
+  if (!v) return null;
+  return <section className="rounded-2xl border border-gold/25 p-5"><h3 className="text-xl font-semibold text-cream">Validation and event sensitivity</h3><p className="mt-2 text-sm text-muted">{v.fitEventCount} fitting events · {v.heldOutEventCount} reserved events. Reserved events are scored only after the leading set is selected.</p>
+    <div className="mt-4 rounded-xl border border-border p-4"><h4 className="font-semibold text-cream">Reserved-event check</h4>{v.heldOut ? <><p className="mt-2 text-sm text-muted">Fitted leaders: {v.heldOut.selectedScoreMin}–{v.heldOut.selectedScoreMax} reserved-event points. Highest reserved score anywhere in the search: {v.heldOut.bestScore}.</p><p className="mt-2 text-sm text-cream">{v.heldOut.allCandidatesTie ? "Reserved events do not distinguish any sampled times." : v.heldOut.selectedContainsValidationLeader ? "At least one fitted leader also leads on the reserved-event score. Other times may tie." : "Reserved evidence prefers other sampled times: the fitted hypothesis needs review."}</p><ul className="mt-3 space-y-2 text-xs text-muted">{v.heldOut.events.map(e => <li key={`${e.kind}-${e.date}`}>{EVENT_KINDS[e.kind].label} · {e.date} · {e.pointsMin}–{e.pointsMax} points across the fitted leading set</li>)}</ul></> : <p className="mt-2 text-sm text-muted">No reserved events. Select “Reserve for validation” before running the search to keep evidence out of fitting.</p>}</div>
+    <div className="mt-4"><h4 className="font-semibold text-cream">Remove one fitting event at a time</h4><p className="mt-2 text-sm text-muted">{v.stableAcrossOmissions === null ? "Needs at least three fitting events and more than one candidate." : v.stableAcrossOmissions ? "Every refitted leading set stays within the original leading set." : "At least one omission changes or broadens the leading set."}</p><div className="mt-3 space-y-2">{v.leaveOneOut.map(row => <details key={`${row.omittedKind}-${row.omittedDate}`} className="rounded-xl border border-border p-3"><summary className="cursor-pointer text-sm text-cream">Without {EVENT_KINDS[row.omittedKind].label} · {row.omittedDate}</summary><p className="mt-2 text-xs text-muted">{row.leadingTimes.length} leading samples; {row.overlapCount} overlap original leaders. Nearest shift {row.nearestShiftMinutes} minutes.{row.edge ? " Refitted leaders touch a search boundary." : ""}</p><p className="mt-2 break-words text-xs text-muted">{row.leadingTimes.join(" · ")}</p></details>)}</div></div><p className="mt-4 text-xs leading-relaxed text-muted">These checks use the same traditional scoring rules as fitting. Choose reserved events before reviewing results and avoid repeatedly changing them to obtain agreement. Stability and agreement are not a probability, accuracy certification, or proof of a birth time.</p></section>;
 }

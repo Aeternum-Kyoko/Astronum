@@ -45,6 +45,7 @@ export const SECTION_LENSES: Record<string, { houses: number[]; vargas: VargaKey
   Summary: { houses: [1, 4, 7, 10], vargas: ["D9"] },
   Dashboard: { houses: [1, 2, 7, 10], vargas: ["D9"] },
   Overview: { houses: [1, 5, 9], vargas: ["D9"] },
+  "Annual Reading": { houses: [], vargas: [] },
   "Monthly Forecast": { houses: [1, 4, 7, 10], vargas: ["D9", "D10"] },
   "Life Report": { houses: [1, 2, 4, 5, 7, 9, 10, 11, 12], vargas: ["D9"] },
   "Life Sectors": { houses: [2, 4, 5, 7, 9, 10, 12], vargas: ["D2", "D9", "D10"] },

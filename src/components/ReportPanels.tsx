@@ -3,6 +3,7 @@
 import { useLocale } from "@/lib/i18n/LocaleContext";
 import { pick } from "@/lib/i18n/ui";
 import { term } from "@/lib/i18n/terms";
+import { useAnalysis } from "./kundli/AnalysisContext";
 import TransitModifiersPanel from "./TransitModifiersPanel";
 import SectionSkeleton from "@/components/SectionSkeleton";
 import { useMemo, useState } from "react";
@@ -18,8 +19,6 @@ import { DateTime } from "luxon";
 
 // Report dates arrive from the API as ISO strings; wrap every one in new Date().
 const monthYear = (d: Date | string) => new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "short" });
-const fullDate = (d: Date | string) => new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -127,11 +126,14 @@ function TransitExplorer({ report, chart, detailed }: { report: KundaliReport; c
   const locale = useLocale(); const L = pick(locale); const n = (text:string)=>term(locale,text);
   const zone = chart.input.timezone;
   const today = DateTime.now().setZone(zone).toISODate()!;
-  const [date, setDate] = useState(today);
+  const analysis = useAnalysis();
+  const [ownDate, setOwnDate] = useState(today);
+  const date = analysis?.date ?? ownDate;
+  const setDate = (date: string) => analysis ? analysis.update({ date }) : setOwnDate(date);
   const [month, setMonth] = useState(() => DateTime.fromISO(today).startOf("month"));
-  const at = useMemo(() => DateTime.fromISO(date, { zone }).set({ hour: 12 }).toJSDate(), [date, zone]);
+  const at = useMemo(() => analysis?.at ?? DateTime.fromISO(date, { zone }).set({ hour: 12 }).toJSDate(), [date, zone, analysis?.at]);
   const moon = chart.planets.find((p) => p.planet === "Moon")!;
-  const transits = useMemo(() => currentTransits(moon.signIndex, chart.ascendant.signIndex, at), [at, moon.signIndex, chart.ascendant.signIndex]);
+  const transits = useMemo(() => analysis?.transits ?? currentTransits(moon.signIndex, chart.ascendant.signIndex, at), [at, moon.signIndex, chart.ascendant.signIndex, analysis?.transits]);
   const panchang = useMemo(() => {
     try { return computeDailyPanchang(date, chart.input.latitude, chart.input.longitude, zone); }
     catch { return null; }
@@ -197,7 +199,7 @@ function TransitExplorer({ report, chart, detailed }: { report: KundaliReport; c
         <table className="w-full text-sm">
           <caption className="px-5 pt-5 text-left">
             <span className="block text-lg font-bold text-cream">{L("Transits on","गोचर तिथि")} {DateTime.fromISO(date, { zone }).toFormat("d LLL yyyy")}</span>
-            <span className="text-xs text-muted">{L("Calculated at 12:00 in the birth-place timezone, from your natal Moon and Lagna", "जन्मस्थान समय क्षेत्र में 12:00 बजे की गणना, जन्म चंद्र और लग्न से")}</span>
+            <span className="text-xs text-muted">{L("Calculated at the analysis time in the birth-place timezone, from your natal Moon and Lagna", "विश्लेषण समय की गणना, जन्मस्थान समय क्षेत्र में, जन्म चंद्र और लग्न से")}</span>
           </caption>
           <thead>
             <tr className="border-b border-border text-left text-xs whitespace-nowrap text-muted">

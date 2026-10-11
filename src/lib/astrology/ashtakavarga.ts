@@ -4,6 +4,12 @@ import type { AshtakavargaResult, PlanetPlacement } from "./types";
 export { ASHTAKAVARGA_PLANETS };
 export type { AshtakavargaPlanet };
 
+/** Shared display bands. These are interpretive conventions, not event probabilities. */
+export function binduBand(count: number, sarva: boolean): "high" | "low" | "mid" {
+  return sarva ? count >= 30 ? "high" : count <= 24 ? "low" : "mid"
+    : count >= 5 ? "high" : count <= 3 ? "low" : "mid";
+}
+
 export type Contributor = AshtakavargaPlanet | "Ascendant";
 export const CONTRIBUTORS: Contributor[] = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Ascendant"];
 

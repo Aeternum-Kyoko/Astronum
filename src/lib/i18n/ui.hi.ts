@@ -64,6 +64,7 @@ export const UI_HI: Record<string, string> = {
   "Summary": "सारांश",
   "Dashboard": "डैशबोर्ड",
   "Overview": "अवलोकन",
+  "Annual Reading": "वार्षिक व्याख्या",
   "Monthly Forecast": "मासिक भविष्यफल",
   "Life Report": "जीवन रिपोर्ट",
   "Life Sectors": "जीवन के क्षेत्र",

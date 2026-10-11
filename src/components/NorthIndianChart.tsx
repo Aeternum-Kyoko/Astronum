@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { Dignity } from "@/lib/astrology/dignity";
 import { A, B, C, D, HOUSE_POLYGONS, P1, P2, P3, P4, PLANET_GLYPH, SIGN_ANCHORS, layoutHouse, markerText, planetAbbr, polygonPoints } from "@/lib/chartGeometry";
 import type { Locale } from "@/lib/i18n/locale";
@@ -15,6 +16,7 @@ const DIGNITY_COLOR: Record<Dignity, string> = {
 
 interface ChartPlanet {
   planet: string;
+  layer?: "natal" | "transit";
   house: number;
   retrograde: boolean;
   /** Status marks (↑ ↓ R C V); defaults to "R" for retrograde planets. */
@@ -56,6 +58,7 @@ export default function NorthIndianChart({
   glyphs?: boolean;
   locale?: Locale;
 }) {
+  const id = useId().replace(/:/g, "");
   const hi = locale === "hi";
   const tr = (s: string) => (hi ? term("hi", s) : s);
   const byHouse = new Map<number, ChartPlanet[]>();
@@ -68,18 +71,18 @@ export default function NorthIndianChart({
   return (
     <svg viewBox="0 0 400 400" className="chart-draw mx-auto w-full max-w-md overflow-visible" role="img" aria-label={hi ? "जन्म कुंडली, उत्तर भारतीय शैली" : "Birth chart, North Indian style"}>
       <defs>
-        <radialGradient id="nic-bg" cx="50%" cy="45%" r="75%">
+        <radialGradient id={`${id}-bg`} cx="50%" cy="45%" r="75%">
           <stop offset="0%" style={{ stopColor: "var(--chart-top)" }} />
           <stop offset="100%" style={{ stopColor: "var(--chart-bottom)" }} />
         </radialGradient>
-        <radialGradient id="nic-lagna" cx="50%" cy="35%" r="60%">
+        <radialGradient id={`${id}-lagna`} cx="50%" cy="35%" r="60%">
           <stop offset="0%" stopColor="var(--color-gold)" stopOpacity="0.16" />
           <stop offset="100%" stopColor="var(--color-gold)" stopOpacity="0.03" />
         </radialGradient>
       </defs>
 
       {/* Frame: an outer gold line and a fine inner line, like an engraved plate. */}
-      <rect x="1.5" y="1.5" width="397" height="397" rx="14" fill="url(#nic-bg)" stroke="var(--color-gold)" strokeWidth="1.5" className="chart-stroke" pathLength={1} />
+      <rect x="1.5" y="1.5" width="397" height="397" rx="14" fill={`url(#${id}-bg)`} stroke="var(--color-gold)" strokeWidth="1.5" className="chart-stroke" pathLength={1} />
       <rect x="7" y="7" width="386" height="386" rx="10" fill="none" stroke="var(--color-border)" strokeWidth="0.75" opacity="0.8" className="chart-stroke" pathLength={1} />
       <g stroke="var(--color-gold)" strokeWidth="0.9" opacity="0.5" fill="none">
         <line x1={A[0] + 7} y1={A[1] + 7} x2={C[0] - 7} y2={C[1] - 7} className="chart-stroke" pathLength={1} />
@@ -102,7 +105,7 @@ export default function NorthIndianChart({
           <g key={houseNumber}>
             <polygon
               points={polygonPoints(polygon)}
-              fill={picked ? "color-mix(in oklab, var(--color-gold) 22%, transparent)" : isAscendant ? "url(#nic-lagna)" : "transparent"}
+              fill={picked ? "color-mix(in oklab, var(--color-gold) 22%, transparent)" : isAscendant ? `url(#${id}-lagna)` : "transparent"}
               stroke="none"
               {...(onPick
                 ? {
@@ -123,21 +126,21 @@ export default function NorthIndianChart({
               const isPicked = selected?.kind === "planet" && selected.planet === p.planet;
               return (
                 <text
-                  key={p.planet}
+                  key={`${p.layer ?? "natal"}-${p.planet}`}
                   x={layout.points[idx][0]}
                   y={layout.points[idx][1]}
                   textAnchor="middle"
                   fontSize={fs}
                   fontWeight="600"
                   className={onPick ? "chart-fade cursor-pointer outline-none" : "chart-fade"}
-                  fill={p.dignity ? DIGNITY_COLOR[p.dignity] : "var(--color-cream)"}
+                  fill={p.layer === "transit" ? "var(--workspace-teal, #55B6A4)" : p.layer === "natal" ? "var(--color-gold-bright)" : p.dignity ? DIGNITY_COLOR[p.dignity] : "var(--color-cream)"}
                   textDecoration={isPicked ? "underline" : undefined}
                   style={glyphs ? { fontFamily: "'Noto Sans Symbols 2','Segoe UI Symbol','Apple Symbols',serif" } : undefined}
                   {...(onPick
                     ? {
                         role: "button",
                         tabIndex: 0,
-                        "aria-label": tr(p.planet),
+                        "aria-label": `${p.layer === "transit" ? "Transit " : "Natal "}${tr(p.planet)}`,
                         onClick: (e: React.MouseEvent) => {
                           e.stopPropagation();
                           onPick({ kind: "planet", planet: p.planet });
@@ -159,7 +162,7 @@ export default function NorthIndianChart({
                       .filter(Boolean)
                       .join(" · ")}
                   </title>
-                  {glyphs ? PLANET_GLYPH[p.planet] : planetAbbr(p.planet, locale)}
+                  {p.layer === "transit" ? "◇" : p.layer === "natal" ? "●" : ""}{glyphs ? PLANET_GLYPH[p.planet] : planetAbbr(p.planet, locale)}
                   {p.degreeInSign !== undefined && layout.degrees && (
                     <tspan fontSize={8.5 * layout.scale} fontWeight="400" fill="var(--color-muted)" dx="2" style={{ fontVariantNumeric: "tabular-nums", fontFamily: "inherit" }}>
                       {Math.floor(p.degreeInSign)}°

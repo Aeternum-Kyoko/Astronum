@@ -6,6 +6,7 @@ import DatePicker from "@/components/DatePicker";
 import { haptic } from "@/lib/haptics";
 import type { Locale } from "@/lib/i18n/locale";
 import { DIGITS, loShuReport, type Gender, type LoShuReport } from "@/lib/loShu";
+import { isValidBirthDate, reduceToDigit } from "@/lib/numerology";
 
 const ELEMENT_TINT: Record<string, string> = {
   Water: "#5cc8ff",
@@ -32,12 +33,12 @@ const COPY = {
     kua: "Kua",
     download: "Download image",
     copy: "Copy link",
-    glance: (s: number) => `Your grid at a glance · ${s}/100`,
+    glance: (r: LoShuReport) => `Your grid at a glance · ${9-r.missing.length}/9 present`,
     placed: (r: LoShuReport) => `Numbers placed: ${r.placed.join(" ")} (date digits, then Driver ${r.driver}, Conductor ${r.conductor}${r.kua ? `, Kua ${r.kua}` : ""}). Personal year ${r.personalYear.year}: `,
     strengths: "Strengths",
     noStrengths: "No complete plane — your strengths come from the individual numbers below.",
     challenges: "Challenges",
-    noChallenges: "No empty planes and no excess numbers — a well-balanced grid.",
+    noChallenges: "No fully empty planes. Partial planes still show which numbers are absent.",
     remedies: "Most useful remedies",
     planesTitle: "The eight planes (arrows)",
     planesBody: "A complete line of three numbers is a strength; an empty one is a lesson. Two of three means the plane is developing — its missing number is the key.",
@@ -51,6 +52,15 @@ const COPY = {
     kuaBody: "Face these directions while working, sleeping or signing — the first is the strongest.",
     imgTitle: "LO SHU GRID",
     imgMissing: (r: LoShuReport) => `Missing: ${r.missing.map((m) => m.n).join(", ") || "none"}   ·   Complete planes: ${r.planes.filter((p) => p.status === "complete").length}`,
+    method: "Grid method",
+    indian: "Indian numerology · adds Driver and Conductor",
+    dateOnly: "Birth-date digits only",
+    user: "User",
+    astrologer: "Astrologer",
+    score: (r: LoShuReport) => `${9-r.missing.length}/9 numbers · ${r.planes.filter(p=>p.status==="complete").length} complete planes · ${r.present.filter(p=>p.count>=3).length} repeated 3+ times`,
+    selectNumber: "Select a number to inspect",
+    yearCycle: "Personal year cycle",
+    kuaBoundary: "Kua year follows an approximate 4 February boundary; verify dates close to Li Chun.",
   },
   hi: {
     dob: "जन्म तिथि",
@@ -68,12 +78,12 @@ const COPY = {
     kua: "कुआ",
     download: "चित्र डाउनलोड करें",
     copy: "लिंक कॉपी करें",
-    glance: (s: number) => `आपकी ग्रिड एक नज़र में · ${s}/100`,
+    glance: (r: LoShuReport) => `आपकी ग्रिड एक नज़र में · ${9-r.missing.length}/9 मौजूद`,
     placed: (r: LoShuReport) => `रखे गए अंक: ${r.placed.join(" ")} (जन्म तिथि के अंक, फिर मूलांक ${r.driver}, भाग्यांक ${r.conductor}${r.kua ? `, कुआ ${r.kua}` : ""})। व्यक्तिगत वर्ष ${r.personalYear.year}: `,
     strengths: "शक्तियाँ",
     noStrengths: "कोई पूर्ण तल नहीं — आपकी शक्तियाँ नीचे दिए अलग-अलग अंकों से आती हैं।",
     challenges: "चुनौतियाँ",
-    noChallenges: "न कोई खाली तल, न कोई अधिक अंक — संतुलित ग्रिड।",
+    noChallenges: "कोई तल पूरी तरह खाली नहीं है। आंशिक तल अभी भी लुप्त अंक दिखाते हैं।",
     remedies: "सबसे उपयोगी उपाय",
     planesTitle: "आठ तल (रेखाएँ)",
     planesBody: "तीन अंकों की पूरी रेखा शक्ति है; खाली रेखा एक सबक है। तीन में से दो का अर्थ है तल विकसित हो रहा है — उसका लुप्त अंक ही कुंजी है।",
@@ -87,6 +97,15 @@ const COPY = {
     kuaBody: "काम करते, सोते या हस्ताक्षर करते समय इन दिशाओं की ओर मुख रखें — पहली सबसे प्रबल है।",
     imgTitle: "लो शु ग्रिड",
     imgMissing: (r: LoShuReport) => `लुप्त: ${r.missing.map((m) => m.n).join(", ") || "कोई नहीं"}   ·   पूर्ण तल: ${r.planes.filter((p) => p.status === "complete").length}`,
+    method: "ग्रिड विधि",
+    indian: "भारतीय अंक ज्योतिष · मूलांक और भाग्यांक जोड़ें",
+    dateOnly: "केवल जन्म तिथि के अंक",
+    user: "उपयोगकर्ता",
+    astrologer: "ज्योतिषी",
+    score: (r: LoShuReport) => `${9-r.missing.length}/9 अंक · ${r.planes.filter(p=>p.status==="complete").length} पूर्ण तल · ${r.present.filter(p=>p.count>=3).length} अंक 3+ बार`,
+    selectNumber: "देखने के लिए अंक चुनें",
+    yearCycle: "व्यक्तिगत वर्ष चक्र",
+    kuaBoundary: "कुआ वर्ष की सीमा लगभग 4 फ़रवरी है; ली चुन के आसपास की तारीख़ जाँचें।",
   },
 };
 type Copy = (typeof COPY)["en"];
@@ -100,13 +119,17 @@ export default function LoShuMaker({ locale = "en" }: { locale?: Locale }) {
   const [date, setDate] = useState(params.get("date") ?? "");
   const [name, setName] = useState(params.get("name") ?? "");
   const [gender, setGender] = useState<Gender | "">((params.get("g") as Gender | null) ?? "");
+  const [method, setMethod] = useState<"indian" | "birth-date">(params.get("method") === "birth-date" ? "birth-date" : "indian");
+  const [mode, setMode] = useState<"user" | "astrologer">("user");
+  const [selectedNumber, setSelectedNumber] = useState(5);
+  const [error, setError] = useState<string | null>(null);
   const [shown, setShown] = useState<{ date: string; name: string; gender: Gender | "" } | null>(() =>
     params.get("date") ? { date: params.get("date")!, name: params.get("name") ?? "", gender: (params.get("g") as Gender | null) ?? "" } : null
   );
 
   const report = useMemo(
-    () => (shown && /^\d{4}-\d{2}-\d{2}$/.test(shown.date) ? loShuReport(shown.date, { name: shown.name, gender: shown.gender || null, locale }) : null),
-    [shown, locale]
+    () => (shown && isValidBirthDate(shown.date) ? loShuReport(shown.date, { name: shown.name, gender: shown.gender || null, locale, method }) : null),
+    [shown, locale, method]
   );
 
   useEffect(() => {
@@ -115,9 +138,10 @@ export default function LoShuMaker({ locale = "en" }: { locale?: Locale }) {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    if (!isValidBirthDate(date)) { setError("Enter a real birth date from 1900 to today."); return; }
+    setError(null);
     setShown({ date, name, gender });
-    const q = new URLSearchParams({ date, ...(name ? { name } : {}), ...(gender ? { g: gender } : {}) });
+    const q = new URLSearchParams({ date, method, ...(name ? { name } : {}), ...(gender ? { g: gender } : {}) });
     router.replace(`${pathname}?${q}`, { scroll: false });
   }
 
@@ -142,44 +166,58 @@ export default function LoShuMaker({ locale = "en" }: { locale?: Locale }) {
             </select>
           </label>
         </div>
+        <label className="mt-4 block">
+          <span className="mb-1.5 block text-xs font-semibold text-muted">{t.method}</span>
+          <select value={method} onChange={(e) => setMethod(e.target.value as "indian" | "birth-date")} className="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-cream focus:border-gold focus:outline-none">
+            <option value="indian">{t.indian}</option><option value="birth-date">{t.dateOnly}</option>
+          </select>
+        </label>
         <button type="submit" className="mt-5 rounded-full bg-gold px-7 py-3 text-sm font-semibold text-on-gold hover:bg-gold-bright">
           {t.make}
         </button>
+        {error && <p role="alert" className="mt-3 text-sm text-rose">{error}</p>}
       </form>
 
-      {report && <Report r={report} name={shown?.name ?? ""} t={t} />}
+      {report && <Report r={report} name={shown?.name ?? ""} t={t} mode={mode} setMode={setMode} selectedNumber={selectedNumber} setSelectedNumber={setSelectedNumber} />}
     </div>
   );
 }
 
-function Report({ r, name, t }: { r: LoShuReport; name: string; t: Copy }) {
+function Report({ r, name, t, mode, setMode, selectedNumber, setSelectedNumber }: { r: LoShuReport; name: string; t: Copy; mode: "user"|"astrologer"; setMode: (m:"user"|"astrologer")=>void; selectedNumber:number; setSelectedNumber:(n:number)=>void }) {
   const line = (n: number) => {
     const l = r.cells.flat().find((c) => c.n === n)!.label;
     return `${l.planet} · ${l.element} · ${l.direction} · ${l.area}`;
   };
   return (
     <div className="space-y-8">
+      <div className="card-edge flex items-center justify-between gap-4 rounded-2xl p-4">
+        <div><p className="font-semibold text-cream">{mode === "user" ? t.user : t.astrologer} view</p><p className="text-xs text-muted">{t.score(r)}</p></div>
+        <div className="flex rounded-full border border-border p-1"><button type="button" onClick={()=>setMode("user")} aria-pressed={mode==="user"} className={`rounded-full px-4 py-2 text-sm ${mode==="user"?"bg-gold text-on-gold":"text-muted"}`}>{t.user}</button><button type="button" onClick={()=>setMode("astrologer")} aria-pressed={mode==="astrologer"} className={`rounded-full px-4 py-2 text-sm ${mode==="astrologer"?"bg-gold text-on-gold":"text-muted"}`}>{t.astrologer}</button></div>
+      </div>
       <section className="grid gap-6 lg:grid-cols-[auto_1fr] lg:items-start" aria-label="Your Lo Shu grid">
         <div className="card-edge rounded-3xl p-5">
           <div className="grid grid-cols-3 gap-2" role="table" aria-label="Lo Shu grid">
             {r.cells.flat().map((c) => (
-              <div
-                key={c.n}
-                role="cell"
-                className={`flex h-24 w-24 flex-col items-center justify-center rounded-2xl border px-1 text-center sm:h-28 sm:w-28 ${c.count ? "border-gold/50 bg-gold/10" : "border-dashed border-border/70"}`}
+              <div role="cell" key={c.n}>
+              <button
+                onClick={()=>setSelectedNumber(c.n)}
+                aria-label={`Number ${c.n}, ${c.count} present`}
+                aria-pressed={selectedNumber===c.n}
+                className={`flex h-24 w-24 cursor-pointer flex-col items-center justify-center rounded-2xl border px-1 text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold sm:h-28 sm:w-28 ${selectedNumber===c.n?"ring-2 ring-gold":""} ${c.count ? "border-gold/50 bg-gold/10" : "border-dashed border-border/70"}`}
               >
                 <span className={`font-display leading-none ${c.count ? "text-gold-bright" : "text-border"} ${c.count > 3 ? "text-xl" : "text-3xl"}`}>{c.count ? String(c.n).repeat(c.count) : c.n}</span>
                 <span className="mt-1 text-[10px] leading-tight text-muted">
                   {c.label.planet} · {c.label.direction.split(" (")[0]}
                 </span>
                 {!c.count && <span className="text-[10px] text-rose">{t.missing}</span>}
-              </div>
+              </button></div>
             ))}
           </div>
           <p className="mt-3 text-center text-xs text-muted">
             {t.driver} {r.driver} · {t.conductor} {r.conductor}
             {r.kua ? ` · ${t.kua} ${r.kua}` : ""} · {t.present(9 - r.missing.length)}
           </p>
+          <p className="mt-2 max-w-sm text-center text-[11px] text-muted">{t.method}: {r.method === "indian" ? t.indian : t.dateOnly}. Kua: {r.kua ? `${r.kua} (${r.method === "indian" ? "added as a separate count" : "calculated but not added to the grid"})` : "not included"}.</p>
           <div className="mt-3 flex justify-center gap-2">
             <button type="button" onClick={() => downloadGrid(r, name, t)} className="rounded-full border border-border px-4 py-2 text-xs font-semibold text-cream hover:border-gold">
               {t.download}
@@ -199,13 +237,14 @@ function Report({ r, name, t }: { r: LoShuReport; name: string; t: Copy }) {
 
         <div className="space-y-4">
           <div className="card-edge rounded-3xl p-6">
-            <p className="text-sm font-semibold text-gold-bright">{t.glance(r.score)}</p>
+            <p className="text-sm font-semibold text-gold-bright">{t.glance(r)}</p>
             <p className="mt-2 text-sm leading-relaxed text-cream">{r.driverConductor}</p>
             <p className="mt-2 text-sm text-muted">
               {t.placed(r)}
               <b className="text-cream">{r.personalYear.number}</b> — {r.personalYear.keywords}.
             </p>
             {r.name && <p className="mt-2 text-sm text-cream">{r.name.text}</p>}
+            <div className="mt-4 rounded-xl border border-border/70 p-4"><p className="text-xs text-muted">{t.selectNumber}</p><p className="mt-1 font-display text-3xl text-gold-bright">{selectedNumber} · {r.cells.flat().find(c=>c.n===selectedNumber)?.label.planet}</p><p className="mt-1 text-sm text-cream">{r.cells.flat().find(c=>c.n===selectedNumber)?.meaning ?? r.missing.find(m=>m.n===selectedNumber)?.meaning}</p><p className="mt-1 text-xs text-muted">{line(selectedNumber)}{mode==="astrologer"?` · Count ${r.counts[selectedNumber]} · date contributes ${r.placed.filter(n=>n===selectedNumber).length}`:""}</p></div>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <List title={t.strengths} tone="gold" items={r.strengths.length ? r.strengths : [t.noStrengths]} />
@@ -220,7 +259,7 @@ function Report({ r, name, t }: { r: LoShuReport; name: string; t: Copy }) {
         <p className="mt-1 text-sm text-muted">{t.planesBody}</p>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {r.planes.map((p) => (
-            <div key={p.name} className="card-edge rounded-2xl p-4">
+            <button type="button" onClick={()=>setSelectedNumber(p.missingNumbers[0] ?? p.numbers[0])} key={p.name} className="card-edge rounded-2xl p-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold">
               <div className="flex items-center justify-between gap-2">
                 <p className="font-semibold text-cream">
                   {p.name} <span className="text-xs font-normal text-muted">{p.numbers.join("-")}</span>
@@ -230,10 +269,12 @@ function Report({ r, name, t }: { r: LoShuReport; name: string; t: Copy }) {
                 </span>
               </div>
               <p className="mt-1 text-sm text-muted">{p.status === "complete" ? p.strong : p.status === "empty" ? p.empty : t.developing(p.missingNumbers, p.strong)}</p>
-            </div>
+            </button>
           ))}
         </div>
       </section>
+
+      <section className="card-edge rounded-2xl p-5"><h3 className="text-xl font-bold text-cream">{t.yearCycle}</h3><p className="mt-1 text-sm text-muted">Birth month + birth day + calendar-year digits, reduced to 1–9.</p><div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-9">{Array.from({length:9},(_,i)=>{const year=new Date().getFullYear()+i-4;const number=reduceToDigit(Number(r.date.slice(5,7))+Number(r.date.slice(8,10))+reduceToDigit(year));return <div key={year} className={`rounded-xl border p-2 text-center ${year===new Date().getFullYear()?"border-gold bg-gold/10":"border-border/70"}`}><span className="block text-xs text-muted">{year}</span><b className="font-display text-xl text-gold-bright">{number}</b></div>})}</div></section>
 
       <section aria-label="Numbers in your grid">
         <h3 className="text-xl font-bold tracking-tight text-cream">{t.eachTitle}</h3>
@@ -293,6 +334,8 @@ function Report({ r, name, t }: { r: LoShuReport; name: string; t: Copy }) {
           </ol>
         </section>
       )}
+      {r.kuaDirections && <p className="text-xs text-muted">{t.kuaBoundary}</p>}
+      {mode === "astrologer" && <section className="card-edge rounded-2xl p-5"><h3 className="font-semibold text-cream">Calculation audit</h3><p className="mt-1 text-sm text-muted">Birth-date digits: {r.date.replace(/\D/g,"").split("").filter(d=>d!=="0").join(" ")}</p><p className="text-sm text-muted">Driver added: {r.method==="indian"?r.driver:"no"} · Conductor added: {r.method==="indian"?r.conductor:"no"} · Kua added: {r.kua ?? "no"}. Zero digits are omitted.</p><p className="text-sm text-muted">Name number: {r.name?`${r.name.compound} → ${r.name.number}`:"not entered"} · Personal year {r.personalYear.year}: {r.personalYear.number}</p><p className="mt-2 text-xs text-muted">Kua is based on the traditional approximate 4 February year boundary and gendered formula; schools may differ near Li Chun.</p></section>}
     </div>
   );
 }

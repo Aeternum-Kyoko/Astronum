@@ -3,9 +3,9 @@ import Link from "next/link";
 import NumerologyCalculator from "@/components/NumerologyCalculator";
 
 export const metadata: Metadata = {
-  title: "Numerology Calculator — Moolank, Bhagyank & Name Number",
+  title: "Detailed Numerology Profile — Moolank, Bhagyank & Name Numbers",
   description:
-    "Free Indian numerology calculator: your Moolank (psychic number), Bhagyank (destiny number) and Chaldean name number, with the planet ruling each.",
+    "Explore Indian Chaldean and Western Pythagorean numerology: Moolank, Bhagyank, name numbers, personal cycles, pinnacles and challenges with calculation details.",
 };
 
 export default function NumerologyPage() {
@@ -14,10 +14,9 @@ export default function NumerologyPage() {
       <div className="relative mx-auto max-w-5xl px-5 py-14 md:py-20">
         <header className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold text-gold-bright">Numerology</p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-cream md:text-5xl">Your numbers and their planets</h1>
+          <h1 className="mt-3 text-4xl font-bold tracking-tight text-cream md:text-5xl">A fuller reading of your numbers</h1>
           <p className="mt-4 text-base leading-relaxed text-muted">
-            In Indian numerology every number from 1 to 9 is ruled by a graha. Find your Moolank, Bhagyank and name
-            number.
+            Compare Indian Chaldean and Western Pythagorean calculations, explore your name and birth numbers, and follow your personal cycles.
           </p>
         </header>
         <div className="mt-10">

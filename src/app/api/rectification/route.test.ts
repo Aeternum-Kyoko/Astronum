@@ -51,3 +51,20 @@ describe("POST /api/rectification", () => {
   });
 
 });
+
+describe("reserved-event API checks", () => {
+  it("keeps reserved-event points out of returned fitting scores", async () => {
+    const response = await POST(request({ birth, window: 15, events: [
+      { kind: "career", date: "2012-07-02" }, { kind: "marriage", date: "2016-11-20" },
+      { kind: "child", date: "2019-03-14" }, { kind: "property", date: "2020-04-04", useFor: "validation" },
+    ] }, "holdout"));
+    const result = await response.json(); expect(response.status).toBe(200);
+    expect(result.validation).toMatchObject({ fitEventCount: 3, heldOutEventCount: 1 });
+    expect(result.validation.leaveOneOut).toHaveLength(3);
+    for (const run of result.runs) expect(run.best.score).toBe(run.best.events.filter((e: {useFor: string}) => e.useFor !== "validation").reduce((sum: number, e: {points: number}) => sum + e.points, 0));
+  });
+  it("rejects unsupported event roles and all-reserved requests", async () => {
+    expect((await POST(request({ birth, window: 15, events: [{kind:"career",date:"2012-07-02",useFor:"unknown"}] }, "bad-role"))).status).toBe(400);
+    expect((await POST(request({ birth, window: 15, events: [{kind:"career",date:"2012-07-02",useFor:"validation"}] }, "all-reserved"))).status).toBe(400);
+  });
+});

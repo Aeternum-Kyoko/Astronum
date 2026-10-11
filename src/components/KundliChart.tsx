@@ -33,6 +33,7 @@ export type ChartStyle = "north" | "south";
 
 export interface ChartPoint {
   planet: string;
+  layer?: "natal" | "transit";
   /** House counted from the chart's reference sign (Lagna, Moon, bhava…) — used by the North Indian chart. */
   house: number;
   /** Sign the planet is drawn in on the South Indian chart. */

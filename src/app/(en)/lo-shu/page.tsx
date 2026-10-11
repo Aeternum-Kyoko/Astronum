@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import LoShuMaker from "@/components/LoShuMaker";
+import LoShuPageClient from "@/components/LoShuPageClient";
 
 export const metadata: Metadata = {
   title: "Lo Shu Grid Maker — Detailed Lo Shu Grid Analysis from Date of Birth",
@@ -24,7 +24,7 @@ export default function LoShuPage() {
         </header>
         <div className="mt-10">
           <Suspense>
-            <LoShuMaker />
+            <LoShuPageClient />
           </Suspense>
         </div>
         <section className="card-edge mt-10 rounded-2xl p-6 text-sm leading-relaxed text-muted">

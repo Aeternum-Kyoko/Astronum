@@ -1,0 +1,82 @@
+.kundli-workspace { --workspace-teal: #55b6a4; width: 100%; }
+.workspace-header { display:flex; align-items:center; justify-content:space-between; gap:1.5rem; padding:1.5rem 0; border-bottom:1px solid var(--color-border); }
+.workspace-header h2 { font-family:var(--font-display); font-size:clamp(1.6rem,3vw,2.25rem); color:var(--color-cream); }
+.workspace-header p { margin-top:.4rem; font-size:.8rem; color:var(--color-muted); }
+.workspace-export { border:1px solid var(--color-border); border-radius:.5rem; padding:.6rem .8rem; font-size:.75rem; color:var(--color-cream); }
+.workspace-navigation { position:sticky; top:4.5rem; z-index:25; background:var(--color-ink-deep); border-bottom:1px solid var(--color-border); }
+.workspace-destinations { display:flex; gap:.25rem; }
+.workspace-destinations button { flex:1; padding:1rem .5rem; font-size:.85rem; font-weight:600; color:var(--color-muted); border-bottom:2px solid transparent; }
+.workspace-destinations button[aria-current] { color:var(--color-gold-bright); border-color:var(--color-gold); }
+.workspace-shortcuts { display:flex; flex-wrap:wrap; align-items:center; gap:.4rem; padding:.7rem 0; }
+.workspace-shortcuts button,.workspace-presets button { font-size:.75rem; color:var(--color-cream); padding:.4rem .65rem; border:1px solid var(--color-border); border-radius:.4rem; }
+.workspace-shortcuts button[aria-current] { background:var(--color-gold); color:var(--color-on-gold); }
+.analysis-calendar { display:flex; align-items:center; flex-wrap:wrap; gap:.4rem; padding:.5rem 0 .8rem; }
+.analysis-calendar input,.analysis-calendar button,.chart-workspace select,.workspace-subsections select { border:1px solid var(--color-border); border-radius:.4rem; background:var(--color-ink-deep); padding:.4rem .5rem; font-size:.75rem; color:var(--color-cream); color-scheme:dark; }
+.analysis-calendar input[type=time] { width:6.5rem; }
+.workspace-directory { padding:1rem; border:1px solid var(--color-border); border-radius:.5rem; margin-top:1rem; background:var(--color-surface); }
+.workspace-subsections { padding:1rem 0; }
+.workspace-subsections button { padding:.45rem .65rem; font-size:.75rem; color:var(--color-muted); border-radius:.4rem; }
+.workspace-subsections button[aria-current] { background:var(--color-surface-raised); color:var(--color-cream); }
+.workspace-subsections select { display:block; width:100%; margin-top:.4rem; }
+.workspace-body { display:grid; gap:1.5rem; align-items:start; }
+.workspace-canvas { min-width:0; }
+.workspace-reading { min-width:0; }
+.chart-workspace { border:1px solid var(--color-border); border-radius:.8rem; overflow:hidden; background:var(--color-ink-deep); }
+.chart-workspace-toolbar { display:flex; flex-wrap:wrap; align-items:end; gap:.75rem; padding:1rem; border-bottom:1px solid var(--color-border); }
+.chart-workspace-toolbar label { display:flex; flex-direction:column; gap:.25rem; font-size:.7rem; color:var(--color-muted); }
+.chart-workspace-toolbar label.overlay-switch { flex-direction:row; align-items:center; padding-bottom:.5rem; gap:.4rem; color:var(--color-cream); }
+.overlay-switch input { accent-color:var(--workspace-teal); width:1rem; height:1rem; }
+.workspace-presets { display:flex; flex-wrap:wrap; gap:.3rem; padding:.7rem 1rem 0; }
+.overlay-legend { display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; padding:.75rem 1rem 0; font-size:.75rem; }
+.workspace-chart { min-width:0; padding:1rem; }
+.workspace-chart h3 { font-size:.8rem; color:var(--color-cream); margin-bottom:.75rem; }
+.workspace-chart-pair { display:grid; }
+.workspace-inspector { border-top:1px solid var(--color-border); padding:1rem; }
+.workspace-inspector h3,.workspace-timing h3,.workspace-overview h3 { color:var(--color-cream); font-size:1rem; font-weight:600; }
+.inspector-positions { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; margin-top:1rem; }
+.inspector-positions dt { font-size:.75rem; color:var(--color-gold-bright); }
+.inspector-positions dd { font-size:.75rem; line-height:1.8; color:var(--color-cream); }
+.workspace-timing { padding:1rem; border:1px solid var(--color-border); border-radius:.8rem; margin-top:1rem; background:var(--color-ink-deep); }
+.timing-track { display:grid; gap:.4rem; margin-top:1rem; }
+.workspace-overview header h2 { color:var(--color-cream); font-size:clamp(1.6rem,2.5vw,2.2rem); font-family:var(--font-display); }
+.overview-period { padding:1.3rem 0; margin-top:1rem; border-block:1px solid var(--color-border); }
+.overview-topics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.5rem; padding:1.25rem 0; }
+.overview-topics button { display:flex; justify-content:space-between; gap:.5rem; align-items:center; text-align:left; padding:.75rem; border:1px solid var(--color-border); border-radius:.5rem; font-size:.85rem; color:var(--color-cream); }
+.kundli-workspace button:focus-visible,.kundli-workspace select:focus-visible,.kundli-workspace input:focus-visible,.kundli-workspace summary:focus-visible { outline:2px solid var(--workspace-teal); outline-offset:3px; }
+.mode-astrologer .workspace-reading { font-size:.9rem; }
+.mode-astrologer .workspace-reading td,.mode-astrologer .workspace-reading th { padding:.55rem; }
+@media(min-width:1024px) { .workspace-body { grid-template-columns:minmax(360px,.85fr) minmax(0,1.15fr); } .workspace-canvas { position:sticky; top:15.5rem; max-height:calc(100dvh - 16.5rem); overflow-y:auto; scrollbar-width:thin; } .mode-astrologer .workspace-body { grid-template-columns:minmax(470px,1.25fr) minmax(0,1fr); } .mode-astrologer .workspace-chart-pair { grid-template-columns:repeat(2,minmax(0,1fr)); } .mode-astrologer .workspace-chart { padding:.75rem; } }
+@media(max-width:640px) { .workspace-header { align-items:start; flex-direction:column; gap:1rem; } .workspace-destinations button { font-size:.7rem; padding:.8rem .2rem; } .workspace-navigation { top:4rem; } .analysis-calendar { gap:.25rem; } .analysis-calendar>span:last-child { width:100%; } .workspace-shortcuts button { font-size:.7rem; } .workspace-reading { padding-top:.5rem; } .workspace-chart-pair .workspace-chart+ .workspace-chart { border-top:1px solid var(--color-border); } }
+@media(prefers-reduced-motion:reduce) { .kundli-workspace .chart-draw,.kundli-workspace .chart-fade,.kundli-workspace .chart-stroke { animation:none!important; opacity:1!important; stroke-dashoffset:0!important; } }
+@media print { .kundli-workspace { display:block; } }
+.workspace-layouts { display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; padding:0 0 1rem; }
+.workspace-layouts label { display:flex; align-items:center; gap:.5rem; font-size:.7rem; color:var(--color-muted); }
+.workspace-layouts input[type=range] { width:6rem; accent-color:var(--workspace-teal); }
+.workspace-layouts select,.workspace-layouts input:not([type=range]),.workspace-layouts button { padding:.45rem .6rem; border:1px solid var(--color-border); border-radius:.4rem; color:var(--color-cream); font-size:.75rem; background:var(--color-ink-deep); }
+.workspace-layouts button:disabled { opacity:.4; }
+@media(min-width:1024px) { .mode-astrologer .workspace-body { grid-template-columns:minmax(0,var(--chart-pane-width,55%)) minmax(0,1fr); } }
+@media(max-width:1023px) { .workspace-layouts label { display:none; } }
+/* The persistent canvas is the chart entry point. Secondary chart sections retain
+   their specialised reference charts inside the analysis pane. */
+.workspace-reading > div > div > .grid { grid-template-columns:minmax(0,1fr); }
+.inspector-trigger,.inspector-close { display:none; }
+:root[data-theme=light] .analysis-calendar input,:root[data-theme=light] .chart-workspace select,:root[data-theme=light] .workspace-subsections select { color-scheme:light; }
+:root[data-theme=light] .kundli-workspace { --workspace-teal:#24776b; }
+:root[data-theme=light] .kundli-workspace .text-\[\#55B6A4\] { color:#24776b; }
+@media(max-width:640px) {
+  .inspector-trigger { display:block; width:100%; padding:.8rem; border-top:1px solid var(--color-border); text-align:left; font-size:.85rem; color:var(--color-gold-bright); }
+  .workspace-inspector { display:none; }
+  .workspace-inspector.inspector-open { display:block; position:fixed; z-index:60; bottom:.5rem; left:.5rem; right:.5rem; max-height:70dvh; overflow-y:auto; border:1px solid var(--color-border); border-radius:1rem; background:var(--color-ink-deep); box-shadow:0 -12px 40px #0005; padding:1rem; }
+  .inspector-close { display:block; margin:0 0 1rem auto; padding:.5rem .7rem; color:var(--color-gold-bright); border:1px solid var(--color-border); border-radius:.4rem; font-size:.75rem; }
+}
+.mode-user .workspace-reading .mt-14 { margin-top:0; }
+@media(max-width:640px) {
+  .workspace-header { flex-direction:row; align-items:center; padding:.8rem 0; }
+  .workspace-header h2 { display:none; }
+  .workspace-header .workspace-export { display:none; }
+  .workspace-header > div { min-width:0; }
+  .workspace-header > div:first-child { flex:1; }
+  .workspace-header > div:last-child { flex-shrink:0; }
+  .workspace-header > div:first-child button { margin-top:0; max-width:8rem; text-align:left; }
+}
+.analysis-calendar input[type=time] { width:8rem; }

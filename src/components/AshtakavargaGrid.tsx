@@ -1,4 +1,5 @@
 import { SIGN_SANSKRIT } from "@/lib/astrology/constants";
+import { binduBand } from "@/lib/astrology/ashtakavarga";
 import { A, B, C, D, HOUSE_LABEL_ANCHORS, HOUSE_POLYGONS, P1, P2, P3, P4, polygonPoints } from "@/lib/chartGeometry";
 
 // Fixed South Indian layout: (row, col) -> sign index, starting Pisces top-left,
@@ -11,10 +12,7 @@ const GRID_SIGNS: (number | null)[][] = [
 ];
 
 /** Sarvashtakavarga averages 28 per sign (337/12); a planet's own chart averages 4 of 8. */
-function level(count: number, sarva: boolean): "high" | "low" | "mid" {
-  if (sarva) return count >= 30 ? "high" : count <= 24 ? "low" : "mid";
-  return count >= 5 ? "high" : count <= 2 ? "low" : "mid";
-}
+const level = binduBand;
 const LEVEL_TEXT = { high: "text-gold-bright", low: "text-rose", mid: "text-cream" } as const;
 const LEVEL_FILL = { high: "var(--color-gold-bright)", low: "var(--color-rose)", mid: "var(--color-cream)" } as const;
 
@@ -78,7 +76,7 @@ export default function AshtakavargaGrid({
         </div>
       )}
       <p className="mt-3 text-center text-xs text-muted">
-        <span className="font-semibold text-gold-bright">Gold</span> = strong sign ({sarva ? "30+" : "5+"}), <span className="font-semibold text-rose">rose</span> = weak sign ({sarva ? "24 or fewer" : "2 or fewer"}).
+        <span className="font-semibold text-gold-bright">Gold</span> = strong sign ({sarva ? "30+" : "5+"}), <span className="font-semibold text-rose">rose</span> = weak sign ({sarva ? "24 or fewer" : "3 or fewer"}).
         {sarva ? " The average is 28." : " The average is 4 of 8."}
       </p>
     </div>

@@ -1,5 +1,5 @@
 import type { PlanetName } from "@/lib/astrology/constants";
-import { bhagyank, moolank, nameNumber, reduceToDigit, FRIENDLY, LO_SHU_LAYOUT, NUMBER_MEANINGS } from "@/lib/numerology";
+import { bhagyank, moolank, nameNumber, reduceToDigit, FRIENDLY, LO_SHU_LAYOUT, NUMBER_MEANINGS, birthDateDigits, loShuCounts } from "@/lib/numerology";
 import type { Locale } from "@/lib/i18n/locale";
 import { term } from "@/lib/i18n/terms";
 import { DIGITS_HI, DIRECTION_HI, ELEMENT_HI, KUA_USE_HI, NUMBER_KEYWORDS_HI, PLANES_HI } from "@/lib/loShu.hi";
@@ -230,6 +230,7 @@ export interface LoShuReport {
   challenges: string[];
   topRemedies: string[];
   score: number;
+  method: "indian" | "birth-date";
 }
 
 const ordinalCount = (c: number) => (c === 1 ? "once" : c === 2 ? "twice" : `${c} times`);
@@ -242,15 +243,15 @@ export function digitLabel(n: number, locale: Locale = "en"): DigitLabel {
     : { planet: d.planet, element: d.element, direction: d.direction, area: d.area };
 }
 
-export function loShuReport(date: string, opts: { gender?: Gender | null; name?: string | null; now?: Date; locale?: Locale } = {}): LoShuReport {
+export function loShuReport(date: string, opts: { gender?: Gender | null; name?: string | null; now?: Date; locale?: Locale; method?: "indian" | "birth-date" } = {}): LoShuReport {
   const locale = opts.locale ?? "en";
   const hi = locale === "hi";
+  const method = opts.method ?? "indian";
   const driver = moolank(date);
   const conductor = bhagyank(date);
   const kua = opts.gender ? kuaNumber(date, opts.gender) : null;
-  const placed = [...date.replace(/\D/g, "").split("").map(Number).filter((d) => d > 0), driver, conductor, ...(kua ? [kua] : [])];
-  const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 };
-  for (const d of placed) counts[d]++;
+  const placed = [...birthDateDigits(date), ...(method === "indian" ? [driver, conductor, ...(kua ? [kua] : [])] : [])];
+  const counts = loShuCounts(date, method === "indian");
 
   const text = (n: number) => (hi ? DIGITS_HI[n] : DIGITS[n]);
   const meaning = (n: number) => (counts[n] ? text(n).byCount[Math.min(3, counts[n] - 1)] : null);
@@ -301,7 +302,7 @@ export function loShuReport(date: string, opts: { gender?: Gender | null; name?:
     : null;
 
   let name: LoShuReport["name"] = null;
-  if (opts.name?.trim()) {
+  if (opts.name?.trim() && nameNumber(opts.name).compound > 0) {
     const nn = nameNumber(opts.name);
     const fills = counts[nn.digit] ? null : nn.digit;
     const suits = FRIENDLY[driver].includes(nn.digit) && FRIENDLY[conductor].includes(nn.digit);
@@ -340,6 +341,7 @@ export function loShuReport(date: string, opts: { gender?: Gender | null; name?:
 
   return {
     locale,
+    method,
     date,
     driver,
     conductor,

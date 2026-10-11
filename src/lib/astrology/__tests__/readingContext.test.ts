@@ -26,7 +26,7 @@ describe("shared Kundli evidence", () => {
   });
 
   it("covers every Kundli section with valid topic-specific house lenses", () => {
-    expect(Object.keys(SECTION_LENSES)).toHaveLength(36);
+    expect(Object.keys(SECTION_LENSES)).toHaveLength(37);
     for (const lens of Object.values(SECTION_LENSES)) {
       expect(lens.houses.every((h) => h >= 1 && h <= 12)).toBe(true);
       expect(readingContext(chart, lens.houses, lens.vargas, now)).toHaveLength(lens.houses.length);
