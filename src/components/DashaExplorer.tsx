@@ -63,7 +63,7 @@ export default function DashaExplorer({ chart }: { chart: KundaliChart }) {
   }
 
   return (
-    <section className="card-edge rounded-2xl p-6 md:col-span-2">
+    <section className="dasha-explorer card-edge rounded-2xl p-6 md:col-span-2">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-xl font-bold text-cream">Vimshottari explorer</h3>

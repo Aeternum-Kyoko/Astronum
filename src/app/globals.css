@@ -1,35 +1,28 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
-/*
- * Observatory — the visual language of Astronum, after Jaipur's Jantar Mantar:
- * precise engraved scales on plaster and stone, under a deep indigo sky.
- *   Night   #0E1733  the sky before dawn (dark page)
- *   Plaster #EDEFEA  cool lime plaster (light page)
- *   Haldi   #E8A915  turmeric — the single accent: buttons, live markers
- *   Sindoor          semantic only: warnings and doshas
- * Token names are historical (ink / cream / gold) and kept so every page adopts the palette.
- */
+/* The shared palette keeps the historical token names so every route can
+ * adopt the new graphite, paper, and blue visual system together. */
 
 :root {
-  --color-ink: #0e1733;
-  --color-ink-deep: #0a1128;
-  --color-surface: #142043;
-  --color-surface-raised: #1b2a55;
-  --color-border: #2a3a6b;
-  --color-gold: #e8a915;
-  --color-gold-bright: #f2c14e;
-  --color-cream: #eef0f5;
-  --color-muted: #b3bdd8;
+  --color-ink: #101318;
+  --color-ink-deep: #0b0e12;
+  --color-surface: #191e25;
+  --color-surface-raised: #242b35;
+  --color-border: #343d49;
+  --color-gold: #8bb8ff;
+  --color-gold-bright: #b1ceff;
+  --color-cream: #f2f5f9;
+  --color-muted: #aab5c4;
   --color-rose: #ef7b76;
-  --color-violet: #1b2a55;
-  --color-on-gold: #0e1733;
+  --color-violet: #242b35;
+  --color-on-gold: #101318;
 
-  --glass-bg: rgb(20, 32, 67);
+  --glass-bg: rgb(25, 30, 37);
   --input-inset: rgba(0, 0, 0, 0.25);
   --floating-shadow: rgba(3, 6, 18, 0.6);
-  --chart-top: #142043;
-  --chart-bottom: #0e1733;
+  --chart-top: #191e25;
+  --chart-bottom: #101318;
   /* Liquid Glass: highlight on the top edge, darker rim around it (iOS 27). */
   --glass-hi: rgba(255, 255, 255, 0.2);
   --glass-rim: rgba(0, 0, 0, 0.34);
@@ -39,24 +32,24 @@
 
 /* Light theme: set by the inline script in the layouts from the saved choice or the OS preference. */
 :root[data-theme="light"] {
-  --color-ink: #edefea;
-  --color-ink-deep: #f7f8f5;
-  --color-surface: #fbfbf9;
-  --color-surface-raised: #e3e6e0;
-  --color-border: #cdd2c8;
-  --color-gold: #e8a915;
-  --color-gold-bright: #8a5d00;
-  --color-cream: #0e1733;
-  --color-muted: #464f68;
+  --color-ink: #f3f5f8;
+  --color-ink-deep: #e9edf2;
+  --color-surface: #ffffff;
+  --color-surface-raised: #e9eff7;
+  --color-border: #dce2ea;
+  --color-gold: #275cba;
+  --color-gold-bright: #1f4f9e;
+  --color-cream: #171d29;
+  --color-muted: #566273;
   --color-rose: #b3322e;
-  --color-violet: #e3e6e0;
-  --color-on-gold: #0e1733;
+  --color-violet: #e9eff7;
+  --color-on-gold: #ffffff;
 
-  --glass-bg: rgb(251, 251, 249);
+  --glass-bg: rgb(255, 255, 255);
   --input-inset: rgba(14, 23, 51, 0.05);
   --floating-shadow: rgba(14, 23, 51, 0.18);
-  --chart-top: #fbfbf9;
-  --chart-bottom: #edefea;
+  --chart-top: #ffffff;
+  --chart-bottom: #f3f5f8;
   --glass-hi: rgba(255, 255, 255, 0.85);
   --glass-rim: rgba(14, 23, 51, 0.16);
   --glass-shine: rgba(255, 255, 255, 0.55);
@@ -65,14 +58,16 @@
 
 /* A section that is always the night sky, whatever the page theme (the home page hero). */
 .theme-night {
-  --color-ink: #0e1733;
-  --color-ink-deep: #0a1128;
-  --color-surface: #142043;
-  --color-surface-raised: #1b2a55;
-  --color-border: #2a3a6b;
-  --color-gold-bright: #f2c14e;
-  --color-cream: #eef0f5;
-  --color-muted: #b3bdd8;
+  --color-ink: #101318;
+  --color-ink-deep: #0b0e12;
+  --color-surface: #191e25;
+  --color-surface-raised: #242b35;
+  --color-border: #343d49;
+  --color-gold: #8bb8ff;
+  --color-gold-bright: #b1ceff;
+  --color-on-gold: #101318;
+  --color-cream: #f2f5f9;
+  --color-muted: #aab5c4;
   background: var(--color-ink);
   color: var(--color-cream);
 }
@@ -191,6 +186,14 @@ li > p a:not([class*="rounded"]) {
     0 1px 2px rgba(0, 0, 0, 0.12),
     0 12px 32px -18px var(--floating-shadow);
 }
+.tool-entry-header { padding-block:clamp(1rem,3vw,2.5rem); }
+.tool-entry-header > p:first-child { display:inline-block; padding:.4rem .8rem; border:1px solid var(--color-border); border-radius:999px; background:var(--color-surface); letter-spacing:.035em; }
+.tool-entry-header h1 { max-width:16ch; margin-inline:auto; font-weight:650; line-height:1.04; letter-spacing:-.04em; }
+.tool-entry-header > p:last-child { max-width:54ch; margin-inline:auto; }
+.tool-result-header { padding:1.2rem 1.4rem; border:1px solid var(--color-border); border-radius:1rem; background:var(--color-surface); box-shadow:0 16px 35px -32px var(--floating-shadow); }
+.tool-result-header h1 { font-weight:650; letter-spacing:-.03em; }
+.tool-result-header a { min-height:2.6rem; display:inline-flex; align-items:center; padding:.35rem .8rem; border:1px solid var(--color-border); border-radius:999px; text-decoration:none; }
+.tool-result-header a:hover { border-color:var(--color-gold); background:var(--color-surface-raised); }
 :root[data-theme="light"] .card-edge {
   background: var(--color-surface);
   box-shadow:

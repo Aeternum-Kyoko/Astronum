@@ -17,6 +17,7 @@ import KundliCalculation from "@/components/kundli/KundliCalculation";
 import { listCharts, loadChart, saveChart, type StoredChart } from "@/lib/offlineCharts";
 import { haptic } from "@/lib/haptics";
 import { useLocale, useT } from "@/lib/i18n/LocaleContext";
+import "@/components/kundli/entry.css";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 type View = "form" | "loading" | "result";
@@ -181,23 +182,21 @@ export default function KundaliForm() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.15, ease: EASE_OUT_EXPO }}
-            className="mx-auto max-w-4xl"
+            className="kundli-entry-shell"
           >
             <KundaliIntro />
-            <div className="mt-10">
-              <ProfileChips onPick={(p) => void generate({ name: p.name, date: p.date, time: p.time, place: p.place, latitude: p.latitude, longitude: p.longitude, timezone: p.timezone })} />
-              <RecentCharts onPick={(input) => void generate(input)} />
-            </div>
-            <div className="mt-8">
+            <div className="kundli-entry-form-wrap">
               <form
                 onSubmit={handleSubmit}
-                className="card-edge rounded-3xl p-7 shadow-[0_0_60px_rgba(212,175,106,0.06)] md:p-10"
+                className="kundli-entry-form card-edge rounded-3xl p-7 md:p-10"
               >
+                <div className="kundli-entry-form-heading"><h2>{locale === "hi" ? "जन्म विवरण" : "Birth details"}</h2><p>{locale === "hi" ? "अपनी कुंडली बनाने के लिए ये चार विवरण भरें।" : "Enter these four details to create your chart."}</p></div>
                 <div className="grid gap-5 md:grid-cols-2">
                   <Field label={t("Name")}>
                     <input
                       required
                       value={name}
+                      aria-label={t("Name")}
                       onChange={(e) => setName(e.target.value)}
                       placeholder={t("e.g. Asha Sharma")}
                       className="input"
@@ -238,11 +237,15 @@ export default function KundaliForm() {
 
                 <button
                   type="submit"
-                  className="mt-8 flex w-full items-center justify-center gap-2.5 rounded-full bg-gold px-6 py-4 text-base font-semibold text-on-gold transition-transform hover:scale-[1.02] hover:bg-gold-bright md:w-auto md:px-9"
+                  className="kundli-entry-submit mt-8 flex w-full items-center justify-center gap-2.5 rounded-full px-6 py-4 text-base font-semibold md:w-auto md:px-9"
                 >
                   {t("Generate Kundali")}
                 </button>
               </form>
+            </div>
+            <div className="mt-10">
+              <ProfileChips onPick={(p) => void generate({ name: p.name, date: p.date, time: p.time, place: p.place, latitude: p.latitude, longitude: p.longitude, timezone: p.timezone })} />
+              <RecentCharts onPick={(input) => void generate(input)} />
             </div>
           </motion.div>
         )}
@@ -285,10 +288,10 @@ export default function KundaliForm() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block">
-      <span className="mb-2 block text-xs font-semibold text-muted">{label}</span>
+    <div className="block">
+      <span className="mb-2 block text-sm font-medium text-muted">{label}</span>
       {children}
-    </label>
+    </div>
   );
 }
 

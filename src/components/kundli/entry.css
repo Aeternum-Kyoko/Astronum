@@ -1,0 +1,34 @@
+.kundli-entry-shell { max-width: 1280px; margin-inline: auto; }
+.kundli-entry-intro { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(340px,.92fr); align-items:center; gap:clamp(2rem,5vw,6rem); min-height:420px; }
+.kundli-entry-copy { position:relative; z-index:1; }
+.kundli-entry-eyebrow { display:inline-flex; align-items:center; gap:.65rem; color:var(--color-gold-bright); font-size:.85rem; font-weight:600; letter-spacing:.01em; }
+.kundli-entry-eyebrow::before { content:""; width:1.4rem; height:1px; background:currentColor; }
+.kundli-entry-copy h1 { max-width:12ch; margin-top:1.25rem; color:var(--color-cream); font-size:clamp(3rem,5.5vw,5.5rem); font-weight:600; line-height:1.06; letter-spacing:-.05em; }
+.kundli-entry-copy p { max-width:42rem; margin-top:1.5rem; color:var(--color-muted); font-size:clamp(1rem,1.4vw,1.2rem); line-height:1.65; }
+.kundli-entry-points { display:flex; flex-wrap:wrap; gap:.65rem 1.4rem; margin-top:1.75rem; color:var(--color-cream); font-size:.85rem; }
+.kundli-entry-points span { display:inline-flex; align-items:center; gap:.55rem; }
+.kundli-entry-points span::before { content:""; width:.35rem; height:.35rem; border-radius:50%; background:var(--color-gold); }
+.kundli-entry-art { position:relative; display:grid; place-items:center; aspect-ratio:1; max-width:490px; margin-inline:auto; width:100%; border-radius:50%; background:radial-gradient(circle at 50% 48%, color-mix(in oklab,var(--color-surface-raised),transparent 15%) 0, color-mix(in oklab,var(--color-surface),transparent 35%) 52%, transparent 72%); }
+.kundli-entry-art svg { width:100%; height:auto; overflow:visible; filter:drop-shadow(0 16px 36px rgba(4,8,20,.16)); }
+.instrument-orbit { stroke:color-mix(in oklab,var(--color-gold),transparent 28%); stroke-width:1; }
+.instrument-orbit-inner { stroke:var(--color-border); stroke-dasharray:1 7; stroke-linecap:round; stroke-width:2; }
+.instrument-orbit-core { stroke:color-mix(in oklab,var(--color-gold),transparent 70%); }
+.instrument-guides { stroke:color-mix(in oklab,var(--color-gold),transparent 84%); stroke-width:1; }
+.instrument-chart { stroke:var(--color-gold-bright); stroke-width:1.4; }
+.instrument-chart-lines { stroke:color-mix(in oklab,var(--color-gold-bright),transparent 20%); stroke-width:1.1; }
+.instrument-centre,.instrument-marker { fill:var(--color-gold-bright); }
+.instrument-star { fill:var(--color-cream); opacity:.55; }
+.kundli-entry-art-caption { position:absolute; bottom:0; right:8%; color:var(--color-muted); font-size:.78rem; }
+.kundli-entry-form-wrap { position:relative; margin-top:1.75rem; }
+.kundli-entry-form { max-width:940px; margin-inline:auto; background:var(--color-surface); box-shadow:0 18px 70px rgba(3,8,25,.10); }
+.kundli-entry-form-heading { margin-bottom:1.75rem; }
+.kundli-entry-form-heading h2 { color:var(--color-cream); font-size:1.5rem; font-weight:600; letter-spacing:-.025em; }
+.kundli-entry-form-heading p { margin-top:.3rem; color:var(--color-muted); font-size:.9rem; }
+.kundli-entry-submit { background:var(--color-gold); color:var(--color-on-gold); transition:background .18s ease, transform .18s ease; }
+.kundli-entry-submit:hover { background:var(--color-gold-bright); transform:translateY(-1px); }
+.kundli-entry-submit:focus-visible { outline:2px solid var(--color-cream); outline-offset:3px; }
+@media(max-width:900px) { .kundli-entry-intro { grid-template-columns:1fr .75fr; gap:1rem; min-height:0; } .kundli-entry-copy h1 { font-size:clamp(2.7rem,5.5vw,4.5rem); } }
+@media(max-width:640px) { .kundli-entry-intro { display:block; } .kundli-entry-copy h1 { max-width:14ch; font-size:clamp(2.65rem,11vw,3.8rem); } .kundli-entry-copy p { margin-top:1rem; } .kundli-entry-points { gap:.35rem .8rem; font-size:.76rem; } .kundli-entry-art { width:55%; min-width:180px; max-width:230px; margin-top:.6rem; aspect-ratio:1; } .kundli-entry-art-caption { display:none; } .kundli-entry-form-wrap { margin-top:.8rem; } .kundli-entry-form { box-shadow:none; } }
+@media(prefers-reduced-motion:reduce) { .kundli-entry-submit { transition:none; } .kundli-entry-submit:hover { transform:none; } }
+/* Keep the birth form visible early on typical laptop screens. */
+@media(min-width:901px) { .kundli-entry-intro { min-height:350px; } .kundli-entry-art { max-width:360px; } }

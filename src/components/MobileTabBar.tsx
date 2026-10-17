@@ -44,7 +44,7 @@ export default function MobileTabBar({ locale }: { locale: Locale }) {
   const pathname = usePathname();
   const [more, setMore] = useState(false);
   const labels = getDictionary(locale).chrome.tabs;
-  if (pathname?.startsWith("/admin")) return null;
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/hi/admin")) return null;
   const hi = locale === "hi";
   const plain = hi ? pathname?.replace(/^\/hi(?=\/|$)/, "") || "/" : pathname;
   const activeTab = TABS.find((t) => (t.href === "/" ? plain === "/" : isActivePath(plain, t.href)))?.key ?? null;
@@ -223,7 +223,7 @@ function MoreSheet({ locale, close, pathname }: { locale: Locale; close: () => v
           </li>
         ))}
         <li>
-          <Link href="/account" onClick={close}>
+          <Link href={lx("/account")} onClick={close}>
             {hi ? "खाता" : "Account"}
           </Link>
         </li>

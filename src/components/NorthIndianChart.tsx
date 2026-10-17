@@ -48,6 +48,7 @@ export default function NorthIndianChart({
   selected,
   glyphs = false,
   locale = "en",
+  ariaLabel,
 }: {
   ascendantSignIndex: number;
   planets: ChartPlanet[];
@@ -57,6 +58,7 @@ export default function NorthIndianChart({
   /** Planet symbols (☉ ☽ ♂…) instead of two-letter names. */
   glyphs?: boolean;
   locale?: Locale;
+  ariaLabel?: string;
 }) {
   const id = useId().replace(/:/g, "");
   const hi = locale === "hi";
@@ -69,7 +71,7 @@ export default function NorthIndianChart({
   }
 
   return (
-    <svg viewBox="0 0 400 400" className="chart-draw mx-auto w-full max-w-md overflow-visible" role="img" aria-label={hi ? "जन्म कुंडली, उत्तर भारतीय शैली" : "Birth chart, North Indian style"}>
+    <svg viewBox="0 0 400 400" className="chart-draw mx-auto w-full max-w-md overflow-visible" role="img" aria-label={ariaLabel ?? (hi ? "जन्म कुंडली, उत्तर भारतीय शैली" : "Birth chart, North Indian style")}>
       <defs>
         <radialGradient id={`${id}-bg`} cx="50%" cy="45%" r="75%">
           <stop offset="0%" style={{ stopColor: "var(--chart-top)" }} />

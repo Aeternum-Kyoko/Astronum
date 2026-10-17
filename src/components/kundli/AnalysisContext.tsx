@@ -58,6 +58,11 @@ export function AnalysisProvider({ chart, children }: { chart: KundaliChart; chi
       if (secondary === "transit" || VARGA_KEYS.includes(secondary)) next.secondary = secondary;
       if (params.has("overlay")) next.overlay = params.get("overlay") === "1";
       if (params.has("compare")) next.compare = params.get("compare") === "1";
+      const section = params.get("tab");
+      if (section === "rasi") { next.primary = "D1"; next.overlay = false; next.compare = false; }
+      if (section === "navamsa") { next.primary = "D9"; next.overlay = false; next.compare = false; }
+      if (section === "vargas") { if (next.primary === "D1" || next.primary === "D9") next.primary = "D10"; next.overlay = false; next.compare = false; }
+      if (section === "transits") { next.primary = "D1"; next.overlay = true; next.compare = false; next.reference = "lagna"; }
       if (next.overlay) next.reference = "lagna";
       save(next);
     };

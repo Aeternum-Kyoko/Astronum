@@ -34,16 +34,19 @@ function Missing() {
 }
 
 export function LifeReportPanel({ report }: { report: KundaliReport | null }) {
+  const L = pick(useLocale());
   if (!report) return <Missing />;
   return (
-    <div className="space-y-6">
+    <div className="life-report space-y-6">
+      <header><h2>{L("Your life, in chapters", "जीवन के अध्याय")}</h2><p>{L("Start with a summary. Open a chapter for its reasoning and timing.", "सारांश से शुरू करें। तर्क और समय के लिए अध्याय खोलें।")}</p></header>
       <p className="mx-auto max-w-2xl text-center text-sm leading-relaxed text-muted">
         Each area of life is judged from its houses, their lords, the planets in them and the natural significators —
         with the upcoming dasha periods that bring it into focus.
       </p>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="report-chapters">
         {report.lifeAreas.map((a) => (
-          <section key={a.key} className="card-edge flex flex-col rounded-2xl p-6">
+          <details key={a.key} className="report-chapter">
+            <summary>
             <div className="flex items-start justify-between gap-3">
               <h3 className="text-lg font-bold text-cream">{a.title}</h3>
               <span className="shrink-0 text-right">
@@ -53,7 +56,8 @@ export function LifeReportPanel({ report }: { report: KundaliReport | null }) {
                 </span>
               </span>
             </div>
-            <p className="mt-2 text-sm font-medium text-cream">{a.summary}</p>
+            <p className="mt-2 text-sm font-medium text-cream">{a.summary}</p><span className="chapter-prompt">{L("Evidence and timing", "प्रमाण और समय")}</span></summary>
+            <div className="report-chapter-body">
             <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-muted">
               {a.points.map((p) => (
                 <li key={p} className="flex gap-2">
@@ -79,7 +83,7 @@ export function LifeReportPanel({ report }: { report: KundaliReport | null }) {
                 </ul>
               </div>
             )}
-          </section>
+          </div></details>
         ))}
       </div>
     </div>
@@ -130,7 +134,9 @@ function TransitExplorer({ report, chart, detailed }: { report: KundaliReport; c
   const [ownDate, setOwnDate] = useState(today);
   const date = analysis?.date ?? ownDate;
   const setDate = (date: string) => analysis ? analysis.update({ date }) : setOwnDate(date);
-  const [month, setMonth] = useState(() => DateTime.fromISO(today).startOf("month"));
+  const [monthState, setMonthState] = useState<{ forDate: string; view: DateTime }>({ forDate: date, view: DateTime.fromISO(date).startOf("month") });
+  const month = monthState.forDate === date ? monthState.view : DateTime.fromISO(date).startOf("month");
+  const setMonth = (view: DateTime) => setMonthState({ forDate: date, view });
   const at = useMemo(() => analysis?.at ?? DateTime.fromISO(date, { zone }).set({ hour: 12 }).toJSDate(), [date, zone, analysis?.at]);
   const moon = chart.planets.find((p) => p.planet === "Moon")!;
   const transits = useMemo(() => analysis?.transits ?? currentTransits(moon.signIndex, chart.ascendant.signIndex, at), [at, moon.signIndex, chart.ascendant.signIndex, analysis?.transits]);
@@ -147,28 +153,14 @@ function TransitExplorer({ report, chart, detailed }: { report: KundaliReport; c
 
   const days = Array.from({ length: month.daysInMonth! }, (_, i) => month.set({ day: i + 1 }));
   const blanks = (month.weekday + 6) % 7;
-  const stepDate = (amount: number, unit: "day" | "month" | "year") => {
-    const next = DateTime.fromISO(date, { zone }).plus({ [unit]: amount }).toISODate()!;
-    setDate(next);
-    setMonth(DateTime.fromISO(next).startOf("month"));
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="transit-reading space-y-6">
       <p className="mx-auto max-w-2xl text-center text-sm leading-relaxed text-muted">
         {L(`Explore past or future positions against your natal Moon (${moon.sign}) and Lagna (${chart.ascendant.sign}).`, `जन्म चंद्र (${n(moon.sign)}) और लग्न (${n(chart.ascendant.sign)}) से भूत या भविष्य के गोचर देखें।`)}
       </p>
 
       <section className="card-edge rounded-2xl p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><h3 className="text-lg font-bold text-cream">{L("Transit calendar","गोचर कैलेंडर")}</h3><p className="text-xs text-muted">{L("Choose a date to view your personal gochara and Panchang.","अपने गोचर और पंचांग के लिए तिथि चुनें।")}</p></div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => stepDate(-1, "day")} className="rounded-lg border border-border px-3 py-2 text-sm text-cream" aria-label={L("Previous day","पिछला दिन")}>←</button>
-            <input aria-label={L("Transit date", "गोचर तिथि")} type="date" value={date} onChange={(e) => { if (e.target.value) { setDate(e.target.value); setMonth(DateTime.fromISO(e.target.value).startOf("month")); } }} className="rounded-lg border border-border bg-ink-deep px-3 py-2 text-sm text-cream" />
-            <button type="button" onClick={() => stepDate(1, "day")} className="rounded-lg border border-border px-3 py-2 text-sm text-cream" aria-label={L("Next day","अगला दिन")}>→</button>
-            <button type="button" onClick={() => { setDate(today); setMonth(DateTime.fromISO(today).startOf("month")); }} className="rounded-lg border border-gold/50 px-3 py-2 text-sm font-semibold text-gold-bright">{L("Today","आज")}</button>
-          </div>
-        </div>
+        <div><h3 className="text-lg font-bold text-cream">{L("Transit calendar","गोचर कैलेंडर")}</h3><p className="text-xs text-muted">{L("Choose a date to view your personal gochara and Panchang. The analysis bar above also changes the exact time.","अपने गोचर और पंचांग के लिए तिथि चुनें। ऊपर विश्लेषण पट्टी से सटीक समय भी बदलें।")}</p></div>
         <div className="mt-5 max-w-md">
           <div className="mb-2 flex items-center justify-between">
             <button type="button" onClick={() => setMonth(month.minus({ months: 1 }))} className="rounded-lg border border-border px-3 py-1.5 text-sm text-cream" aria-label={L("Previous month","पिछला महीना")}>←</button>
@@ -185,7 +177,7 @@ function TransitExplorer({ report, chart, detailed }: { report: KundaliReport; c
         </div>
       </section>
 
-      <TransitChart transits={transits} chart={chart} date={date} />
+      <details className="transit-reference-disclosure"><summary>{L("Compare transits from the Moon", "चंद्र से गोचर तुलना करें")}</summary><TransitChart transits={transits} chart={chart} date={date} /></details>
 
       {panchang ? <section className="card-edge rounded-2xl p-5">
         <h3 className="text-lg font-bold text-cream">{L("Panchang","पंचांग")} · {DateTime.fromISO(date, { zone }).setLocale(locale).toFormat("cccc, d LLLL yyyy")}</h3>
@@ -195,7 +187,7 @@ function TransitExplorer({ report, chart, detailed }: { report: KundaliReport; c
         </div>
       </section> : <section className="card-edge rounded-2xl p-5 text-sm text-muted">{L("Panchang timings are unavailable for this date and location.","इस तिथि और स्थान का पंचांग समय उपलब्ध नहीं है।")}</section>}
 
-      <section className="card-edge overflow-x-auto rounded-2xl">
+      <section tabIndex={0} aria-label={L("Transit positions, scroll horizontally for all columns", "गोचर स्थितियाँ, सभी स्तंभों के लिए क्षैतिज स्क्रॉल करें")} className="transit-table card-edge overflow-x-auto rounded-2xl">
         <table className="w-full text-sm">
           <caption className="px-5 pt-5 text-left">
             <span className="block text-lg font-bold text-cream">{L("Transits on","गोचर तिथि")} {DateTime.fromISO(date, { zone }).toFormat("d LLL yyyy")}</span>

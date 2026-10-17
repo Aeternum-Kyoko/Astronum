@@ -48,6 +48,7 @@ export default function QuickKundaliForm({ copy, target = "/kundali" }: { copy: 
         <Field label={copy.name}>
           <input
             value={name}
+            aria-label={copy.name}
             onChange={(e) => setName(e.target.value)}
             placeholder={copy.namePlaceholder}
             className="input"
@@ -88,9 +89,9 @@ export default function QuickKundaliForm({ copy, target = "/kundali" }: { copy: 
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block">
+    <div className="block">
       <span className="mb-1.5 block text-xs font-semibold text-muted">{label}</span>
       {children}
-    </label>
+    </div>
   );
 }

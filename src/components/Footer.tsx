@@ -1,14 +1,24 @@
 import Link from "next/link";
-import { KUNDLI_LINKS, LEARN_LINKS, PANCHANG_LINKS, SECONDARY_LINKS, type NavItem } from "@/lib/nav";
+import { type NavItem } from "@/lib/nav";
 import { localizeHref, type Locale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 
 const EXPLORE: NavItem[] = [
-  ...KUNDLI_LINKS.filter((l) => l.href !== "/learn/gemstones"),
-  { href: "/horoscope", label: "Daily Horoscope", labelHi: "दैनिक राशिफल" },
-  ...PANCHANG_LINKS,
-  ...SECONDARY_LINKS,
-  { href: "/consultation", label: "Book a Consultation", labelHi: "परामर्श बुक करें" },
+  { href: "/kundali", label: "Birth chart", labelHi: "जन्म कुंडली" },
+  { href: "/matching", label: "Matching", labelHi: "मिलान" },
+  { href: "/horoscope", label: "Horoscope", labelHi: "राशिफल" },
+  { href: "/panchang", label: "Panchang", labelHi: "पंचांग" },
+  { href: "/muhurat", label: "Muhurat", labelHi: "मुहूर्त" },
+  { href: "/consultation", label: "Consultation", labelHi: "परामर्श" },
+];
+
+const LEARN: NavItem[] = [
+  { href: "/learn", label: "All topics", labelHi: "सभी विषय" },
+  { href: "/learn/planets", label: "Planets", labelHi: "ग्रह" },
+  { href: "/learn/signs", label: "Signs", labelHi: "राशियाँ" },
+  { href: "/learn/glossary", label: "Glossary", labelHi: "शब्दकोश" },
+  { href: "/blog", label: "Articles", labelHi: "लेख" },
+  { href: "/about", label: "About", labelHi: "हमारे बारे में" },
 ];
 
 const LEGAL = [
@@ -32,7 +42,7 @@ export default function Footer({ locale }: { locale: Locale }) {
           </div>
 
           <FooterList title={t.explore} items={EXPLORE} locale={locale} label={label} />
-          <FooterList title={t.learn} items={LEARN_LINKS} locale={locale} label={label} />
+          <FooterList title={t.learn} items={LEARN} locale={locale} label={label} />
 
           <div>
             <p className="text-sm font-medium text-gold-bright">{t.noteTitle}</p>
@@ -43,7 +53,7 @@ export default function Footer({ locale }: { locale: Locale }) {
         <div className="mt-10 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
         <nav aria-label="Legal" className="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-muted">
           {LEGAL.map((l) => (
-            <Link key={l.href} href={l.href} className="hover:text-cream">
+            <Link key={l.href} href={localizeHref(locale, l.href)} className="hover:text-cream">
               {l.label}
             </Link>
           ))}

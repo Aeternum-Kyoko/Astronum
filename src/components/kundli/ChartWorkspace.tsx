@@ -3,10 +3,10 @@ import { useMemo, useState } from "react";
 import { useAnalysis } from "./AnalysisContext";
 import KundliChart, { type ChartPoint } from "../KundliChart";
 import type { KundaliChart } from "@/lib/astrology/types";
-import { VARGA_KEYS, type VargaKey } from "@/lib/astrology/constants";
+import { type VargaKey } from "@/lib/astrology/constants";
 import { overlayPoints } from "@/lib/astrology/chartOverlay";
 import { natalMarkers } from "@/lib/astrology/chartMarkers";
-import { houseSignification, planetKeynote } from "@/lib/astrology/content";
+import { houseSignification, planetKeynote, vargaInfo } from "@/lib/astrology/content";
 import { aspectsSign } from "@/lib/astrology/aspects";
 import { readingEvidence } from "@/lib/astrology/readingEvidence";
 import { useDeviceStore } from "@/lib/useDeviceStore";
@@ -14,6 +14,8 @@ import { useLocale } from "@/lib/i18n/LocaleContext";
 import { pick } from "@/lib/i18n/ui";
 import { term } from "@/lib/i18n/terms";
 import EvidenceEntry from "../EvidenceEntry";
+import InspectorPanel from "./InspectorPanel";
+import ChartPicker, { ChartStyleButtons } from "./ChartPicker";
 import TransitModifiersPanel from "../TransitModifiersPanel";
 
 export default function ChartWorkspace({ chart, mode, go }: { chart: KundaliChart; mode: "user" | "astrologer"; go: (slug: string) => void }) {
@@ -41,33 +43,51 @@ export default function ChartWorkspace({ chart, mode, go }: { chart: KundaliChar
   const [notes, saveNotes] = useDeviceStore<Record<string, string>>(`kundli-notes:${chart.utcDate}:${chart.input.latitude}`, {});
   const noteKey = selected ? `planet:${selected}` : `house:${house}`;
   const pickChart = (key: VargaKey, second?: VargaKey | "transit") => a.update({ primary: key, reference: "lagna", ...(second ? { secondary: second, compare: true } : {}) });
+  const openPersonalChart = (slug: string, update: Parameters<typeof a.update>[0]) => { go(slug); a.update(update); };
   return <section className={`chart-workspace ${mode === "astrologer" ? "expert-charts" : ""}`} aria-label={L("Chart workspace", "कुंडली कार्यक्षेत्र")}>
+    {mode === "user" ? (
+      <div className="chart-workspace-toolbar user-chart-toolbar">
+        <div className="user-chart-choices" role="group" aria-label={L("Choose chart", "कुंडली चुनें")}>
+          <button type="button" aria-pressed={primary === "D1" && !a.overlay} onClick={() => openPersonalChart("rasi", { primary: "D1", reference: "lagna", overlay: false, compare: false })}>{L("Birth chart", "जन्म कुंडली")} <span>D1</span></button>
+          <button type="button" aria-pressed={primary === "D9" && !a.overlay} onClick={() => openPersonalChart("navamsa", { primary: "D9", overlay: false, compare: false })}>{L("Navamsa", "नवांश")} <span>D9</span></button>
+          <button type="button" aria-pressed={a.overlay} onClick={() => openPersonalChart("transits", { primary: "D1", reference: "lagna", overlay: true, compare: false })}>{L("Transits", "गोचर")}</button>
+
+        </div>
+        <ChartStyleButtons value={a.style} onChange={style => a.update({ style })} />
+      </div>
+    ) : (
     <div className="chart-workspace-toolbar">
-      <label>{L("Chart", "कुंडली")}<select aria-label={L("Primary chart", "प्रमुख कुंडली")} value={primary} onChange={e => pickChart(e.target.value as VargaKey)}>{VARGA_KEYS.map(k => <option key={k}>{k}</option>)}</select></label>
-      <label>{L("Style", "शैली")}<select value={a.style} onChange={e => a.update({ style: e.target.value as "north" | "south" })}><option value="north">{L("North Indian", "उत्तर भारतीय")}</option><option value="south">{L("South Indian", "दक्षिण भारतीय")}</option></select></label>
+
+      <ChartStyleButtons value={a.style} onChange={style => a.update({ style })} />
       <label>{L("D1 reference", "D1 आधार")}<select value={a.reference} disabled={primary !== "D1"} onChange={e => a.update({ reference: e.target.value as typeof a.reference, overlay: false })}><option value="lagna">{L("Lagna", "लग्न")}</option><option value="moon">{L("Moon", "चंद्र")}</option><option value="chalit">{L("Bhava Chalit", "भाव चलित")}</option><option value="lalkitab">{L("Lal Kitab", "लाल किताब")}</option></select></label>
       <label className="overlay-switch"><input type="checkbox" checked={a.overlay && primary === "D1"} onChange={e => a.update({ overlay: e.target.checked, primary: "D1", reference: "lagna" })} />{L("Transit overlay", "गोचर परत")}</label>
       <label className="overlay-switch"><input type="checkbox" checked={a.compare} onChange={e => a.update({ compare: e.target.checked })} />{L("Compare", "तुलना")}</label>
     </div>
+    )}
+    <ChartPicker value={primary} label={L("Choose a chart", "कुंडली चुनें")} onChange={key => {
+      if (key === "transit") return;
+      if (mode === "user") openPersonalChart(key === "D1" ? "rasi" : key === "D9" ? "navamsa" : "vargas", { primary: key, reference: "lagna", overlay: false, compare: false });
+      else pickChart(key);
+    }} />
     {mode === "astrologer" && <div className="workspace-presets">{[["D1 + D9", "D9"], [L("Career · D10", "करियर · D10"), "D10"], [L("D1 + Transit", "D1 + गोचर"), "transit"]].map(([label, key]) => <button key={key} type="button" onClick={() => pickChart("D1", key as VargaKey | "transit")}>{label}</button>)}</div>}
     {a.overlay && primary === "D1" && <div className="overlay-legend"><span className="text-gold-bright">● {L("Natal", "जन्म")}</span><span className="text-[#55B6A4]">◇ {L("Transit", "गोचर")}</span><select aria-label={L("Transit planet filter", "गोचर ग्रह चयन")} value={a.filter} onChange={e => a.update({ filter: e.target.value as typeof a.filter })}><option value="all">{L("All planets", "सभी ग्रह")}</option><option value="slow">{L("Slow planets", "धीमे ग्रह")}</option><option value="selected">{L("Selected planet", "चुना ग्रह")}</option></select><span className="text-xs text-muted">{a.date} {a.time}</span></div>}
     {a.overlay && a.filter === "selected" && !selected && <p className="px-4 pt-3 text-xs text-muted">{L("Select a natal planet to show its transit position.", "गोचर स्थिति देखने के लिए जन्म ग्रह चुनें।")}</p>}
     <div className={a.compare ? "workspace-chart-pair" : "workspace-chart-single"}>
-      <div className="workspace-chart"><h3>{primary} {a.overlay && primary === "D1" ? L("with transits", "गोचर सहित") : primary === "D1" ? a.reference === "lagna" ? L("natal · Lagna", "जन्म · लग्न") : a.reference === "moon" ? L("natal · Moon reference", "जन्म · चंद्र आधार") : a.reference === "chalit" ? L("natal · Bhava Chalit", "जन्म · भाव चलित") : L("natal · Lal Kitab", "जन्म · लाल किताब") : L("natal", "जन्म")}</h3><KundliChart ascendantSignIndex={referenceSign} planets={left} style={a.style} selected={a.selected} onPick={select} /></div>
-      {a.compare && <div className="workspace-chart"><label className="text-sm text-cream">{L("Compare with", "तुलना करें")} <select aria-label={L("Comparison chart", "तुलना कुंडली")} value={a.secondary} onChange={e => a.update({ secondary: e.target.value as VargaKey | "transit" })}>{VARGA_KEYS.map(k => <option key={k}>{k}</option>)}<option value="transit">{L("Transit in natal houses", "जन्म भावों में गोचर")}</option></select></label><KundliChart ascendantSignIndex={a.secondary === "transit" || a.secondary === "D1" ? chart.ascendant.signIndex : chart.divisionalCharts[a.secondary].ascendant.signIndex} planets={a.secondary === "transit" ? filtered : points(a.secondary)} style={a.style} selected={a.selected} onPick={select} /></div>}
+      <div className="workspace-chart"><h3>{primary} {a.overlay && primary === "D1" ? L("with transits", "गोचर सहित") : primary === "D1" ? a.reference === "lagna" ? L("natal · Lagna", "जन्म · लग्न") : a.reference === "moon" ? L("natal · Moon reference", "जन्म · चंद्र आधार") : a.reference === "chalit" ? L("natal · Bhava Chalit", "जन्म · भाव चलित") : L("natal · Lal Kitab", "जन्म · लाल किताब") : L("natal", "जन्म")}</h3><KundliChart ascendantSignIndex={referenceSign} planets={left} style={a.style} selected={a.selected} onPick={select} ariaLabel={a.overlay && primary === "D1" ? L("D1 birth chart with transit positions", "गोचर स्थितियों सहित D1 जन्म कुंडली") : `${primary} ${vargaInfo(primary, locale).title} · ${a.style === "north" ? L("North Indian", "उत्तर भारतीय") : L("South Indian", "दक्षिण भारतीय")}`} /></div>
+      {a.compare && <div className="workspace-chart"><ChartPicker value={a.secondary} label={L("Compare with", "तुलना करें")} transit onChange={secondary => a.update({ secondary })} /><KundliChart ascendantSignIndex={a.secondary === "transit" || a.secondary === "D1" ? chart.ascendant.signIndex : chart.divisionalCharts[a.secondary].ascendant.signIndex} planets={a.secondary === "transit" ? filtered : points(a.secondary)} style={a.style} selected={a.selected} onPick={select} ariaLabel={a.secondary === "transit" ? L("Transit chart in natal houses", "जन्म भावों में गोचर कुंडली") : `${a.secondary} ${vargaInfo(a.secondary, locale).title} · ${L("comparison chart", "तुलना कुंडली")}`} /></div>}
     </div>
     <button type="button" className="inspector-trigger" aria-expanded={inspectorOpen} onClick={() => setInspectorOpen(!inspectorOpen)}>{L("Planet and house details", "ग्रह और भाव विवरण")}</button>
-    <div className={`workspace-inspector ${inspectorOpen ? "inspector-open" : ""}`} onKeyDown={e => { if (e.key === "Escape") setInspectorOpen(false); }}>
-      <button type="button" className="inspector-close" onClick={() => setInspectorOpen(false)}>{L("Close details", "विवरण बंद करें")}</button>
+    <InspectorPanel open={inspectorOpen} onClose={() => setInspectorOpen(false)}>
+
       <div className="flex flex-wrap items-center justify-between gap-2"><h3>{selected ? n(selected) : `${L("House", "भाव")} ${house}`}</h3><select aria-label={L("Inspect planet or house", "ग्रह या भाव देखें")} value={selected ? `p:${selected}` : `h:${house}`} onChange={e => { const [kind, value] = e.target.value.split(":"); a.update({ selected: kind === "p" ? { kind: "planet", planet: value } : { kind: "house", house: Number(value) } }); }}><optgroup label={L("Planets", "ग्रह")}>{chart.planets.map(p => <option key={p.planet} value={`p:${p.planet}`}>{n(p.planet)}</option>)}</optgroup><optgroup label={L("Houses", "भाव")}>{Array.from({ length: 12 }, (_, i) => <option key={i} value={`h:${i + 1}`}>{L("House", "भाव")} {i + 1}</option>)}</optgroup></select></div>
       <p className="mt-2 text-sm text-muted">{selected ? planetKeynote(natal!.planet, locale) : houseSignification(house, locale)}</p>
       {natal ? <dl className="inspector-positions"><div><dt>● {L("Natal D1", "जन्म D1")}</dt><dd>{n(natal.sign)} · {natal.degreeInSign.toFixed(2)}° · {L("House", "भाव")} {natal.house}</dd><dd>{n(natal.nakshatra)} · {L("Pada", "पद")} {natal.pada}{natal.dignity && ` · ${n(natal.dignity)}`}</dd></div>{transit && (a.overlay || a.secondary === "transit") && <div><dt className="text-[#55B6A4]">◇ {L("Transit", "गोचर")}</dt><dd>{n(transit.sign)} · {transit.degree.toFixed(2)}° · {L("Natal house", "जन्म भाव")} {((transit.signIndex - chart.ascendant.signIndex + 12) % 12) + 1}</dd><dd>{transit.retrograde ? L("Retrograde", "वक्री") : L("Direct", "मार्गी")}</dd></div>}</dl> : <p className="mt-3 text-sm text-cream">{L("Natal occupants", "जन्म ग्रह")}: {chart.planets.filter(p => p.house === house).map(p => n(p.planet)).join(", ") || L("No planets", "कोई ग्रह नहीं")}{a.overlay && <><br />{L("Transit occupants", "गोचर ग्रह")}: {transitPoints.filter(p => p.house === house).map(p => n(p.planet)).join(", ") || L("No planets", "कोई ग्रह नहीं")}</>}</p>}
       {transit && (a.overlay || a.secondary === "transit") && <p className="mt-3 text-xs text-muted">{L("Whole-sign graha drishti to natal planets", "जन्म ग्रहों पर राशि-आधारित ग्रह दृष्टि")}: {chart.planets.filter(p => aspectsSign(transit.planet, ((p.signIndex - transit.signIndex + 12) % 12) + 1)).map(p => n(p.planet)).join(", ") || L("None", "कोई नहीं")}. {L("Nodes use the 7th aspect convention.", "राहु-केतु के लिए सप्तम दृष्टि।")}</p>}
       {natal && mode === "astrologer" && <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted">{[a.primary, ...(a.secondary !== "transit" ? [a.secondary] : [])].map(key => { const p = chart.divisionalCharts[key].planets.find(p => p.planet === natal.planet)!; return <p key={key}>{key}: {n(p.sign)} · {L("House", "भाव")} {p.house}</p>; })}{chart.shadbala.filter(s => s.planet === natal.planet).map(s => <p key={s.planet}>{L("Shadbala", "षड्बल")}: {s.rupas.toFixed(2)} / {s.requiredRupas}</p>)}</div>}
-      <p className="mt-3 text-[11px] text-muted">{L("Inspector evidence uses natal D1 houses. Divisional charts are birth-time sensitive; review precision before interpreting finer divisions.", "प्रमाण जन्म D1 भावों से हैं। सूक्ष्म वर्ग जन्म-समय संवेदनशील हैं; पहले सटीकता जाँचें।")}</p>
+      {mode === "astrologer" && <p className="mt-3 text-[11px] text-muted">{L("Inspector evidence uses natal D1 houses. Divisional charts are birth-time sensitive; review precision before interpreting finer divisions.", "प्रमाण जन्म D1 भावों से हैं। सूक्ष्म वर्ग जन्म-समय संवेदनशील हैं; पहले सटीकता जाँचें।")}</p>}
       <details className="mt-4"><summary className="cursor-pointer text-sm font-semibold text-gold-bright">{L(`Evidence for natal house ${house}`, `जन्म भाव ${house} के प्रमाण`)}</summary><div className="mt-3 space-y-2">{evidence.map(e => <EvidenceEntry key={e.id} evidence={e} go={go} />)}</div></details>
       {selected && (a.overlay || a.secondary === "transit") && <details className="mt-4"><summary className="cursor-pointer text-sm font-semibold text-[#55B6A4]">{L("Transit modifiers", "गोचर संशोधक")}</summary><div className="mt-3"><TransitModifiersPanel chart={chart} transits={transits} at={a.at} detailed={mode === "astrologer"} selectedPlanet={selected} /></div></details>}
       {mode === "astrologer" && <label className="mt-4 block text-xs text-muted">{L("Notes for this planet or house", "इस ग्रह या भाव के नोट्स")}<textarea className="input mt-2 w-full" rows={3} value={notes[noteKey] ?? ""} onChange={e => saveNotes({ ...notes, [noteKey]: e.target.value })} /><span>{L("Saved on this device.", "इस उपकरण पर सहेजे गए।")}</span></label>}
-    </div>
+    </InspectorPanel>
   </section>;
 }

@@ -28,7 +28,7 @@ export default function KundliHeader({ chart, onEdit }: { chart: KundaliChart; o
   const { name, date, time, place } = chart.input;
   const moon = chart.planets.find((p) => p.planet === "Moon")!;
   return (
-    <header className="mb-4 print:hidden">
+    <header className="kundli-profile-header mb-4 print:hidden">
       <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-6">
         <div className="min-w-0">
           <h1 className="text-3xl leading-tight font-bold tracking-tight text-cream md:text-4xl">{name}</h1>

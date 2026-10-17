@@ -46,6 +46,7 @@ export default function ChartGrid({
   selected,
   glyphs = false,
   locale = "en",
+  ariaLabel,
 }: {
   ascendantSignIndex: number;
   planets: GridPlanet[];
@@ -54,6 +55,7 @@ export default function ChartGrid({
   /** Planet symbols (☉ ☽ ♂…) instead of two-letter names. */
   glyphs?: boolean;
   locale?: Locale;
+  ariaLabel?: string;
 }) {
   const hi = locale === "hi";
   const tr = (s: string) => (hi ? term("hi", s) : s);
@@ -65,7 +67,7 @@ export default function ChartGrid({
   }
 
   return (
-    <div className="chart-draw mx-auto grid aspect-square w-full max-w-md grid-cols-4 grid-rows-4 gap-1 rounded-[14px] border border-gold/60 bg-[radial-gradient(circle_at_50%_45%,var(--chart-top),var(--chart-bottom))] p-1.5 shadow-[inset_0_0_0_5px_var(--chart-bottom),inset_0_0_0_6px_color-mix(in_oklab,var(--color-border),transparent_20%)]" role="img" aria-label={hi ? "जन्म कुंडली, दक्षिण भारतीय शैली" : "Birth chart, South Indian style"}>
+    <div className="chart-draw mx-auto grid aspect-square w-full max-w-md grid-cols-4 grid-rows-4 gap-1 rounded-[14px] border border-gold/60 bg-[radial-gradient(circle_at_50%_45%,var(--chart-top),var(--chart-bottom))] p-1.5 shadow-[inset_0_0_0_5px_var(--chart-bottom),inset_0_0_0_6px_color-mix(in_oklab,var(--color-border),transparent_20%)]" role="img" aria-label={ariaLabel ?? (hi ? "जन्म कुंडली, दक्षिण भारतीय शैली" : "Birth chart, South Indian style")}>
       {GRID_SIGNS.map((row, r) =>
         row.map((signIndex, c) => {
           if (signIndex === null) {

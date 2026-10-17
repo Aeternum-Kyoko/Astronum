@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import type { KundaliChart } from "@/lib/astrology/types";
@@ -10,7 +10,6 @@ import { SIGN_KEYNOTE, PLANET_KEYNOTE } from "@/lib/astrology/content";
 import { analyzeBhavaStrength } from "@/lib/astrology/bhavaStrength";
 import { dignityColorClass } from "@/lib/astrology/dignity";
 import type { DivisionalChart } from "@/lib/astrology/types";
-import KundliChart, { type ChartPoint } from "@/components/KundliChart";
 import { MARKER_MEANING, WEAK_MARKERS, natalMarkers, planetMarkers, type Marker } from "@/lib/astrology/chartMarkers";
 import { binduBand } from "@/lib/astrology/ashtakavarga";
 import AshtakavargaGrid from "@/components/AshtakavargaGrid";
@@ -18,8 +17,9 @@ import ShadbalaTable from "@/components/ShadbalaTable";
 import ChartDetail from "@/components/ChartDetail";
 import SegmentedControl from "@/components/SegmentedControl";
 import PrintReport from "@/components/PrintReport";
-import BasicDetails from "@/components/BasicDetails";
 import AstroDashboard from "@/components/AstroDashboard";
+import BasicDetails from "@/components/BasicDetails";
+
 import MonthlyForecastPanel from "@/components/MonthlyForecastPanel";
 import RudrakshaPanel from "@/components/RudrakshaPanel";
 import RemediesPanel from "@/components/RemediesPanel";
@@ -109,8 +109,6 @@ export const TAB_SLUGS: Record<string, Tab> = {
   vastu: "Vastu & Home",
 };
 
-const MORE_VARGA_KEYS = VARGA_KEYS.filter((k) => k !== "D1" && k !== "D9");
-
 function formatDate(d: Date | string, locale?: string): string {
   return new Date(d).toLocaleDateString(locale === "hi" ? "hi-IN" : undefined, { year: "numeric", month: "short", day: "numeric" });
 }
@@ -139,6 +137,7 @@ function KundaliWorkspace({
   const locale = useLocale();
   const [savedMode, saveMode] = useDeviceStore<string>("astronum-kundli-mode", "user");
   const mode = savedMode === "astrologer" ? "astrologer" : "user";
+  const [mobilePane, setMobilePane] = useState<"chart" | "reading">("chart");
   const [search, setSearch] = useState("");
   const [previousTab, setPreviousTab] = useState<Tab | null>(null);
   const analysis = useAnalysis()!;
@@ -147,25 +146,50 @@ function KundaliWorkspace({
   const initial = cleanTab((initialTab && TAB_SLUGS[initialTab]) || "Summary");
   const [chosenTab, setTabState] = useState<Tab>(initial);
   const tab = chosenTab;
+  const syncedTab = useRef<Tab | null>(null);
+  useEffect(() => {
+    if (syncedTab.current === tab) return;
+    syncedTab.current = tab;
+    if (tab === "D1 · Rasi Chart" && (analysis.primary !== "D1" || analysis.overlay || analysis.compare)) analysis.update({ primary: "D1", overlay: false, compare: false });
+    if (tab === "D9 · Navamsa" && (analysis.primary !== "D9" || analysis.overlay || analysis.compare)) analysis.update({ primary: "D9", overlay: false, compare: false });
+    if (tab === "More Vargas" && (analysis.overlay || analysis.compare || ["D1", "D9"].includes(analysis.primary))) analysis.update({ primary: ["D1", "D9"].includes(analysis.primary) ? "D10" : analysis.primary, overlay: false, compare: false });
+    if (tab === "Transits" && (analysis.primary !== "D1" || !analysis.overlay || analysis.compare)) analysis.update({ primary: "D1", reference: "lagna", overlay: true, compare: false });
+  }, [tab, analysis]);
   const [visited, setVisited] = useState<Tab[]>([initial]);
-  const groups = [
+  const userGroups = [
+    { name: "Overview", tabs: ["Summary"] as Tab[] },
+    { name: "Charts", tabs: ["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Compare Charts", "Houses", "Planet Readings", "Shadbala", "Calculation Details", "Birth Precision"] as Tab[] },
+    { name: "Transits", tabs: ["Transits"] as Tab[] },
+    { name: "Timing", tabs: ["Dashas", "Annual Reading", "Monthly Forecast", "Life Timeline", "Yogini Dasha", "Chara Dasha"] as Tab[] },
+    { name: "Life areas", tabs: ["Career", "Relationships", "Wealth", "Education", "Property", "Remedies"] as Tab[] },
+    { name: "Report", tabs: ["Life Report"] as Tab[] },
+  ];
+  const expertGroups = [
     { name: "Overview", tabs: ["Summary"] as Tab[] },
     { name: "Charts", tabs: ["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Compare Charts", "Houses", "Planet Readings", "House Lords"] as Tab[] },
-    { name: "Timing", tabs: ["Transits", "Dashas", "Annual Reading", "Monthly Forecast", "Life Timeline", "Yogini Dasha", "Chara Dasha"] as Tab[] },
-    { name: "Life areas", tabs: ["Career", "Relationships", "Wealth", "Education", "Property", "Life Report", "Life Sectors", "Remedies", "Rudraksha", "Vastu & Home"] as Tab[] },
-    { name: "Tools", tabs: ["Ashtakavarga", "Shadbala", "Yogas & Doshas", "KP System", "Lal Kitab", "Special Tables", "Birth Precision", "Event Journal", "Calculation Details"] as Tab[] },
+    { name: "Transits", tabs: ["Transits"] as Tab[] },
+    { name: "Timing", tabs: ["Dashas", "Annual Reading", "Monthly Forecast", "Life Timeline", "Yogini Dasha", "Chara Dasha"] as Tab[] },
+    { name: "Life areas", tabs: ["Career", "Relationships", "Wealth", "Education", "Property", "Life Sectors", "Remedies", "Rudraksha", "Vastu & Home"] as Tab[] },
+    { name: "Methods", tabs: ["Ashtakavarga", "Shadbala", "Yogas & Doshas", "KP System", "Lal Kitab", "Special Tables"] as Tab[] },
+    { name: "Workspace", tabs: ["Life Report", "Birth Precision", "Event Journal", "Calculation Details"] as Tab[] },
   ];
-  const activeGroup = groups.find(g => g.tabs.includes(tab))!;
+  const groups = mode === "user" ? userGroups : expertGroups;
+  const activeGroup = groups.find(g => g.tabs.includes(tab)) ?? expertGroups.find(g => g.tabs.includes(tab))!;
+  const userTabs = new Set(userGroups.flatMap(g => g.tabs));
   const [directory, setDirectory] = useState(false);
+  const [modeNotice, setModeNotice] = useState<string | null>(null);
   const setTab = (value: Tab, history = true) => {
     const t = cleanTab(value);
+    setMobilePane(["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Compare Charts", "Transits"].includes(t) ? "chart" : "reading");
+    if (!userTabs.has(t) && mode === "user") { saveMode("astrologer"); setModeNotice(pick(locale)("This specialist section opens in Astrologer view.", "यह विशेष अनुभाग ज्योतिषी दृश्य में खुलता है।")); }
+    else setModeNotice(null);
     if (t !== tab) setPreviousTab(tab);
     setVisited(current => current.includes(t) ? current : [...current, t]);
     setSearch(""); setDirectory(false); setTabState(t);
-    if (t === "D1 · Rasi Chart") analysis.update({ primary: "D1" });
-    if (t === "More Vargas" && ["D1", "D9"].includes(analysis.primary)) analysis.update({ primary: "D10" });
-    if (t === "D9 · Navamsa") analysis.update({ primary: "D9" });
-    if (t === "Transits") analysis.update({ primary: "D1", reference: "lagna", overlay: true });
+    if (t === "D1 · Rasi Chart") analysis.update({ primary: "D1", overlay: false, compare: false });
+    if (t === "More Vargas") analysis.update({ primary: ["D1", "D9"].includes(analysis.primary) ? "D10" : analysis.primary, overlay: false, compare: false });
+    if (t === "D9 · Navamsa") analysis.update({ primary: "D9", overlay: false, compare: false });
+    if (t === "Transits") analysis.update({ primary: "D1", reference: "lagna", overlay: true, compare: false });
     const topicVarga: Partial<Record<Tab, VargaKey>> = { Career: "D10", Relationships: "D9", Wealth: "D2", Education: "D24", Property: "D4" };
     if (topicVarga[t]) analysis.update({ primary: "D1", secondary: topicVarga[t], compare: mode === "astrologer" });
     if (t === "Compare Charts") analysis.update({ compare: true });
@@ -184,6 +208,9 @@ function KundaliWorkspace({
     window.addEventListener("popstate", restore);
     return () => window.removeEventListener("popstate", restore);
   }, []);
+  useEffect(() => {
+    if (mode === "user" && !userTabs.has(tab)) saveMode("astrologer");
+  }, [mode, tab, saveMode]);
   // Load each tab's heavy sections when it's opened (the summary also prefetches what its cards show).
   useEffect(() => {
     const need = TAB_SECTIONS[tab];
@@ -194,25 +221,35 @@ function KundaliWorkspace({
   const style = analysis.style;
   const setStyle = (style: "north" | "south") => analysis.update({ style });
   const label = (t: Tab) => t === "Summary" ? tr("Overview") : t;
+  const groupLabel = (name: string) => ({ Report: pick(locale)("Report", "रिपोर्ट"), Methods: pick(locale)("Methods", "पद्धतियाँ"), Workspace: pick(locale)("Workspace", "कार्यक्षेत्र") }[name] ?? tr(name));
+  const changeMode = (value: string) => {
+    if (value === mode) return;
+    if (value === "user" && !userTabs.has(tab)) { setTab("Summary"); setModeNotice(pick(locale)("Personal view opens at Overview for this specialist section.", "इस विशेष अनुभाग से व्यक्तिगत दृश्य अवलोकन पर खुलता है।")); }
+    else setModeNotice(null);
+    setDirectory(false);
+    saveMode(value);
+  };
   return (
     <div className={`kundli-workspace mode-${mode}`} data-mode={mode}>
       <div className="print:hidden">
         <header className="workspace-header">
-          <div><h2>{mode === "astrologer" ? pick(locale)("Astrologer view", "ज्योतिषी दृश्य") : pick(locale)("Your chart, explained", "आपकी कुंडली की व्याख्या")}</h2><button type="button" onClick={() => go("precision")} className="mt-2 text-xs text-gold-bright">{pick(locale)("Review birth-time precision", "जन्म-समय सटीकता देखें")}</button></div>
-          <div className="flex flex-wrap items-center gap-3"><SegmentedControl layoutId="reading-mode" value={mode} options={[{value:"user",label:pick(locale)("User","उपयोगकर्ता")},{value:"astrologer",label:pick(locale)("Astrologer","ज्योतिषी")}]} onChange={value => saveMode(value)} /><button type="button" onClick={() => window.print()} className="workspace-export">{pick(locale)("Print / Save PDF", "प्रिंट / PDF")}</button></div>
+          <div><h2>{mode === "astrologer" ? pick(locale)("Astrologer view", "ज्योतिषी दृश्य") : pick(locale)("Your chart, explained", "आपकी कुंडली की व्याख्या")}</h2>{mode === "astrologer" && <button type="button" onClick={() => go("precision")} className="mt-2 text-xs text-gold-bright">{pick(locale)("Review birth-time precision", "जन्म-समय सटीकता देखें")}</button>}</div>
+          <div className="flex flex-wrap items-center gap-3"><SegmentedControl layoutId="reading-mode" ariaLabel={pick(locale)("Reading mode: Personal shows guided readings; Astrologer shows detailed analysis tools.", "दृश्य: व्यक्तिगत में सरल व्याख्या; ज्योतिषी में विस्तृत विश्लेषण उपकरण।")} value={mode} options={[{value:"user",label:pick(locale)("Personal","व्यक्तिगत")},{value:"astrologer",label:pick(locale)("Astrologer","ज्योतिषी")}]} onChange={changeMode} />{mode === "astrologer" && <button type="button" onClick={() => window.print()} className="workspace-export">{pick(locale)("Print / Save PDF", "प्रिंट / PDF")}</button>}</div>
         </header>
+        {modeNotice && <p className="workspace-mode-notice" role="status">{modeNotice}</p>}
         <div id="kundli-sections" className="workspace-navigation">
-          <nav aria-label={pick(locale)("Kundli destinations", "कुंडली भाग")} className="workspace-destinations">{groups.map(g => <button type="button" key={g.name} aria-current={activeGroup.name === g.name ? "page" : undefined} onClick={() => setTab(g.tabs[0])}>{tr(g.name)}</button>)}</nav>
-          <div className="workspace-shortcuts">{(["D1 · Rasi Chart", "D9 · Navamsa", "Transits", "Dashas"] as Tab[]).map(t => <button type="button" key={t} aria-current={tab === t ? "page" : undefined} onClick={() => setTab(t)}>{t.startsWith("D1") ? "D1" : t.startsWith("D9") ? "D9" : tr(t)}</button>)}<button type="button" onClick={() => setDirectory(!directory)} aria-expanded={directory}>{pick(locale)("Find a tool", "उपकरण खोजें")}</button>{previousTab && <button type="button" onClick={() => setTab(previousTab)}>{pick(locale)("Back to", "वापस")}: {label(previousTab)}</button>}</div>
-          <AnalysisCalendar />
+          <nav aria-label={pick(locale)("Kundli destinations", "कुंडली भाग")} className="workspace-destinations">{groups.map(g => <button type="button" key={g.name} aria-current={activeGroup.name === g.name ? "page" : undefined} onClick={() => setTab(g.tabs[0])}>{groupLabel(g.name)}</button>)}</nav>
+          {mode === "astrologer" && <div className="workspace-shortcuts">{(["D1 · Rasi Chart", "D9 · Navamsa", "Transits", "Dashas"] as Tab[]).map(t => <button type="button" key={t} aria-current={tab === t ? "page" : undefined} onClick={() => setTab(t)}>{t.startsWith("D1") ? "D1" : t.startsWith("D9") ? "D9" : tr(t)}</button>)}<button type="button" onClick={() => setDirectory(!directory)} aria-expanded={directory}>{pick(locale)("Find a tool", "उपकरण खोजें")}</button>{previousTab && <button type="button" onClick={() => setTab(previousTab)}>{pick(locale)("Back to", "वापस")}: {label(previousTab)}</button>}</div>}
+          {(mode === "astrologer" || activeGroup.name === "Timing" || tab === "Summary" || tab === "Transits" || analysis.overlay || analysis.secondary === "transit" && analysis.compare) && <AnalysisCalendar />}
         </div>
-        {directory && <div className="workspace-directory"><label><span className="sr-only">{pick(locale)("Find a section", "भाग खोजें")}</span><input autoFocus type="search" className="input w-full" value={search} onChange={e => setSearch(e.target.value)} placeholder={pick(locale)("Search charts, life areas, and tools", "कुंडलियाँ, जीवन क्षेत्र और उपकरण खोजें")} /></label><div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">{groups.map(g => <section key={g.name}><h3 className="mb-2 text-sm text-cream">{tr(g.name)}</h3>{g.tabs.filter(t => `${t} ${tr(t)}`.toLowerCase().includes(search.toLowerCase())).map(t => <button key={t} type="button" onClick={() => setTab(t)} className="block py-2 text-left text-xs text-muted hover:text-gold-bright">{label(t)}</button>)}</section>)}</div></div>}
-        <div className="workspace-subsections"><label className="lg:hidden text-xs text-muted">{tr(activeGroup.name)}<select aria-label={pick(locale)("Section", "भाग")} value={tab} onChange={e => setTab(e.target.value as Tab)}>{activeGroup.tabs.map(t => <option key={t} value={t}>{label(t)}</option>)}</select></label><nav className="hidden flex-wrap gap-1 lg:flex" aria-label={pick(locale)("Sections in this destination", "इस भाग के अनुभाग")}>{activeGroup.tabs.map(t => <button type="button" key={t} onClick={() => setTab(t)} aria-current={tab === t ? "page" : undefined}>{label(t)}</button>)}</nav></div>
+        {directory && <div className="workspace-directory"><label><span className="sr-only">{pick(locale)("Find a section", "भाग खोजें")}</span><input autoFocus type="search" className="input w-full" value={search} onChange={e => setSearch(e.target.value)} placeholder={pick(locale)("Search charts, life areas, and tools", "कुंडलियाँ, जीवन क्षेत्र और उपकरण खोजें")} /></label><div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">{groups.map(g => <section key={g.name}><h3 className="mb-2 text-sm text-cream">{groupLabel(g.name)}</h3>{g.tabs.filter(t => `${t} ${tr(t)}`.toLowerCase().includes(search.toLowerCase())).map(t => <button key={t} type="button" onClick={() => setTab(t)} className="block py-2 text-left text-xs text-muted hover:text-gold-bright">{label(t)}</button>)}</section>)}</div></div>}
+        <div className="workspace-subsections"><nav className="section-button-rail" aria-label={pick(locale)("Sections in this destination", "इस भाग के अनुभाग")}>{activeGroup.tabs.map(t => <button type="button" key={t} onClick={() => setTab(t)} aria-current={tab === t ? "page" : undefined}>{label(t)}</button>)}</nav></div>
         {mode === "astrologer" && <WorkspaceLayouts chart={chart} width={paneWidth} setWidth={setPaneWidth} />}
-        <div className="workspace-body" style={{ "--chart-pane-width": `${Math.min(65, Math.max(40, paneWidth))}%` } as React.CSSProperties}>
-          <aside className="workspace-canvas"><ChartWorkspace chart={chart} mode={mode} go={go} /><TimingStrip chart={chart} go={go} /></aside>
+        {tab !== "Summary" && tab !== "Life Report" && <div className="mobile-pane-control" role="group" aria-label={pick(locale)("Workspace view", "कार्यक्षेत्र दृश्य")}><button type="button" aria-pressed={mobilePane === "chart"} onClick={() => setMobilePane("chart")}>{pick(locale)("Chart", "कुंडली")}</button><button type="button" aria-pressed={mobilePane === "reading"} onClick={() => setMobilePane("reading")}>{pick(locale)("Reading & evidence", "व्याख्या और प्रमाण")}</button></div>}
+        <div data-mobile-pane={mobilePane} className="workspace-body" data-section={tab === "Summary" ? "overview" : tab === "Life Report" && mode === "user" ? "report" : undefined} style={{ "--chart-pane-width": `${Math.min(65, Math.max(40, paneWidth))}%` } as React.CSSProperties}>
+          {(tab !== "Summary" && (mode === "astrologer" || tab !== "Life Report")) && <aside className="workspace-canvas"><ChartWorkspace chart={chart} mode={mode} go={go} />{(mode === "astrologer" || activeGroup.name === "Timing") && <TimingStrip chart={chart} go={go} />}</aside>}
           <main className="workspace-reading" aria-label={pick(locale)("Reading and analysis", "व्याख्या और विश्लेषण")}>
-          {visited.map(panelTab => <div key={panelTab} hidden={panelTab !== tab}>
+          {visited.map(panelTab => <div className="reading-section" data-reading={panelTab} key={panelTab} hidden={panelTab !== tab}>
               {panelTab === "Transits" && <TransitsPanel report={report} chart={chart} detailed={mode === "astrologer"} />}
               {panelTab === "Summary" && <WorkspaceOverview chart={chart} expert={mode === "astrologer"} go={go} />}
               {panelTab === "Event Journal" && <EventJournalPanel chart={chart} />}
@@ -247,11 +284,9 @@ function KundaliWorkspace({
                   title="D9"
                   blurb={vargaInfo("D9", locale).blurb}
                   divisionalChart={chart.divisionalCharts.D9}
-                  style={style}
-                  setStyle={setStyle}
                 />
               )}
-              {panelTab === "More Vargas" && <MoreVargasTab chart={chart} style={style} setStyle={setStyle} />}
+              {panelTab === "More Vargas" && <MoreVargasTab chart={chart} go={go} />}
               {panelTab === "Ashtakavarga" && <AshtakavargaTab chart={chart} style={style} setStyle={setStyle} />}
               {panelTab === "Shadbala" && (
                 <div>
@@ -268,7 +303,7 @@ function KundaliWorkspace({
               {panelTab === "Remedies" && <RemediesPanel chart={chart} />}
               {panelTab === "Rudraksha" && <RudrakshaPanel chart={chart} locale={locale} />}
               {panelTab === "House Lords" && <HouseLordsTab chart={chart} />}
-              <ReadingContextPanel chart={chart} report={report} section={panelTab} go={go} />
+              {mode === "astrologer" && <ReadingContextPanel chart={chart} report={report} section={panelTab} go={go} />}
           </div>)}
           </main>
         </div>
@@ -669,31 +704,21 @@ function VargaTab({
   title,
   blurb,
   divisionalChart,
-  style,
-  setStyle,
 }: {
   chart: KundaliChart;
   title: VargaKey;
   blurb: string;
   divisionalChart: DivisionalChart;
-  style: "north" | "south";
-  setStyle: (s: "north" | "south") => void;
 }) {
   const tr = useT();
   const locale = useLocale();
   const nm = (x: string) => term(locale, x);
   const inVarga = new Map(divisionalChart.planets.map((p) => [p.planet, p]));
   const markers = planetMarkers(chart, (pl) => inVarga.get(pl)!.signIndex, (pl) => inVarga.get(pl)!.retrograde, { vargottama: title === "D9" });
-  const points: ChartPoint[] = divisionalChart.planets.map((p) => ({ ...p, markers: markers[p.planet] }));
   return (
     <div>
-      <p className="mx-auto max-w-2xl text-center text-sm leading-relaxed text-muted">{blurb}</p>
+      <p className="max-w-2xl text-sm leading-relaxed text-muted">{blurb}</p>
       <div className="mt-6">
-        <StyleToggle style={style} setStyle={setStyle} />
-      </div>
-      <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_1.2fr]">
-        <KundliChart ascendantSignIndex={divisionalChart.ascendant.signIndex} planets={points} style={style} onStyleChange={setStyle} />
-
         <div className="card-edge overflow-x-auto rounded-2xl">
           <table className="w-full text-sm font-tabular">
             <thead>
@@ -728,31 +753,35 @@ function VargaTab({
 
 function MoreVargasTab({
   chart,
-  style,
-  setStyle,
+  go,
 }: {
   chart: KundaliChart;
-  style: "north" | "south";
-  setStyle: (s: "north" | "south") => void;
+  go: (slug: string) => void;
 }) {
   const locale = useLocale();
-  const analysis = useAnalysis();
-  const [ownSelected, setOwnSelected] = useState<VargaKey>("D10");
-  const selected = analysis?.primary ?? ownSelected;
-  const setSelected = (primary: VargaKey) => analysis ? analysis.update({ primary }) : setOwnSelected(primary);
+  const L = pick(locale);
+  const analysis = useAnalysis()!;
+  const [query, setQuery] = useState("");
+  const selected: VargaKey = analysis.primary === "D1" || analysis.primary === "D9" ? "D10" : analysis.primary;
   const info = vargaInfo(selected, locale);
+  const common: VargaKey[] = ["D1", "D9", "D10", "D2", "D4", "D7", "D24"];
+  const ordered = [...common, ...VARGA_KEYS.filter(key => !common.includes(key))];
+  const filtered = ordered.filter(key => `${key} ${vargaInfo(key, locale).title} ${vargaInfo(key, locale).blurb}`.toLocaleLowerCase(locale).includes(query.toLocaleLowerCase(locale)));
+  const choose = (key: VargaKey) => {
+    if (key === "D1") return go("rasi");
+    if (key === "D9") return go("navamsa");
+    analysis.update({ primary: key, reference: "lagna", overlay: false, compare: false });
+  };
+  const card = (key: VargaKey) => { const item = vargaInfo(key, locale); return <button type="button" key={key} aria-pressed={selected === key} onClick={() => choose(key)}><span className="varga-code">{key}</span><span className="varga-copy"><strong>{item.title}</strong><small>{item.blurb}</small></span><span aria-hidden="true">↗</span></button>; };
 
   return (
     <div>
-      <div className="flex justify-center">
-        <SegmentedControl
-          layoutId="more-vargas-picker"
-          value={selected}
-          onChange={setSelected}
-          options={MORE_VARGA_KEYS.map((key) => ({ value: key, label: key }))}
-        />
-      </div>
-      <h3 className="mt-6 text-center text-lg font-semibold text-cream">
+      <section className="varga-library" aria-label={L("Divisional chart library", "वर्ग कुंडली संग्रह")}>
+        <div className="varga-library-heading"><div><h3>{L("Explore all 16 charts", "सभी 16 कुंडलियाँ देखें")}</h3><p>{L("Choose a chart to study its positions and reading.", "स्थितियाँ और व्याख्या देखने के लिए कुंडली चुनें।")}</p></div><label><span className="sr-only">{L("Search charts", "कुंडलियाँ खोजें")}</span><input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder={L("Search D10, career…", "D10, करियर खोजें…")} /></label></div>
+        {query ? <div className="varga-library-grid">{filtered.map(card)}</div> : <><div className="varga-library-grid">{common.map(card)}</div><details className="varga-library-more"><summary>{L("Explore the remaining nine charts", "शेष नौ कुंडलियाँ देखें")} <span aria-hidden="true">⌄</span></summary><div className="varga-library-grid">{ordered.filter(key => !common.includes(key)).map(card)}</div></details></>}
+        {filtered.length === 0 && <p className="varga-empty">{L("No chart matches this search.", "इस खोज से कोई कुंडली नहीं मिली।")}</p>}
+      </section>
+      <h3 className="mt-8 text-lg font-semibold text-cream">
         <Link href={`/learn/divisional-charts#${selected}`} className="hover:text-gold">
           {selected} · {info.title}
         </Link>
@@ -763,8 +792,6 @@ function MoreVargasTab({
           title={selected}
           blurb={info.blurb}
           divisionalChart={chart.divisionalCharts[selected]}
-          style={style}
-          setStyle={setStyle}
         />
       </div>
     </div>

@@ -60,6 +60,7 @@ export default function KundliChart({
   showLegend = true,
   onPick,
   selected,
+  ariaLabel,
 }: {
   ascendantSignIndex: number;
   planets: ChartPoint[];
@@ -70,6 +71,7 @@ export default function KundliChart({
   showLegend?: boolean;
   onPick?: (pick: ChartPick) => void;
   selected?: ChartPick | null;
+  ariaLabel?: string;
 }) {
   const locale = useLocale();
   const t = useT();
@@ -104,9 +106,9 @@ export default function KundliChart({
       <div className="mx-auto max-w-md">
         <ZoomableChart>
           {style === "north" ? (
-            <NorthIndianChart ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} glyphs={glyphs} locale={locale} />
+            <NorthIndianChart ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} glyphs={glyphs} locale={locale} ariaLabel={ariaLabel} />
           ) : (
-            <ChartGrid ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} glyphs={glyphs} locale={locale} />
+            <ChartGrid ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} glyphs={glyphs} locale={locale} ariaLabel={ariaLabel} />
           )}
         </ZoomableChart>
       </div>

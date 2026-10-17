@@ -38,11 +38,11 @@ export default async function ToolShell({
   const form = getDictionary(locale).home.form;
   const profiles = birth ? [] : await getProfiles();
   return (
-    <section className="relative">
+    <section className="tool-page relative">
       <div className={`relative mx-auto max-w-5xl px-5 ${birth ? "py-8 md:py-14" : "py-14 md:py-20"}`}>
         {birth ? (
           // With a result on screen, the page title steps back so the reading comes first.
-          <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-border/50 pb-5">
+          <header className="tool-result-header flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-cream md:text-3xl">{eyebrow}</h1>
               <p className="mt-1 text-sm text-muted">
@@ -54,7 +54,7 @@ export default async function ToolShell({
             </Link>
           </header>
         ) : (
-          <header className="mx-auto max-w-2xl text-center">
+          <header className="tool-entry-header mx-auto max-w-2xl text-center">
             <p className="text-sm font-semibold text-gold-bright">{eyebrow}</p>
             <h1 className="mt-3 text-4xl font-bold tracking-tight text-cream md:text-5xl">{title}</h1>
             <p className="mt-4 text-base leading-relaxed text-muted">{intro}</p>

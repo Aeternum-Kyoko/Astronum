@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { addTransitionType, startTransition, useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import MoonMark from "@/components/MoonMark";
 import ThemeToggle from "@/components/ThemeToggle";
 import AccountButton from "@/components/AccountButton";
@@ -18,10 +18,7 @@ export default function Header({ locale }: { locale: Locale }) {
   const itemDesc = (i: NavItem) => (hi && i.descriptionHi) || i.description;
   const href = (path: string) => localizeHref(locale, path);
   const [menu, setMenu] = useState<string | null>(null);
-  const [hidden, setHidden] = useState(false);
-  const lastY = useRef(0);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { scrollY } = useScroll();
   const pathname = usePathname();
   const router = useRouter();
   const plainPath0 = hi ? pathname?.replace(/^\/hi(?=\/|$)/, "") || "/" : pathname;
@@ -36,14 +33,12 @@ export default function Header({ locale }: { locale: Locale }) {
   }
 
   const [solid, setSolid] = useState(false);
-  useMotionValueEvent(scrollY, "change", (y) => {
-    // iOS 27: once content scrolls under the bar, the bar becomes uniform so text stays legible.
-    setSolid(y > 8);
-    if (menu) return;
-    const goingDown = y > lastY.current;
-    setHidden(goingDown && y > 120);
-    lastY.current = y;
-  });
+  useEffect(() => {
+    const update = () => setSolid(window.scrollY > 8);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
 
   // Close menus whenever the route changes (the "adjust state during render" pattern).
   const [lastPath, setLastPath] = useState(pathname);
@@ -75,8 +70,6 @@ export default function Header({ locale }: { locale: Locale }) {
 
   return (
     <motion.header
-      animate={{ y: hidden ? "-100%" : "0%" }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       data-solid={solid ? "true" : undefined}
       className="glass sticky top-0 z-50 pt-[env(safe-area-inset-top)] print:hidden"
     >

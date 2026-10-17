@@ -7,15 +7,17 @@ export default function SegmentedControl<T extends string>({
   value,
   onChange,
   layoutId,
+  ariaLabel,
 }: {
   options: { value: T; label: string }[];
   value: T;
   onChange: (v: T) => void;
   /** Unique per control instance on the page — motion uses this to scope the sliding-pill animation to this one control. */
   layoutId: string;
+  ariaLabel?: string;
 }) {
   return (
-    <div className="glass relative inline-flex flex-wrap justify-center gap-1 rounded-full p-1">
+    <div className="glass relative inline-flex flex-wrap justify-center gap-1 rounded-full p-1" role="group" aria-label={ariaLabel}>
       {options.map((opt) => (
         <button
           key={opt.value}

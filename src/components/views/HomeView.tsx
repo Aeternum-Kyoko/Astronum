@@ -62,9 +62,9 @@ export default async function HomeView({ locale }: { locale: Locale }) {
     <>
       {/* Hero: always the night sky, whatever the page theme. */}
       <section className="theme-night relative overflow-hidden">
-        <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 pt-10 pb-16 text-center sm:pt-14 md:py-10 lg:grid-cols-[.9fr_1.1fr] lg:gap-14 lg:text-left">
+        <div className="mx-auto grid max-w-6xl items-center gap-8 px-5 py-12 text-center md:py-16 lg:grid-cols-[1fr_1fr] lg:gap-12 lg:text-left">
           <div>
-            <h1 className="mx-auto max-w-4xl text-5xl leading-[0.95] font-semibold text-cream sm:text-6xl lg:text-7xl">{t.heroTitle}</h1>
+            <h1 className="mx-auto max-w-4xl text-5xl leading-[1.03] font-semibold text-cream sm:text-6xl lg:text-[4.5rem]">{t.heroTitle}</h1>
             <p className="mx-auto mt-5 max-w-xs text-lg leading-snug text-muted sm:hidden">{t.heroShort}</p>
             <p className="mx-auto mt-6 hidden max-w-2xl text-lg leading-relaxed text-muted sm:block">{t.heroBody}</p>
             <div className="mt-8 border-l-2 border-gold pl-4 text-left">
@@ -76,13 +76,13 @@ export default async function HomeView({ locale }: { locale: Locale }) {
               <Link href={href("/panchang")} className="text-base font-medium text-gold-bright underline-offset-4 hover:underline">{t.seePanchang}</Link>
             </div>
           </div>
-          <SkyDial sky={sky} locale={locale} className="mx-auto w-full max-w-[600px] text-center" />
+          <SkyDial sky={sky} locale={locale} className="mx-auto w-full max-w-[500px] text-center" />
         </div>
       </section>
 
       {/* Make a kundli */}
       <section id="kundli-form" className="scroll-mt-20 border-b border-border">
-        <div className="mx-auto grid max-w-6xl gap-12 px-5 py-14 md:grid-cols-[1fr_minmax(0,440px)] md:items-center md:py-28">
+        <div className="mx-auto grid max-w-6xl gap-10 px-5 py-16 md:grid-cols-[1fr_minmax(0,440px)] md:items-center md:py-24">
           <div>
             <h2 className="text-4xl leading-none font-semibold text-cream md:text-6xl">{t.formTitle}</h2>
             <p className="mt-5 max-w-md text-lg leading-relaxed text-muted">{t.formBody}</p>
@@ -99,37 +99,43 @@ export default async function HomeView({ locale }: { locale: Locale }) {
         </div>
       </section>
 
-      {/* The instrument catalogue */}
-      <section className="mx-auto max-w-6xl px-5 py-14 md:py-28">
-        <h2 className="text-4xl leading-none font-semibold text-cream md:text-6xl">{t.toolsTitle}</h2>
-        <p className="mt-4 text-lg text-muted">{t.toolsBody}</p>
-        <ul className="mt-10 md:mt-12">
-          {TOOLS.map((tool) => {
-            const [title, body] = d.tools[tool.key];
-            return (
-              <li key={tool.key}>
-                <div className="scale-rule hidden md:block" aria-hidden="true" />
-                <Link
-                  href={href(tool.href)}
-                  className="group grid grid-cols-[2.75rem_minmax(0,1fr)] items-center gap-x-4 border-t border-border/50 py-4 md:grid-cols-[2.75rem_minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,1fr)] md:items-baseline md:gap-x-8 md:border-0 md:py-6"
-                >
-                  <span className="row-span-2 flex h-11 w-11 items-center justify-center self-center rounded-full border border-border/70 text-gold-bright transition-colors group-hover:border-gold md:row-span-1 md:self-baseline md:translate-y-2.5">
-                    <ToolIcon name={tool.key} className="h-[1.35rem] w-[1.35rem]" />
-                  </span>
-                  <span className="text-xl font-semibold text-cream transition-colors group-hover:text-gold-bright md:text-3xl" style={{ fontVariationSettings: '"wdth" 82' }}>
-                    {title}
-                  </span>
-                  <span className="text-sm text-muted md:text-base">
-                    {body}
-                    {live[tool.key] && <span className="mt-0.5 block font-medium text-gold-bright md:hidden">{live[tool.key]}</span>}
-                  </span>
-                  <span className="hidden text-sm font-medium text-gold-bright md:block md:text-right">{live[tool.key] ?? ""}</span>
-                </Link>
-              </li>
-            );
-          })}
-          <li className="scale-rule hidden md:block" aria-hidden="true" />
-        </ul>
+      {/* Tools grouped by the question people bring to the site. */}
+      <section className="home-tools mx-auto max-w-6xl px-5 py-16 md:py-24">
+        <div className="max-w-2xl">
+          <h2 className="text-4xl leading-none font-semibold text-cream md:text-5xl">{t.toolsTitle}</h2>
+          <p className="mt-4 text-lg text-muted">{t.toolsBody}</p>
+        </div>
+        <div className="mt-10 grid gap-8 lg:grid-cols-3 lg:gap-6">
+          {[
+            { title: locale === "hi" ? "मेरी कुंडली" : "My chart", keys: ["kundli", "matching", "personal", "rectification"] },
+            { title: locale === "hi" ? "आज और आने वाले दिन" : "Today and ahead", keys: ["horoscope", "panchang", "festivals", "muhurat"] },
+            { title: locale === "hi" ? "और जानें" : "Explore more", keys: ["sadeSati", "numerology", "palmistry", "vastu"] },
+          ].map((group) => (
+            <div key={group.title} className="home-tool-group">
+              <h3 className="mb-2 border-b border-border pb-4 text-xl font-semibold text-cream">{group.title}</h3>
+              <ul>
+                {group.keys.map((key) => {
+                  const tool = TOOLS.find((entry) => entry.key === key)!;
+                  const [title, body] = d.tools[tool.key];
+                  return (
+                    <li key={key}>
+                      <Link href={href(tool.href)} className="home-tool-link group flex items-start gap-4 border-b border-border/50 py-4">
+                        <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-raised text-gold-bright" aria-hidden="true">
+                          <ToolIcon name={tool.key} className="h-5 w-5" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-lg font-semibold leading-tight text-cream group-hover:text-gold-bright">{title}</span>
+                          <span className="mt-1 block text-sm leading-snug text-muted">{body}</span>
+                          {live[tool.key] && <span className="mt-2 block text-xs font-medium text-gold-bright">{live[tool.key]}</span>}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* Horoscope by sign, set as type */}
