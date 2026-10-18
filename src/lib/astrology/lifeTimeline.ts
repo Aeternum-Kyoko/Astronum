@@ -288,107 +288,6 @@ export function lifeTimeline(
     });
   }
 
-  // Children usually follow marriage: soften child windows that come before the first likely marriage window.
-  const firstMarriage = allCandidates
-    .filter((c) => c.ev.kind === "marriage" && c.ev.confidence >= 55)
-    .sort((x, y) => x.start.getTime() - y.start.getTime())[0];
-  if (firstMarriage) {
-    for (const c of allCandidates) {
-      if (
-        c.ev.kind !== "children" ||
-        c.start.getTime() >= firstMarriage.start.getTime()
-      )
-        continue;
-      c.ev.confidence = Math.round(c.ev.confidence * 0.8);
-      c.ev.level =
-        c.ev.confidence >= 75
-          ? "Strong"
-          : c.ev.confidence >= 62
-            ? "Likely"
-            : "Possible";
-      c.ev.evidence.push({
-        layer: "Age",
-        text: L(
-          "Comes before your most likely marriage window, so it is weighted down",
-          "आपके सबसे संभावित विवाह-काल से पहले आता है, इसलिए इसका भार घटाया गया है",
-        ),
-        points: -20,
-      });
-    }
-    for (const m of mahas)
-      for (const a of m.antars) {
-        a.events = allCandidates
-          .filter(
-            (c) => c.start.getTime() === a.start.getTime() && isShown(c.ev),
-          )
-          .map((c) => c.ev)
-          .sort((x, y) => y.confidence - x.confidence)
-          .slice(0, 4);
-        a.themes = a.events.map((ev) => ({
-          kind: ev.kind,
-          label: ev.label,
-          score: ev.confidence,
-          why: ev.evidence.slice(0, 4).map((x) => x.text),
-        }));
-      }
-  }
-
-  // Once-in-a-while events don't repeat every period: after a strong window, the same event within five years is weighted down.
-  const RARE = new Set<EventTheme>([
-    "property",
-    "marriage",
-    "romance",
-    "relocation",
-    "travel",
-    "recognition",
-    "children",
-  ]);
-  const byKind = new Map<EventTheme, typeof allCandidates>();
-  for (const c of allCandidates)
-    if (RARE.has(c.ev.kind))
-      byKind.set(c.ev.kind, [...(byKind.get(c.ev.kind) ?? []), c]);
-  for (const list of byKind.values()) {
-    const ranked = [...list].sort((x, y) => y.ev.confidence - x.ev.confidence);
-    const kept: typeof allCandidates = [];
-    for (const c of ranked) {
-      const near = kept.find(
-        (k) => Math.abs(k.start.getTime() - c.start.getTime()) < 5 * YEAR_MS,
-      );
-      if (near && isShown(c.ev)) {
-        c.ev.confidence = Math.round(c.ev.confidence * 0.7);
-        c.ev.level =
-          c.ev.confidence >= 75
-            ? "Strong"
-            : c.ev.confidence >= 62
-              ? "Likely"
-              : "Possible";
-        c.ev.evidence.push({
-          layer: "Age",
-          text: L(
-            `A stronger window for this event comes within five years (age ${Math.floor(near.ageStart)}–${Math.ceil(near.ageEnd)})`,
-            `इस घटना का अधिक प्रबल समय पाँच वर्षों के भीतर आता है (आयु ${Math.floor(near.ageStart)}–${Math.ceil(near.ageEnd)})`,
-          ),
-          points: -18,
-        });
-      }
-      if (isShown(c.ev)) kept.push(c);
-    }
-  }
-  for (const m of mahas)
-    for (const a of m.antars) {
-      a.events = allCandidates
-        .filter((c) => c.start.getTime() === a.start.getTime() && isShown(c.ev))
-        .map((c) => c.ev)
-        .sort((x, y) => y.confidence - x.confidence)
-        .slice(0, 4);
-      a.themes = a.events.map((ev) => ({
-        kind: ev.kind,
-        label: ev.label,
-        score: ev.confidence,
-        why: ev.evidence.slice(0, 4).map((x) => x.text),
-      }));
-    }
-
   // Milestones
   const milestones: Milestone[] = [];
   const end = birth + maxAge * YEAR_MS;
@@ -557,14 +456,11 @@ export function lifeTimeline(
     });
   }
 
-  // The single most likely window for each kind of event — always given, even when no window is strong.
+  // Keep a candidate only when its own rule support clears the display threshold.
   const keyWindows: KeyWindow[] = [];
   for (const kind of Object.keys(EVENT_DEFS) as EventTheme[]) {
     const def = EVENT_DEFS[kind];
-    const pool = allCandidates.filter(
-      (c) =>
-        c.ev.kind === kind && (c.ev.nature === "positive" || isShown(c.ev)),
-    );
+    const pool = allCandidates.filter(c => c.ev.kind === kind && isShown(c.ev));
     const inAge = pool.filter(
       (c) =>
         (c.ageStart + c.ageEnd) / 2 >= def.peakAges[0] &&

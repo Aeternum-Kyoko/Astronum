@@ -36,6 +36,10 @@ import WorkspaceLayouts from "./kundli/WorkspaceLayouts";
 import { periodsAt } from "@/lib/astrology/dashaTree";
 import TimingStrip from "./kundli/TimingStrip";
 import WorkspaceOverview from "./kundli/WorkspaceOverview";
+import AstrologerDesk from "./kundli/AstrologerDesk";
+import AstrologerCalendar from "./kundli/AstrologerCalendar";
+import ReadingObservations from "./kundli/ReadingObservations";
+import BirthReliabilityBadge from "./kundli/BirthReliabilityBadge";
 import "./kundli/workspace.css";
 import { LalKitabPanel, SpecialTablesPanel } from "@/components/AdvancedPanels";
 import { nakshatraLord } from "@/lib/astrology/dasha";
@@ -58,14 +62,27 @@ import VastuTool from "@/components/VastuTool";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 /** The kundli's sections, grouped so the page opens on a summary and each area is one tap away. */
-type Tab = "Summary" | "Astrologer Workspace" | "Dashboard" | "Overview" | "Birth Precision" | "Event Journal" | "Calculation Details" | "Relationships" | "Wealth" | "Education" | "Property" | "Career" | "Life Report" | "Life Sectors" | "Houses" | "Planet Readings" | "Annual Reading" | "Transits" | "Monthly Forecast" | "Life Timeline" | "Dashas" | "Yogini Dasha" | "Chara Dasha" | "Compare Charts" | "D1 · Rasi Chart" | "D9 · Navamsa" | "More Vargas" | "Ashtakavarga" | "Shadbala" | "House Lords" | "Yogas & Doshas" | "KP System" | "Lal Kitab" | "Special Tables" | "Remedies" | "Rudraksha" | "Vastu & Home";
+type Tab = "Summary" | "Astrologer Workspace" | "Signal Calendar" | "Dashboard" | "Overview" | "Birth Precision" | "Event Journal" | "Calculation Details" | "Relationships" | "Wealth" | "Education" | "Property" | "Career" | "Life Report" | "Life Sectors" | "Houses" | "Planet Readings" | "Annual Reading" | "Transits" | "Monthly Forecast" | "Life Timeline" | "Dashas" | "Yogini Dasha" | "Chara Dasha" | "Compare Charts" | "D1 · Rasi Chart" | "D9 · Navamsa" | "More Vargas" | "Ashtakavarga" | "Shadbala" | "House Lords" | "Yogas & Doshas" | "KP System" | "Lal Kitab" | "Special Tables" | "Remedies" | "Rudraksha" | "Vastu & Home";
+
+const USER_GROUPS: { name: string; tabs: Tab[] }[] = [
+  { name: "Overview", tabs: ["Summary", "Life Report"] },
+  { name: "Charts", tabs: ["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Compare Charts", "Houses", "Planet Readings", "Shadbala", "Calculation Details", "Birth Precision"] },
+  { name: "Timing", tabs: ["Transits", "Dashas", "Annual Reading", "Monthly Forecast", "Life Timeline", "Yogini Dasha", "Chara Dasha"] },
+  { name: "Life areas", tabs: ["Career", "Relationships", "Wealth", "Education", "Property", "Remedies"] },
+];
+const USER_TABS = new Set(USER_GROUPS.flatMap(group => group.tabs));
 
 /** The heavy report sections each tab needs. */
 const TAB_SECTIONS: Partial<Record<Tab, HeavySection[]>> = {
   Summary: ["timeline", "dashaDetail", "houses", "sectors", "career"],
   Houses: ["houses"],
-  Career: ["career"],
+  Career: ["career", "timeline"],
+  Relationships: ["timeline"],
+  Wealth: ["timeline"],
+  Education: ["timeline"],
+  Property: ["timeline"],
   "Life Timeline": ["timeline"],
+  "Signal Calendar": ["timeline"],
   "Life Sectors": ["sectors"],
   Dashas: ["dashaDetail"],
   "Yogini Dasha": ["yogini"],
@@ -89,6 +106,7 @@ export const TAB_SLUGS: Record<string, Tab> = {
   houses: "Houses",
   career: "Career",
   timeline: "Life Timeline",
+  calendar: "Signal Calendar",
   sectors: "Life Sectors",
   yogini: "Yogini Dasha",
   chara: "Chara Dasha",
@@ -139,7 +157,6 @@ function KundaliWorkspace({
   const mode = savedMode === "astrologer" ? "astrologer" : "user";
   const [mobilePane, setMobilePane] = useState<"chart" | "reading">("chart");
   const [search, setSearch] = useState("");
-  const [previousTab, setPreviousTab] = useState<Tab | null>(null);
   const analysis = useAnalysis()!;
   const [paneWidth, setPaneWidth] = useDeviceStore<number>("kundli-pane-width", 55);
   const cleanTab = (value: Tab): Tab => ["Astrologer Workspace", "Dashboard", "Overview"].includes(value) ? "Summary" : value;
@@ -156,42 +173,31 @@ function KundaliWorkspace({
     if (tab === "Transits" && (analysis.primary !== "D1" || !analysis.overlay || analysis.compare)) analysis.update({ primary: "D1", reference: "lagna", overlay: true, compare: false });
   }, [tab, analysis]);
   const [visited, setVisited] = useState<Tab[]>([initial]);
-  const userGroups = [
-    { name: "Overview", tabs: ["Summary"] as Tab[] },
-    { name: "Charts", tabs: ["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Compare Charts", "Houses", "Planet Readings", "Shadbala", "Calculation Details", "Birth Precision"] as Tab[] },
-    { name: "Transits", tabs: ["Transits"] as Tab[] },
-    { name: "Timing", tabs: ["Dashas", "Annual Reading", "Monthly Forecast", "Life Timeline", "Yogini Dasha", "Chara Dasha"] as Tab[] },
-    { name: "Life areas", tabs: ["Career", "Relationships", "Wealth", "Education", "Property", "Remedies"] as Tab[] },
-    { name: "Report", tabs: ["Life Report"] as Tab[] },
-  ];
   const expertGroups = [
-    { name: "Overview", tabs: ["Summary"] as Tab[] },
-    { name: "Charts", tabs: ["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Compare Charts", "Houses", "Planet Readings", "House Lords"] as Tab[] },
-    { name: "Transits", tabs: ["Transits"] as Tab[] },
-    { name: "Timing", tabs: ["Dashas", "Annual Reading", "Monthly Forecast", "Life Timeline", "Yogini Dasha", "Chara Dasha"] as Tab[] },
-    { name: "Life areas", tabs: ["Career", "Relationships", "Wealth", "Education", "Property", "Life Sectors", "Remedies", "Rudraksha", "Vastu & Home"] as Tab[] },
-    { name: "Methods", tabs: ["Ashtakavarga", "Shadbala", "Yogas & Doshas", "KP System", "Lal Kitab", "Special Tables"] as Tab[] },
-    { name: "Workspace", tabs: ["Life Report", "Birth Precision", "Event Journal", "Calculation Details"] as Tab[] },
+    { name: "Case overview", tabs: ["Summary", "Life Report"] as Tab[] },
+    { name: "Charts", tabs: ["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Compare Charts", "Houses", "Planet Readings", "House Lords", "Shadbala", "Ashtakavarga"] as Tab[] },
+    { name: "Timing", tabs: ["Signal Calendar", "Transits", "Dashas", "Annual Reading", "Monthly Forecast", "Life Timeline", "Yogini Dasha", "Chara Dasha"] as Tab[] },
+    { name: "Interpretation", tabs: ["Career", "Relationships", "Wealth", "Education", "Property", "Life Sectors", "Yogas & Doshas", "KP System", "Lal Kitab", "Special Tables", "Remedies", "Rudraksha", "Vastu & Home"] as Tab[] },
+    { name: "Case file", tabs: ["Event Journal", "Birth Precision", "Calculation Details"] as Tab[] },
   ];
-  const groups = mode === "user" ? userGroups : expertGroups;
+  const groups = mode === "user" ? USER_GROUPS : expertGroups;
   const activeGroup = groups.find(g => g.tabs.includes(tab)) ?? expertGroups.find(g => g.tabs.includes(tab))!;
-  const userTabs = new Set(userGroups.flatMap(g => g.tabs));
   const [directory, setDirectory] = useState(false);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [modeNotice, setModeNotice] = useState<string | null>(null);
   const setTab = (value: Tab, history = true) => {
     const t = cleanTab(value);
     setMobilePane(["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Compare Charts", "Transits"].includes(t) ? "chart" : "reading");
-    if (!userTabs.has(t) && mode === "user") { saveMode("astrologer"); setModeNotice(pick(locale)("This specialist section opens in Astrologer view.", "यह विशेष अनुभाग ज्योतिषी दृश्य में खुलता है।")); }
+    if (!USER_TABS.has(t) && mode === "user") { saveMode("astrologer"); setModeNotice(pick(locale)("This specialist section opens in Astrologer view.", "यह विशेष अनुभाग ज्योतिषी दृश्य में खुलता है।")); }
     else setModeNotice(null);
-    if (t !== tab) setPreviousTab(tab);
     setVisited(current => current.includes(t) ? current : [...current, t]);
-    setSearch(""); setDirectory(false); setTabState(t);
+    setSearch(""); setDirectory(false); setOpenGroup(null); setTabState(t);
     if (t === "D1 · Rasi Chart") analysis.update({ primary: "D1", overlay: false, compare: false });
     if (t === "More Vargas") analysis.update({ primary: ["D1", "D9"].includes(analysis.primary) ? "D10" : analysis.primary, overlay: false, compare: false });
     if (t === "D9 · Navamsa") analysis.update({ primary: "D9", overlay: false, compare: false });
     if (t === "Transits") analysis.update({ primary: "D1", reference: "lagna", overlay: true, compare: false });
     const topicVarga: Partial<Record<Tab, VargaKey>> = { Career: "D10", Relationships: "D9", Wealth: "D2", Education: "D24", Property: "D4" };
-    if (topicVarga[t]) analysis.update({ primary: "D1", secondary: topicVarga[t], compare: mode === "astrologer" });
+    if (topicVarga[t]) analysis.update({ primary: "D1", secondary: topicVarga[t], compare: mode === "astrologer", overlay: false });
     if (t === "Compare Charts") analysis.update({ compare: true });
     const slug = Object.keys(TAB_SLUGS).find(k => TAB_SLUGS[k] === t);
     if (history && slug) {
@@ -209,7 +215,7 @@ function KundaliWorkspace({
     return () => window.removeEventListener("popstate", restore);
   }, []);
   useEffect(() => {
-    if (mode === "user" && !userTabs.has(tab)) saveMode("astrologer");
+    if (mode === "user" && !USER_TABS.has(tab)) saveMode("astrologer");
   }, [mode, tab, saveMode]);
   // Load each tab's heavy sections when it's opened (the summary also prefetches what its cards show).
   useEffect(() => {
@@ -221,16 +227,16 @@ function KundaliWorkspace({
   const style = analysis.style;
   const setStyle = (style: "north" | "south") => analysis.update({ style });
   const label = (t: Tab) => t === "Summary" ? tr("Overview") : t;
-  const groupLabel = (name: string) => ({ Report: pick(locale)("Report", "रिपोर्ट"), Methods: pick(locale)("Methods", "पद्धतियाँ"), Workspace: pick(locale)("Workspace", "कार्यक्षेत्र") }[name] ?? tr(name));
+  const groupLabel = (name: string) => ({ "Case overview": pick(locale)("Case overview", "मामला अवलोकन"), "Case file": pick(locale)("Case file", "मामला विवरण"), Interpretation: pick(locale)("Interpretation", "व्याख्या") }[name] ?? tr(name));
   const changeMode = (value: string) => {
     if (value === mode) return;
-    if (value === "user" && !userTabs.has(tab)) { setTab("Summary"); setModeNotice(pick(locale)("Personal view opens at Overview for this specialist section.", "इस विशेष अनुभाग से व्यक्तिगत दृश्य अवलोकन पर खुलता है।")); }
+    if (value === "user" && !USER_TABS.has(tab)) { setTab("Summary"); setModeNotice(pick(locale)("Personal view opens at Overview for this specialist section.", "इस विशेष अनुभाग से व्यक्तिगत दृश्य अवलोकन पर खुलता है।")); }
     else setModeNotice(null);
-    setDirectory(false);
+    setDirectory(false); setOpenGroup(null);
     saveMode(value);
   };
   return (
-    <div className={`kundli-workspace mode-${mode}`} data-mode={mode}>
+    <div className={`kundli-workspace mode-${mode}`} data-mode={mode} data-active-tab={tab}>
       <div className="print:hidden">
         <header className="workspace-header">
           <div><h2>{mode === "astrologer" ? pick(locale)("Astrologer view", "ज्योतिषी दृश्य") : pick(locale)("Your chart, explained", "आपकी कुंडली की व्याख्या")}</h2>{mode === "astrologer" && <button type="button" onClick={() => go("precision")} className="mt-2 text-xs text-gold-bright">{pick(locale)("Review birth-time precision", "जन्म-समय सटीकता देखें")}</button>}</div>
@@ -238,20 +244,21 @@ function KundaliWorkspace({
         </header>
         {modeNotice && <p className="workspace-mode-notice" role="status">{modeNotice}</p>}
         <div id="kundli-sections" className="workspace-navigation">
-          <nav aria-label={pick(locale)("Kundli destinations", "कुंडली भाग")} className="workspace-destinations">{groups.map(g => <button type="button" key={g.name} aria-current={activeGroup.name === g.name ? "page" : undefined} onClick={() => setTab(g.tabs[0])}>{groupLabel(g.name)}</button>)}</nav>
-          {mode === "astrologer" && <div className="workspace-shortcuts">{(["D1 · Rasi Chart", "D9 · Navamsa", "Transits", "Dashas"] as Tab[]).map(t => <button type="button" key={t} aria-current={tab === t ? "page" : undefined} onClick={() => setTab(t)}>{t.startsWith("D1") ? "D1" : t.startsWith("D9") ? "D9" : tr(t)}</button>)}<button type="button" onClick={() => setDirectory(!directory)} aria-expanded={directory}>{pick(locale)("Find a tool", "उपकरण खोजें")}</button>{previousTab && <button type="button" onClick={() => setTab(previousTab)}>{pick(locale)("Back to", "वापस")}: {label(previousTab)}</button>}</div>}
-          {(mode === "astrologer" || activeGroup.name === "Timing" || tab === "Summary" || tab === "Transits" || analysis.overlay || analysis.secondary === "transit" && analysis.compare) && <AnalysisCalendar />}
+          <nav aria-label={pick(locale)("Kundli destinations", "कुंडली भाग")} className="workspace-destinations">{groups.map(g => <button type="button" key={g.name} aria-current={activeGroup.name === g.name ? "page" : undefined} onClick={() => { if (activeGroup.name === g.name) setOpenGroup(openGroup === g.name ? null : g.name); else { setTab(g.tabs[0]); setOpenGroup(g.name); } }}>{groupLabel(g.name)}</button>)}</nav><button className="workspace-find" type="button" onClick={() => { setDirectory(!directory); setOpenGroup(null); }} aria-expanded={directory}>{pick(locale)("All tools", "सभी उपकरण")}</button>
         </div>
+        <AnalysisCalendar compact />
         {directory && <div className="workspace-directory"><label><span className="sr-only">{pick(locale)("Find a section", "भाग खोजें")}</span><input autoFocus type="search" className="input w-full" value={search} onChange={e => setSearch(e.target.value)} placeholder={pick(locale)("Search charts, life areas, and tools", "कुंडलियाँ, जीवन क्षेत्र और उपकरण खोजें")} /></label><div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">{groups.map(g => <section key={g.name}><h3 className="mb-2 text-sm text-cream">{groupLabel(g.name)}</h3>{g.tabs.filter(t => `${t} ${tr(t)}`.toLowerCase().includes(search.toLowerCase())).map(t => <button key={t} type="button" onClick={() => setTab(t)} className="block py-2 text-left text-xs text-muted hover:text-gold-bright">{label(t)}</button>)}</section>)}</div></div>}
-        <div className="workspace-subsections"><nav className="section-button-rail" aria-label={pick(locale)("Sections in this destination", "इस भाग के अनुभाग")}>{activeGroup.tabs.map(t => <button type="button" key={t} onClick={() => setTab(t)} aria-current={tab === t ? "page" : undefined}>{label(t)}</button>)}</nav></div>
-        {mode === "astrologer" && <WorkspaceLayouts chart={chart} width={paneWidth} setWidth={setPaneWidth} />}
-        {tab !== "Summary" && tab !== "Life Report" && <div className="mobile-pane-control" role="group" aria-label={pick(locale)("Workspace view", "कार्यक्षेत्र दृश्य")}><button type="button" aria-pressed={mobilePane === "chart"} onClick={() => setMobilePane("chart")}>{pick(locale)("Chart", "कुंडली")}</button><button type="button" aria-pressed={mobilePane === "reading"} onClick={() => setMobilePane("reading")}>{pick(locale)("Reading & evidence", "व्याख्या और प्रमाण")}</button></div>}
-        <div data-mobile-pane={mobilePane} className="workspace-body" data-section={tab === "Summary" ? "overview" : tab === "Life Report" && mode === "user" ? "report" : undefined} style={{ "--chart-pane-width": `${Math.min(65, Math.max(40, paneWidth))}%` } as React.CSSProperties}>
-          {(tab !== "Summary" && (mode === "astrologer" || tab !== "Life Report")) && <aside className="workspace-canvas"><ChartWorkspace chart={chart} mode={mode} go={go} />{(mode === "astrologer" || activeGroup.name === "Timing") && <TimingStrip chart={chart} go={go} />}</aside>}
+        {tab !== "Summary" && <div className="workspace-section-heading"><div><span>{groupLabel(activeGroup.name)}</span><h3>{label(tab)}</h3></div><button type="button" aria-expanded={openGroup === activeGroup.name} aria-controls={openGroup === activeGroup.name ? "workspace-tool-choices" : undefined} onClick={() => setOpenGroup(openGroup === activeGroup.name ? null : activeGroup.name)}>{openGroup === activeGroup.name ? pick(locale)("Close tools", "उपकरण बंद करें") : pick(locale)("Browse tools", "उपकरण देखें")}</button></div>}
+        {openGroup === activeGroup.name && <nav id="workspace-tool-choices" className="workspace-tool-choices" aria-label={pick(locale)("Choose a tool", "उपकरण चुनें")}>{activeGroup.tabs.map(t => <button type="button" key={t} onClick={() => setTab(t)} aria-current={tab === t ? "page" : undefined}>{label(t)}</button>)}</nav>}
+        {mode === "astrologer" && !["Summary", "Life Report", "Signal Calendar"].includes(tab) && <WorkspaceLayouts chart={chart} width={paneWidth} setWidth={setPaneWidth} />}
+        {tab !== "Summary" && tab !== "Life Report" && tab !== "Signal Calendar" && <div className="mobile-pane-control" role="group" aria-label={pick(locale)("Workspace view", "कार्यक्षेत्र दृश्य")}><button type="button" aria-pressed={mobilePane === "chart"} onClick={() => setMobilePane("chart")}>{pick(locale)("Chart", "कुंडली")}</button><button type="button" aria-pressed={mobilePane === "reading"} onClick={() => setMobilePane("reading")}>{pick(locale)("Reading & evidence", "व्याख्या और प्रमाण")}</button></div>}
+        <div data-mobile-pane={mobilePane} className="workspace-body" data-section={tab === "Summary" ? "overview" : tab === "Signal Calendar" ? "calendar" : tab === "Life Report" && mode === "user" ? "report" : undefined} style={{ "--chart-pane-width": `${Math.min(65, Math.max(40, paneWidth))}%` } as React.CSSProperties}>
+          {(tab !== "Summary" && tab !== "Signal Calendar" && (mode === "astrologer" || tab !== "Life Report")) && <aside className="workspace-canvas"><ChartWorkspace chart={chart} mode={mode} go={go} transitOnly={tab === "Transits"} />{(mode === "astrologer" || activeGroup.name === "Timing") && <TimingStrip chart={chart} go={go} />}</aside>}
           <main className="workspace-reading" aria-label={pick(locale)("Reading and analysis", "व्याख्या और विश्लेषण")}>
           {visited.map(panelTab => <div className="reading-section" data-reading={panelTab} key={panelTab} hidden={panelTab !== tab}>
-              {panelTab === "Transits" && <TransitsPanel report={report} chart={chart} detailed={mode === "astrologer"} />}
-              {panelTab === "Summary" && <WorkspaceOverview chart={chart} expert={mode === "astrologer"} go={go} />}
+              {panelTab === "Transits" && <><TransitsPanel report={report} chart={chart} detailed={mode === "astrologer"} /><div className="mt-6"><ReadingObservations chart={chart} /></div></>}
+              {panelTab === "Summary" && (mode === "astrologer" ? <AstrologerDesk chart={chart} go={go} /> : <WorkspaceOverview chart={chart} go={go} />)}
+              {panelTab === "Signal Calendar" && <AstrologerCalendar chart={chart} report={report} go={go} />}
               {panelTab === "Event Journal" && <EventJournalPanel chart={chart} />}
               {panelTab === "Calculation Details" && <CalculationDetailsPanel chart={chart} />}
               {panelTab === "Birth Precision" && <BirthPrecisionPanel chart={chart} />}
@@ -718,6 +725,7 @@ function VargaTab({
   return (
     <div>
       <p className="max-w-2xl text-sm leading-relaxed text-muted">{blurb}</p>
+      <div className="mt-3"><BirthReliabilityBadge chart={chart} varga={title} /></div>
       <div className="mt-6">
         <div className="card-edge overflow-x-auto rounded-2xl">
           <table className="w-full text-sm font-tabular">

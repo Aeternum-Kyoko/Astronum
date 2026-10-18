@@ -49,24 +49,24 @@ export function LifeReportPanel({ report }: { report: KundaliReport | null }) {
             <summary>
             <div className="flex items-start justify-between gap-3">
               <h3 className="text-lg font-bold text-cream">{a.title}</h3>
-              <span className="shrink-0 text-right">
+              {!a.synthesis && <span className="shrink-0 text-right">
                 <Stars rating={a.rating} />
                 <span className={`block text-xs font-semibold ${a.verdict === "Strong" ? "text-gold-bright" : a.verdict === "Weak" ? "text-rose" : "text-muted"}`}>
                   {a.verdict}
                 </span>
-              </span>
+              </span>}
             </div>
             <p className="mt-2 text-sm font-medium text-cream">{a.summary}</p><span className="chapter-prompt">{L("Evidence and timing", "प्रमाण और समय")}</span></summary>
             <div className="report-chapter-body">
             <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-muted">
-              {a.points.map((p) => (
+              {(a.synthesis ? [a.synthesis.support?.text, a.synthesis.counterpoint?.text, a.synthesis.timing.text].filter((point): point is string => Boolean(point)) : a.points).map((p) => (
                 <li key={p} className="flex gap-2">
                   <span className="text-gold" aria-hidden="true">•</span>
                   <span>{p}</span>
                 </li>
               ))}
             </ul>
-            {a.periods.length > 0 && (
+            {!a.synthesis && a.periods.length > 0 && (
               <div className="mt-auto pt-4">
                 <p className="text-xs font-semibold text-gold-bright">When it comes into focus</p>
                 <ul className="mt-2 space-y-1 text-xs">
@@ -159,7 +159,7 @@ function TransitExplorer({ report, chart, detailed }: { report: KundaliReport; c
         {L(`Explore past or future positions against your natal Moon (${moon.sign}) and Lagna (${chart.ascendant.sign}).`, `जन्म चंद्र (${n(moon.sign)}) और लग्न (${n(chart.ascendant.sign)}) से भूत या भविष्य के गोचर देखें।`)}
       </p>
 
-      <section className="card-edge rounded-2xl p-5">
+      {!analysis && <section className="card-edge rounded-2xl p-5">
         <div><h3 className="text-lg font-bold text-cream">{L("Transit calendar","गोचर कैलेंडर")}</h3><p className="text-xs text-muted">{L("Choose a date to view your personal gochara and Panchang. The analysis bar above also changes the exact time.","अपने गोचर और पंचांग के लिए तिथि चुनें। ऊपर विश्लेषण पट्टी से सटीक समय भी बदलें।")}</p></div>
         <div className="mt-5 max-w-md">
           <div className="mb-2 flex items-center justify-between">
@@ -175,7 +175,7 @@ function TransitExplorer({ report, chart, detailed }: { report: KundaliReport; c
             {days.map((d) => { const iso = d.toISODate()!; return <button type="button" key={iso} onClick={() => setDate(iso)} aria-pressed={date === iso} className={`rounded-lg py-2 font-tabular ${date === iso ? "bg-gold font-bold text-on-gold" : iso === today ? "border border-gold/50 text-gold-bright" : "text-cream hover:bg-surface-raised"}`}>{d.day}</button>; })}
           </div>
         </div>
-      </section>
+      </section>}
 
       <details className="transit-reference-disclosure"><summary>{L("Compare transits from the Moon", "चंद्र से गोचर तुलना करें")}</summary><TransitChart transits={transits} chart={chart} date={date} /></details>
 

@@ -11,6 +11,9 @@ import { kpAnalysis, type KpAnalysis } from "./kp";
 import { lifeSectors, type LifeSector } from "./lifeSectors";
 import { monthlyForecast, type MonthlyForecast } from "./monthlyForecast";
 import type { Locale } from "../i18n/locale";
+import { topicReading, TOPICS, type TopicKey } from "./topicReading";
+
+const REPORT_TOPICS: Partial<Record<string, TopicKey>> = { career: "career", marriage: "relationships", wealth: "wealth", education: "education", home: "property" };
 
 /** The quick, always-sent part of a kundli's written report. */
 export interface CoreReport {
@@ -49,7 +52,12 @@ export function buildCoreReport(chart: KundaliChart, now = new Date(), locale: L
   const lifespanEnd = new Date(birth.getTime() + 100 * 365.25 * 86400_000);
   return {
     planets: planetReadings(chart, locale),
-    lifeAreas: lifeAreaReadings(chart, now, locale),
+    lifeAreas: lifeAreaReadings(chart, now, locale).map(area => {
+      const topic = REPORT_TOPICS[area.key];
+      if (!topic) return area;
+      const synthesis = topicReading(chart, topic, now, locale).synthesis;
+      return { ...area, title: TOPICS[topic].title[locale === "hi" ? 1 : 0], summary: synthesis.conclusion, synthesis };
+    }),
     dashas: dashaReadings(chart, locale),
     transits: currentTransits(moon.signIndex, chart.ascendant.signIndex, now),
     saturnCycles: saturnCycles(moon.signIndex, birth, lifespanEnd),

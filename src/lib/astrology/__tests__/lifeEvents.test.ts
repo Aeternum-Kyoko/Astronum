@@ -31,11 +31,12 @@ describe("life event engine", () => {
           }
       });
 
-      it("always gives a marriage and a career window", () => {
-        expect(t.keyWindows.some((k) => k.kind === "marriage")).toBe(true);
-        expect(t.keyWindows.some((k) => k.kind === "career")).toBe(true);
-        const marriage = t.keyWindows.find((k) => k.kind === "marriage")!;
-        expect(Number(marriage.ages.split("–")[0])).toBeGreaterThanOrEqual(19);
+      it("only publishes windows that clear the rule threshold without ordering children after marriage", () => {
+        for (const window of t.keyWindows) expect(window.confidence).toBeGreaterThanOrEqual(window.nature === "caution" ? 58 : 50);
+        for (const m of t.mahas) for (const a of m.antars) for (const event of a.events) {
+          expect(event.evidence.some(item => item.text.includes("before your most likely marriage window"))).toBe(false);
+          expect(event.evidence.some(item => item.text.includes("within five years"))).toBe(false);
+        }
       });
 
       it("reads each year's Saturn phase from Saturn's actual sign", () => {

@@ -16,6 +16,7 @@ import type { Locale } from "../i18n/locale";
 import { pick } from "../i18n/ui";
 import { term } from "../i18n/terms";
 import { listHi, ordHi } from "../i18n/hiGrammar";
+import type { TopicSynthesis } from "./interpretation/topicSynthesis";
 
 /**
  * Written readings assembled from classical rules applied to one chart:
@@ -168,6 +169,7 @@ export interface LifeAreaReading {
   summary: string;
   points: string[];
   periods: ActivatingPeriod[];
+  synthesis?: TopicSynthesis;
 }
 
 interface AreaDef {

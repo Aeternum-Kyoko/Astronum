@@ -280,7 +280,6 @@ const LAYER_CLASS: Record<EvidenceLayer, string> = {
   Yoga: "border-gold/50 text-gold-bright",
   Age: "border-rose/40 text-rose",
 };
-const LEVEL_CLASS = { Strong: "bg-gold text-on-gold", Likely: "border border-gold/60 text-gold-bright", Possible: "border border-border text-muted" } as const;
 
 export function TimelinePanel({ report }: { report: KundaliReport | null }) {
   const [filter, setFilter] = useState<EventTheme | "all">("all");
@@ -314,9 +313,6 @@ export function TimelinePanel({ report }: { report: KundaliReport | null }) {
                   <span className={`text-sm font-semibold ${k.nature === "caution" ? "text-rose" : "text-cream"}`}>{THEME_ICON[k.kind]}</span>
                   <span className="font-tabular text-sm font-bold text-gold-bright">{ruleSupport(k.confidence)}</span>
                 </p>
-                <span className="mt-2 block h-1.5 rounded-full bg-border" aria-hidden="true">
-                  <span className={`block h-1.5 rounded-full ${k.nature === "caution" ? "bg-rose" : "bg-gold"}`} style={{ width: `${k.confidence}%` }} />
-                </span>
                 <p className="mt-2 text-sm text-cream">
                   Age {k.ages} · {monthYear(k.start)} – {monthYear(k.end)}
                 </p>
@@ -526,7 +522,7 @@ function EventCard({ e }: { e: LifeEvent }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className={`text-sm font-semibold ${e.nature === "caution" ? "text-rose" : "text-gold-bright"}`}>{e.label}</span>
         <span className="flex items-center gap-2">
-          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${LEVEL_CLASS[e.level]}`}>{e.level}</span>
+          <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted">{new Set(e.evidence.filter(x => x.points > 0).map(x => x.layer)).size} agreeing methods</span>
           <span className="font-tabular text-sm font-bold text-cream">{ruleSupport(e.confidence)}</span>
         </span>
       </div>

@@ -5,25 +5,27 @@ import type { KundaliChart } from "@/lib/astrology/types";
 import type { BirthSensitivity } from "@/lib/astrology/birthSensitivity";
 import { useDeviceStore } from "@/lib/useDeviceStore";
 import { toBirthQuery } from "@/lib/birthParams";
+import { precisionKey, sensitivityKey, type SensitivityRecord } from "@/lib/birthReliability";
 import { useLocale } from "@/lib/i18n/LocaleContext";
 import { pick } from "@/lib/i18n/ui";
 import { term } from "@/lib/i18n/terms";
 
 export default function BirthPrecisionPanel({ chart }: { chart: KundaliChart }) {
   const locale = useLocale(); const L = pick(locale);
-  const [precision, setPrecision] = useDeviceStore<string>(`astronum-precision:${toBirthQuery(chart.input)}`, "unknown");
+  const [precision, setPrecision] = useDeviceStore<string>(precisionKey(chart.input), "unknown");
+  const [, saveAssessment] = useDeviceStore<SensitivityRecord | null>(sensitivityKey(chart.input), null);
   const [result, setResult] = useState<BirthSensitivity | null>(null); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
   const [onlyChanges, setOnlyChanges] = useState(true);
   const selectedPrecision = ["unknown", "0", "5", "15", "30"].includes(precision) ? precision : "unknown";
   async function analyze() {
     setBusy(true); setError(""); setResult(null);
-    try { const res = await fetch("/api/kundali/sensitivity", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ birth: chart.input, window: Number(selectedPrecision) }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error); setResult(data); }
+    try { const res = await fetch("/api/kundali/sensitivity", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ birth: chart.input, window: Number(selectedPrecision) }) }); const data: BirthSensitivity = await res.json(); if (!res.ok) throw new Error("Could not analyze the interval."); setResult(data); saveAssessment({ precision: selectedPrecision as SensitivityRecord["precision"], sampleCount: data.sampleCount, fields: data.fields.map(field => ({ key: field.key, stable: field.stable })) }); }
     catch (err) { setError(err instanceof Error ? err.message : L("Could not analyze the interval.", "अंतराल का विश्लेषण नहीं हो सका।")); }
     finally { setBusy(false); }
   }
   return <div className="space-y-6">
     <header><h2 className="text-3xl font-bold text-cream">{L("Birth-time precision", "जन्म-समय की सटीकता")}</h2><p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">{L("Record how well you know the birth time, then check which chart placements change around it. Your assessment is saved on this device.", "जन्म-समय कितना ज्ञात है, दर्ज करें; फिर देखें आसपास के समय में कौन-सी स्थितियाँ बदलती हैं। जानकारी इस उपकरण पर सहेजी जाती है।")}</p></header>
-    <div className="flex flex-wrap items-end gap-4"><label className="text-sm text-cream">{L("How precise is the time?", "समय कितना सटीक है?")}<select disabled={busy} value={selectedPrecision} onChange={(e) => { setPrecision(e.target.value); setResult(null); }} className="input mt-2"><option value="unknown">{L("Unknown / not documented", "अज्ञात / दर्ज नहीं")}</option><option value="0">{L("Exact recorded time", "दर्ज सटीक समय")}</option>{[5, 15, 30].map((v) => <option key={v} value={v}>±{v} {L("minutes", "मिनट")}</option>)}</select></label><button type="button" disabled={busy || selectedPrecision === "unknown"} onClick={analyze} className="rounded-full bg-gold px-5 py-3 text-sm font-semibold text-on-gold disabled:opacity-50">{busy ? L("Comparing…", "तुलना…") : L("Check sensitivity", "संवेदनशीलता जाँचें")}</button></div>
+    <div className="birth-precision-controls"><fieldset><legend>{L("How precise is the time?", "समय कितना सटीक है?")}</legend><div>{([ ["unknown", L("Unknown", "अज्ञात")], ["0", L("Recorded exact", "सटीक दर्ज")], ["5", "±5 min"], ["15", "±15 min"], ["30", "±30 min"] ] as const).map(([value, label]) => <button type="button" key={value} disabled={busy} aria-pressed={selectedPrecision === value} onClick={() => { setPrecision(value); saveAssessment(null); setResult(null); }}>{label}</button>)}</div></fieldset><button type="button" disabled={busy || selectedPrecision === "unknown"} onClick={analyze} className="birth-precision-run">{busy ? L("Comparing…", "तुलना…") : L("Check sensitivity", "संवेदनशीलता जाँचें")}</button></div>
     {selectedPrecision === "unknown" && <p className="rounded-2xl border border-gold/30 p-5 text-sm leading-relaxed text-muted">{L("Without a known interval, sensitive divisional houses cannot be treated as settled. Start with recorded birth documents or event-based rectification. Choose a realistic interval to explore changes.", "ज्ञात अंतराल के बिना संवेदनशील वर्ग भावों को निश्चित न मानें। जन्म के रिकॉर्ड या घटना-आधारित समय शोधन से शुरू करें। बदलाव देखने के लिए वास्तविक अंतराल चुनें।")}</p>}
     {error && <p role="alert" className="text-sm text-rose">{error}</p>}
     {result && <>

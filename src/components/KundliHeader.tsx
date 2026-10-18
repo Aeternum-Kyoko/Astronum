@@ -42,7 +42,13 @@ export default function KundliHeader({ chart, onEdit }: { chart: KundaliChart; o
         </div>
         <div className="flex items-center gap-2">
           <SaveChartButton input={chart.input} />
-          <a href={`/api/kundali/pdf?${toBirthQuery(chart.input)}`} className="rounded-full bg-gold px-5 py-2 text-sm font-semibold text-on-gold transition-colors hover:bg-gold-bright">
+          <a href={`/api/kundali/pdf?${toBirthQuery(chart.input)}`} onClick={event => {
+            const selected = new URLSearchParams(window.location.search);
+            const url = new URL(event.currentTarget.href);
+            const date = selected.get("analysisDate"), time = selected.get("analysisTime");
+            if (date && time) { url.searchParams.set("analysisDate", date); url.searchParams.set("analysisTime", time); }
+            event.currentTarget.href = url.toString();
+          }} className="rounded-full bg-gold px-5 py-2 text-sm font-semibold text-on-gold transition-colors hover:bg-gold-bright">
             {L("Download PDF","PDF डाउनलोड करें")}
           </a>
           <ActionsMenu onEdit={onEdit} />

@@ -1,35 +1,64 @@
 "use client";
-import { useMemo } from "react";
-import { useAnalysis } from "./AnalysisContext";
-import { periodsAt } from "@/lib/astrology/dashaTree";
-import { readingEvidence } from "@/lib/astrology/readingEvidence";
+
+import { useMemo, useState } from "react";
 import type { KundaliChart } from "@/lib/astrology/types";
+import { periodsAt } from "@/lib/astrology/dashaTree";
+import { natalMarkers } from "@/lib/astrology/chartMarkers";
+import { topicReading, type TopicKey } from "@/lib/astrology/topicReading";
 import { useLocale } from "@/lib/i18n/LocaleContext";
 import { pick } from "@/lib/i18n/ui";
 import { term } from "@/lib/i18n/terms";
 import KundliChart from "../KundliChart";
-import { ChartStyleButtons } from "./ChartPicker";
-import TimingStrip from "./TimingStrip";
 import EvidenceEntry from "../EvidenceEntry";
-export default function WorkspaceOverview({ chart, expert, go }: { chart: KundaliChart; expert: boolean; go: (slug: string) => void }) {
-  const a = useAnalysis()!; const locale = useLocale(); const L = pick(locale); const n = (s: string) => term(locale, s);
+import { ChartStyleButtons } from "./ChartPicker";
+import { useAnalysis } from "./AnalysisContext";
+import ReadingObservations from "./ReadingObservations";
+import BirthReliabilityBadge from "./BirthReliabilityBadge";
+
+const AREAS: { key: TopicKey; label: [string, string]; varga: "D10" | "D9" | "D2" | "D24" | "D4" }[] = [
+  { key: "career", label: ["Work", "काम"], varga: "D10" },
+  { key: "relationships", label: ["Relationships", "संबंध"], varga: "D9" },
+  { key: "wealth", label: ["Money", "धन"], varga: "D2" },
+  { key: "education", label: ["Learning", "शिक्षा"], varga: "D24" },
+  { key: "property", label: ["Home", "घर"], varga: "D4" },
+];
+
+export default function WorkspaceOverview({ chart, go }: { chart: KundaliChart; go: (slug: string) => void }) {
+  const a = useAnalysis()!;
+  const locale = useLocale();
+  const L = pick(locale);
+  const n = (value: string) => term(locale, value);
+  const [chosenArea, setChosenArea] = useState<TopicKey | null>(null);
+  const readings = useMemo(() => AREAS.map(area => ({ ...area, reading: topicReading(chart, area.key, a.at, locale, a.transits) })), [chart, a.at, a.transits, locale]);
+  const firstActive = readings.find(item => item.reading.active.length > 0)?.key ?? "career";
+  const selected = readings.find(item => item.key === (chosenArea ?? firstActive)) ?? readings[0];
+  const synthesis = selected.reading.synthesis;
+  const proof = selected.reading.evidence.flatMap(group => group.items).filter(item => synthesis.evidenceIds.includes(item.id));
   const running = periodsAt(chart.dashas, a.at, 3);
-  const evidence = useMemo(() => readingEvidence(chart, [1, 7, 10], ["D9", "D10"], a.at, null, locale), [chart, a.at, locale]);
-  const moon = chart.planets.find(p => p.planet === "Moon");
-  return <div className="overview-desk">
-    <section className="overview-atlas" aria-label={L("Birth charts and timing", "जन्म कुंडलियाँ और दशाएँ")}>
-      <div className="atlas-heading"><div><h2>{L("Your celestial atlas", "आपकी जन्म कुंडली")}</h2><p>{chart.input.date} · {chart.input.time} · {chart.input.place}</p></div><ChartStyleButtons value={a.style} onChange={style => a.update({ style })} /></div>
-      <div className="atlas-charts">{(["D1", "D9"] as const).map(key => <article key={key} className="atlas-chart"><header><span>{key}</span><div><h3>{key === "D1" ? L("Rashi · Birth chart", "राशि · जन्म कुंडली") : L("Navamsa · Inner potential", "नवांश · आंतरिक क्षमता")}</h3><p>{key === "D1" ? L("The foundation of your reading", "आपके विश्लेषण का आधार") : L("Read alongside D1; sensitive to birth time", "D1 के साथ देखें; जन्म-समय संवेदनशील")}</p></div></header><KundliChart style={a.style} ascendantSignIndex={chart.divisionalCharts[key].ascendant.signIndex} planets={chart.divisionalCharts[key].planets} selected={a.selected} onPick={selected => a.update({ selected })} ariaLabel={`${key} ${L("overview chart", "अवलोकन कुंडली")}`} /><button type="button" className="atlas-open" onClick={() => go(key === "D1" ? "rasi" : "navamsa")}>{L("Open chart and details", "कुंडली और विवरण खोलें")}</button></article>)}</div>
-      <p className="atlas-mobile-hint">{L("Swipe to compare D1 and D9. Tap a planet to highlight it in both charts.", "D1 और D9 देखने के लिए स्वाइप करें। दोनों में ग्रह चिह्नित करने हेतु टैप करें।")}</p>
-      {a.selected && <button className="atlas-selection" type="button" onClick={() => go("rasi")}>{a.selected.kind === "planet" ? n(a.selected.planet) : `${L("House", "भाव")} ${a.selected.house}`} · {L("Inspect placement and evidence", "स्थिति और प्रमाण देखें")}</button>}
-      <TimingStrip chart={chart} go={go} />
-      <section className="overview-strength"><header><div><h3>{L("Planetary strength", "ग्रह बल")}</h3><p>{L("Approximate Shadbala · rupas / classical minimum", "अनुमानित षड्बल · रूपा / शास्त्रीय न्यूनतम")}</p></div><button type="button" onClick={() => go("shadbala")}>{L("All components", "सभी घटक")}</button></header><div className="strength-rows">{chart.shadbala.map(s => <button type="button" key={s.planet} onClick={() => { a.update({ selected: { kind: "planet", planet: s.planet } }); go("shadbala"); }}><span>{n(s.planet)}</span><span className="strength-track"><span style={{ width: `${Math.max(0, Math.min(100, s.rupas / s.requiredRupas * 50))}%` }} /></span><strong>{s.rupas.toFixed(2)} <small>/ {s.requiredRupas}</small></strong></button>)}</div><p>{L("The midpoint marks the classical minimum. Some time and motion components are incomplete; this is not a complete classical strength verdict.", "मध्य चिह्न शास्त्रीय न्यूनतम है। कुछ काल और गति घटक अपूर्ण हैं; यह पूर्ण शास्त्रीय बल-निर्णय नहीं है।")}</p></section>
+  const moon = chart.planets.find(planet => planet.planet === "Moon");
+  const marks = useMemo(() => natalMarkers(chart), [chart]);
+  return <div className="personal-overview">
+    <header className="personal-reading-head">
+      <div><p className="personal-reading-context">{L("YOUR CHART AT A GLANCE", "आपकी कुंडली एक नज़र में")}</p><h2>{n(chart.ascendant.sign)} {L("rising", "लग्न")}{moon ? ` · ${n(moon.sign)} ${L("Moon", "चंद्र")}` : ""}</h2><p>{moon ? `${L("Moon nakshatra", "चंद्र नक्षत्र")}: ${n(moon.nakshatra)}` : ""}</p></div>
+      <div className="personal-running-period"><span>{L("At your selected date", "चुनी तिथि पर")}</span><strong>{running.map(period => n(period.lord)).join(" › ") || "—"}</strong><button type="button" onClick={() => go("dashas")}>{L("Explore the period", "दशा देखें")}</button></div>
+    </header>
+    <section className="personal-area-reading" aria-labelledby="personal-area-title">
+      <div className="personal-area-head"><h3 id="personal-area-title">{L("Choose what matters to you", "अपना विषय चुनें")}</h3></div>
+      <div className="personal-area-choices" role="group" aria-label={L("Choose a life area", "जीवन विषय चुनें")}>{readings.map(item => <button type="button" key={item.key} aria-pressed={selected.key === item.key} onClick={() => setChosenArea(item.key)}>{L(...item.label)}</button>)}</div>
+      <article className="personal-area-result" key={selected.key}>
+        <div className="personal-area-result-title"><div><span>{L(...selected.label)}</span><h4>{selected.reading.title}</h4></div><BirthReliabilityBadge chart={chart} varga={selected.varga} go={go} /></div>
+        <p className="personal-area-lead">{synthesis.conclusion}</p>
+        <div className="personal-reading-factors"><div><b>{L("What supports it", "क्या सहारा देता है")}</b><p>{synthesis.support?.text ?? L("No clear support in these checks.", "इन जाँचों में स्पष्ट सहारा नहीं मिला।")}</p></div><div><b>{L("What complicates it", "क्या कठिन बनाता है")}</b><p>{synthesis.counterpoint?.text ?? L("No clear counterpoint in these checks.", "इन जाँचों में स्पष्ट विरोध नहीं मिला।")}</p></div></div>
+        <div className="personal-reading-timing"><b>{L("Why this period matters", "यह अवधि क्यों महत्वपूर्ण है")}</b><p>{synthesis.timing.text}</p></div>
+        <div className="personal-area-actions"><button type="button" onClick={() => go(selected.key)}>{L("Read the full analysis", "पूरा विश्लेषण पढ़ें")}</button><button type="button" onClick={() => go("transits")}>{L("See transits on this date", "इस तिथि के गोचर देखें")}</button></div>
+        <details className="personal-reading-proof"><summary>{L("See the chart evidence", "कुंडली प्रमाण देखें")}</summary><div>{proof.map(item => <EvidenceEntry key={item.id} evidence={item} go={go} />)}{proof.length === 0 && <p>{L("These checks do not establish a clear direction. Open the full analysis for placements and limits.", "इन जाँचों से स्पष्ट दिशा नहीं मिलती। स्थितियाँ और सीमाएँ देखने के लिए पूरा विश्लेषण खोलें।")}</p>}</div></details>
+      </article>
     </section>
-    <div className="workspace-overview"><header><h2>{expert ? L("Analysis desk", "विश्लेषण डेस्क") : L("Your chart at a glance", "आपकी कुंडली एक नज़र में")}</h2><p className="mt-2 text-sm text-muted">{expert ? L("Inspect a planet, compare charts, and follow its evidence and timing.", "ग्रह देखें, कुंडलियाँ तुलना करें और प्रमाण व समय जाँचें।") : L("Start with your birth chart, then explore its timing and life areas.", "जन्म कुंडली से शुरू करें, फिर दशा और जीवन के क्षेत्र देखें।")}</p></header>
-    {<dl className="overview-facts"><div><dt>{L("Ascendant", "लग्न")}</dt><dd>{n(chart.ascendant.sign)}</dd></div><div><dt>{L("Moon sign", "चंद्र राशि")}</dt><dd>{moon ? n(moon.sign) : "—"}</dd></div><div><dt>{L("Birth nakshatra", "जन्म नक्षत्र")}</dt><dd>{moon ? n(moon.nakshatra) : "—"}</dd></div></dl>}
-    <section className="overview-period"><h3>{L("Period at the analysis date", "विश्लेषण तिथि की दशा")}</h3><p className="mt-2 text-xl text-gold-bright">{running.map(p => n(p.lord)).join(" › ") || L("Outside calculated range", "गणना सीमा से बाहर")}</p><button type="button" onClick={() => go("dashas")} className="mt-3 text-sm text-gold-bright underline">{L("Explore this period", "यह दशा देखें")}</button></section>
-    <div className="overview-topics">{[["Career", "career", "D10"], ["Relationships", "relationships", "D9"], ["Wealth", "wealth", "D2"], ["Education", "education", "D24"], ["Property", "property", "D4"]].map(([title, slug, varga]) => <button type="button" key={slug} onClick={() => { a.update({ primary: "D1", secondary: varga as typeof a.primary, compare: expert }); go(slug); }}><span>{n(title)}</span><span className="text-xs text-muted">D1 + {varga}</span></button>)}</div>
-    <section><h3>{L("Chart evidence to start with", "प्रारंभिक कुंडली प्रमाण")}</h3><div className="mt-3 space-y-4">{evidence.map(c => <div key={c.house}><p className="mb-2 text-xs text-muted">{L("House", "भाव")} {c.house} · {n(c.lord)}{c.mixed && ` · ${L("Mixed indicators", "मिश्रित संकेत")}`}</p>{c.items.slice(0, expert ? 4 : 2).map(e => <EvidenceEntry key={e.id} evidence={e} go={go} />)}</div>)}</div></section>
-    <div className="mt-6 flex flex-wrap gap-3 text-xs text-gold-bright"><button type="button" onClick={() => go("precision")}>{L("Review birth-time precision", "जन्म-समय सटीकता जाँचें")}</button><button type="button" onClick={() => go("journal")}>{L("Record a life event", "जीवन घटना दर्ज करें")}</button><button type="button" onClick={() => go("calculations")}>{L("Calculation settings", "गणना सेटिंग्स")}</button></div>
-  </div></div>;
+    <section className="personal-chart-reference" aria-label={L("Birth charts", "जन्म कुंडलियाँ")}>
+      <div className="personal-chart-heading"><div><h3>{L("The charts behind your reading", "व्याख्या के पीछे की कुंडलियाँ")}</h3><p>{L("D1 is the foundation. D9 adds detail when the birth time is reliable.", "D1 मुख्य आधार है। जन्म-समय भरोसेमंद हो तो D9 और विवरण देती है।")}</p></div><ChartStyleButtons value={a.style} onChange={style => a.update({ style })} /></div>
+      <div className="personal-chart-pair">{(["D1", "D9"] as const).map(key => <article key={key}><header><span>{key}</span><div><h4>{key === "D1" ? L("Birth chart", "जन्म कुंडली") : L("Navamsa", "नवांश")}</h4><p>{key === "D1" ? L("Planet and house positions", "ग्रह और भाव स्थितियाँ") : L("Read alongside D1", "D1 के साथ देखें")}</p></div></header>{key === "D9" && <BirthReliabilityBadge chart={chart} varga="D9" go={go} />}<KundliChart style={a.style} ascendantSignIndex={chart.divisionalCharts[key].ascendant.signIndex} planets={key === "D1" ? chart.planets.map(planet => ({ ...planet, markers: marks[planet.planet] })) : chart.divisionalCharts[key].planets} selected={a.selected} onPick={value => a.update({ selected: value })} ariaLabel={`${key} ${L("birth chart", "जन्म कुंडली")}`} /><button type="button" onClick={() => go(key === "D1" ? "rasi" : "navamsa")}>{L("Open chart details", "कुंडली विवरण देखें")}</button></article>)}</div>
+      <div className="personal-more-paths"><button type="button" onClick={() => go("shadbala")}>{L("Planet strength", "ग्रह बल")}</button><button type="button" onClick={() => go("report")}>{L("Full life report", "पूरा जीवन विवरण")}</button><button type="button" onClick={() => go("precision")}>{L("Birth-time precision", "जन्म-समय सटीकता")}</button></div>
+    </section>
+    <details className="personal-journal-disclosure" id="overview-journal"><summary>{L("Record what happened on this date", "इस तिथि पर क्या हुआ, लिखें")}</summary><ReadingObservations chart={chart} /></details>
+  </div>;
 }

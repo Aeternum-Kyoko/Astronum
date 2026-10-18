@@ -177,15 +177,15 @@ export default function KundaliPdf({ chart, report, remedies }: { chart: Kundali
         {report.lifeAreas.map((a) => (
           <View key={a.key} wrap={false} style={{ marginBottom: 6 }}>
             <Text style={s.h3}>
-              {a.title} — {a.rating}/5 · {a.verdict}
+              {a.title}{a.synthesis ? "" : ` — ${a.rating}/5 · ${a.verdict}`}
             </Text>
             <Text style={s.p}>{a.summary}</Text>
-            {a.points.slice(0, 3).map((pt) => (
+            {(a.synthesis ? [a.synthesis.support?.text, a.synthesis.counterpoint?.text, a.synthesis.timing.text].filter((point): point is string => Boolean(point)) : a.points.slice(0, 3)).map((pt) => (
               <Text key={pt} style={[s.p, s.muted]}>
                 • {pt}
               </Text>
             ))}
-            {a.periods.length > 0 && (
+            {!a.synthesis && a.periods.length > 0 && (
               <Text style={[s.p, { color: GOLD }]}>
                 In focus: {a.periods.map((p) => `${p.label} (${fmtMonth(p.start)}–${fmtMonth(p.end)})`).join("; ")}
               </Text>
