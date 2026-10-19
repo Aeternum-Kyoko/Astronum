@@ -5,6 +5,7 @@ import { PLANET_GLYPH, markerText, planetAbbr } from "@/lib/chartGeometry";
 import { SIGNS } from "@/lib/astrology/constants";
 import type { Locale } from "@/lib/i18n/locale";
 import { term } from "@/lib/i18n/terms";
+import type { ChartRelationships } from "@/lib/astrology/chartInspection";
 
 
 const DIGNITY_COLOR: Record<Dignity, string> = {
@@ -44,6 +45,7 @@ export default function ChartGrid({
   planets,
   onPick,
   selected,
+  relationships,
   glyphs = false,
   locale = "en",
   ariaLabel,
@@ -52,6 +54,7 @@ export default function ChartGrid({
   planets: GridPlanet[];
   onPick?: (pick: ChartPick) => void;
   selected?: ChartPick | null;
+  relationships?: ChartRelationships | null;
   /** Planet symbols (☉ ☽ ♂…) instead of two-letter names. */
   glyphs?: boolean;
   locale?: Locale;
@@ -88,6 +91,8 @@ export default function ChartGrid({
           const crowded = occupants.length + (signIndex === ascendantSignIndex ? 1 : 0) >= 4;
           const isAscendant = signIndex === ascendantSignIndex;
           const house = ((signIndex - ascendantSignIndex + 12) % 12) + 1;
+          const relatedFocus = relationships?.focusHouse === house;
+          const relatedOutgoing = relationships?.outgoing.includes(house);
           return (
             // Clicking a cell picks its house with the mouse; keyboard users pick houses from the detail panel's house list.
             <div
@@ -96,7 +101,7 @@ export default function ChartGrid({
               data-haptic={onPick ? "selection" : undefined}
               className={`relative flex min-w-0 flex-col items-center justify-center overflow-hidden rounded-lg border p-1 text-center transition-colors ${
                 isAscendant ? "border-gold/70 bg-[radial-gradient(circle_at_50%_30%,color-mix(in_oklab,var(--color-gold)_16%,transparent),transparent_70%)]" : "border-border/40 bg-ink-deep/25"
-              } ${onPick ? "cursor-pointer hover:border-gold/70" : ""} ${selected?.kind === "house" && selected.house === house ? "ring-1 ring-gold" : ""}`}
+              } ${onPick ? "cursor-pointer hover:border-gold/70" : ""} ${relatedFocus ? "ring-2 ring-gold-bright bg-gold/10" : relatedOutgoing ? "ring-1 ring-gold/70" : selected?.kind === "house" && selected.house === house ? "ring-1 ring-gold" : ""}`}
             >
               <span className="chart-fade text-[10px] text-muted/80">{hi ? term("hi", SIGNS[signIndex]) : SIGN_SANSKRIT[signIndex]}</span>
               <div className={`mt-1 flex flex-wrap items-center justify-center ${crowded ? "gap-x-1 gap-y-0 leading-tight" : "gap-x-1.5 gap-y-0.5"}`}>
@@ -132,7 +137,7 @@ export default function ChartGrid({
                     ]
                       .filter(Boolean)
                       .join(" · ")}
-                    className={`chart-fade font-semibold ${p.layer === "transit" ? "text-[#55B6A4]" : p.layer === "natal" ? "text-gold-bright" : p.dignity ? DIGNITY_COLOR[p.dignity] : "text-cream"} ${glyphs ? (crowded ? "text-[12px]" : "text-[15px]") : crowded ? "text-[11px]" : "text-[13px]"}`}
+                    className={`chart-fade font-semibold ${relationships?.lord === p.planet && p.layer !== "transit" ? "text-gold-bright underline decoration-gold" : relationships?.incoming.some(item => item.planet === p.planet) && p.layer !== "transit" ? "text-[#73b8aa] underline decoration-[#73b8aa]" : p.layer === "transit" ? "text-[#55B6A4]" : p.layer === "natal" ? "text-gold-bright" : p.dignity ? DIGNITY_COLOR[p.dignity] : "text-cream"} ${glyphs ? (crowded ? "text-[12px]" : "text-[15px]") : crowded ? "text-[11px]" : "text-[13px]"}`}
                     style={glyphs ? { fontFamily: "'Noto Sans Symbols 2','Segoe UI Symbol','Apple Symbols',serif" } : undefined}
                   >
                     {p.layer === "transit" ? "◇" : p.layer === "natal" ? "●" : ""}{glyphs ? PLANET_GLYPH[p.planet] : planetAbbr(p.planet, locale)}

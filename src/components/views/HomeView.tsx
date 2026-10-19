@@ -12,6 +12,7 @@ import { FESTIVAL_LOCATION } from "@/lib/festivalPages";
 import { getDictionary } from "@/lib/i18n/dictionary";
 import { localizeHref, type Locale } from "@/lib/i18n/locale";
 import { term } from "@/lib/i18n/terms";
+import "./home.css";
 
 const TOOLS = [
   { key: "kundli", href: "/kundali" },
@@ -60,43 +61,22 @@ export default async function HomeView({ locale }: { locale: Locale }) {
 
   return (
     <>
-      {/* Hero: always the night sky, whatever the page theme. */}
-      <section className="theme-night relative overflow-hidden">
-        <div className="mx-auto grid max-w-6xl items-center gap-8 px-5 py-12 text-center md:py-16 lg:grid-cols-[1fr_1fr] lg:gap-12 lg:text-left">
-          <div>
-            <h1 className="mx-auto max-w-4xl text-5xl leading-[1.03] font-semibold text-cream sm:text-6xl lg:text-[4.5rem]">{t.heroTitle}</h1>
-            <p className="mx-auto mt-5 max-w-xs text-lg leading-snug text-muted sm:hidden">{t.heroShort}</p>
-            <p className="mx-auto mt-6 hidden max-w-2xl text-lg leading-relaxed text-muted sm:block">{t.heroBody}</p>
-            <div className="mt-8 border-l-2 border-gold pl-4 text-left">
-              <p className="max-w-xl text-base leading-relaxed text-cream">{t.heroNow(moonSign, nakshatra, tithiLabel)}</p>
-              <p className="mt-2 text-xs text-muted">{t.updated(now.toFormat("h:mm a"))}</p>
-            </div>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 lg:justify-start">
-              <a href="#kundli-form" className="rounded-full bg-gold px-7 py-3.5 text-base font-semibold text-on-gold transition-colors hover:bg-gold-bright">{t.makeKundli}</a>
-              <Link href={href("/panchang")} className="text-base font-medium text-gold-bright underline-offset-4 hover:underline">{t.seePanchang}</Link>
-            </div>
+      <section className="theme-night home-observatory">
+        <div className="home-observatory-inner">
+          <div className="home-observatory-copy">
+            <h1>{t.heroTitle}</h1>
+            <p className="home-observatory-short">{t.heroShort}</p>
+            <p className="home-observatory-body">{t.heroBody}</p>
+            <div className="home-observatory-now"><p>{t.heroNow(moonSign, nakshatra, tithiLabel)}</p><small>{t.updated(now.toFormat("h:mm a"))}</small></div>
+            <div className="home-observatory-actions"><a href="#kundli-form">{t.makeKundli}</a><Link href={href("/panchang")}>{t.seePanchang}</Link></div>
           </div>
-          <SkyDial sky={sky} locale={locale} className="mx-auto w-full max-w-[500px] text-center" />
+          <div className="home-observatory-dial"><SkyDial sky={sky} locale={locale} className="mx-auto w-full max-w-[500px] text-center" /></div>
+          <div className="home-observatory-form" id="kundli-form"><QuickKundaliForm copy={t.form} /></div>
         </div>
       </section>
 
-      {/* Make a kundli */}
-      <section id="kundli-form" className="scroll-mt-20 border-b border-border">
-        <div className="mx-auto grid max-w-6xl gap-10 px-5 py-16 md:grid-cols-[1fr_minmax(0,440px)] md:items-center md:py-24">
-          <div>
-            <h2 className="text-4xl leading-none font-semibold text-cream md:text-6xl">{t.formTitle}</h2>
-            <p className="mt-5 max-w-md text-lg leading-relaxed text-muted">{t.formBody}</p>
-            <ul className="mt-8 max-w-md divide-y divide-border border-y border-border">
-              {t.includes.map((item) => (
-                <li key={item} className="flex items-center gap-3 py-3 text-cream">
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold" aria-hidden="true" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <QuickKundaliForm copy={t.form} />
-        </div>
+      <section className="home-reading-includes border-b border-border">
+        <div className="mx-auto max-w-6xl px-5 py-12 md:py-16"><div><h2>{t.formTitle}</h2><p>{t.formBody}</p></div><ul>{t.includes.map(item => <li key={item}><span aria-hidden="true" />{item}</li>)}</ul></div>
       </section>
 
       {/* Tools grouped by the question people bring to the site. */}

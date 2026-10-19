@@ -27,7 +27,9 @@ import SegmentedControl from "@/components/SegmentedControl";
 import { MARKER_MEANING, type Marker } from "@/lib/astrology/chartMarkers";
 import { markerText } from "@/lib/chartGeometry";
 import { useLocale, useT } from "@/lib/i18n/LocaleContext";
+import { term } from "@/lib/i18n/terms";
 import type { Dignity } from "@/lib/astrology/dignity";
+import type { ChartRelationships } from "@/lib/astrology/chartInspection";
 
 export type ChartStyle = "north" | "south";
 
@@ -60,6 +62,7 @@ export default function KundliChart({
   showLegend = true,
   onPick,
   selected,
+  relationships,
   ariaLabel,
 }: {
   ascendantSignIndex: number;
@@ -71,6 +74,7 @@ export default function KundliChart({
   showLegend?: boolean;
   onPick?: (pick: ChartPick) => void;
   selected?: ChartPick | null;
+  relationships?: ChartRelationships | null;
   ariaLabel?: string;
 }) {
   const locale = useLocale();
@@ -106,12 +110,19 @@ export default function KundliChart({
       <div className="mx-auto max-w-md">
         <ZoomableChart>
           {style === "north" ? (
-            <NorthIndianChart ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} glyphs={glyphs} locale={locale} ariaLabel={ariaLabel} />
+            <NorthIndianChart ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} relationships={relationships} glyphs={glyphs} locale={locale} ariaLabel={ariaLabel} />
           ) : (
-            <ChartGrid ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} glyphs={glyphs} locale={locale} ariaLabel={ariaLabel} />
+            <ChartGrid ascendantSignIndex={ascendantSignIndex} planets={planets} onPick={onPick} selected={selected} relationships={relationships} glyphs={glyphs} locale={locale} ariaLabel={ariaLabel} />
           )}
         </ZoomableChart>
       </div>
+      {relationships && <div className="chart-relationship-legend" aria-label={locale === "hi" ? "चयनित कुंडली संबंध" : "Selected chart relationships"}>
+        <span><i data-role="focus" />{locale === "hi" ? `भाव ${relationships.focusHouse}` : `House ${relationships.focusHouse}`}</span>
+        <span><i data-role="lord" />{locale === "hi" ? "भावेश" : "Lord"}: {locale === "hi" ? term("hi", relationships.lord) : relationships.lord}</span>
+        {relationships.occupants.length > 0 && <span><i data-role="occupants" />{locale === "hi" ? "स्थित ग्रह" : "In house"}: {relationships.occupants.map(p => locale === "hi" ? term("hi", p) : p).join(", ")}</span>}
+        {relationships.incoming.length > 0 && <span><i data-role="incoming" />{locale === "hi" ? "दृष्टि" : "Aspected by"}: {relationships.incoming.map(p => locale === "hi" ? term("hi", p.planet) : p.planet).join(", ")}</span>}
+        {relationships.outgoing.length > 0 && <span><i data-role="outgoing" />{locale === "hi" ? "दृष्टि भाव" : "Aspects houses"}: {relationships.outgoing.join(", ")}</span>}
+      </div>}
       <div className="mx-auto mt-4 flex max-w-md flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-muted">
         {showLegend && used.length > 0 && (
           <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1" aria-label={t("Chart symbols")}>

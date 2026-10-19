@@ -1,10 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { calculateKundali } from "../kundali";
-import { inspectChart } from "../chartInspection";
+import { chartRelationships, inspectChart } from "../chartInspection";
 import { VARGA_KEYS } from "../constants";
 const chart = calculateKundali({ name: "Test", date: "1990-04-12", time: "06:45", latitude: 26.9124, longitude: 75.7873, timezone: "Asia/Kolkata", place: "Jaipur" });
 const at = new Date("2026-10-12T06:30:00Z");
 describe("connected chart inspection", () => {
+  it.each(VARGA_KEYS)("projects %s selection, occupants, lord and aspects from one calculation", key => {
+    for (const planet of chart.planets) {
+      const detail = inspectChart(chart, key, { kind: "planet", planet: planet.planet }, at);
+      expect(chartRelationships(detail)).toEqual({
+        focusHouse: detail.house,
+        lord: detail.lord,
+        occupants: detail.occupants.map(item => item.planet),
+        incoming: detail.incoming.map(item => ({ planet: item.planet, house: item.house })),
+        outgoing: detail.outgoing,
+      });
+    }
+  });
   it.each(VARGA_KEYS)("uses %s placements and keeps planet/house navigation consistent", key => {
     const source = key === "D1" ? chart : chart.divisionalCharts[key];
     for (const p of source.planets) {

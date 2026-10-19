@@ -1,8 +1,9 @@
 import { useId } from "react";
 import type { Dignity } from "@/lib/astrology/dignity";
-import { A, B, C, D, HOUSE_POLYGONS, P1, P2, P3, P4, PLANET_GLYPH, SIGN_ANCHORS, layoutHouse, markerText, planetAbbr, polygonPoints } from "@/lib/chartGeometry";
+import { A, B, C, D, HOUSE_BOXES, HOUSE_POLYGONS, P1, P2, P3, P4, PLANET_GLYPH, SIGN_ANCHORS, layoutHouse, markerText, planetAbbr, polygonPoints } from "@/lib/chartGeometry";
 import type { Locale } from "@/lib/i18n/locale";
 import { term } from "@/lib/i18n/terms";
+import type { ChartRelationships } from "@/lib/astrology/chartInspection";
 
 const DIGNITY_COLOR: Record<Dignity, string> = {
   Exalted: "var(--color-gold-bright)",
@@ -46,6 +47,7 @@ export default function NorthIndianChart({
   planets,
   onPick,
   selected,
+  relationships,
   glyphs = false,
   locale = "en",
   ariaLabel,
@@ -55,6 +57,7 @@ export default function NorthIndianChart({
   /** Makes houses and planets selectable (for a detail panel). */
   onPick?: (pick: ChartPick) => void;
   selected?: ChartPick | null;
+  relationships?: ChartRelationships | null;
   /** Planet symbols (☉ ☽ ♂…) instead of two-letter names. */
   glyphs?: boolean;
   locale?: Locale;
@@ -64,6 +67,7 @@ export default function NorthIndianChart({
   const hi = locale === "hi";
   const tr = (s: string) => (hi ? term("hi", s) : s);
   const byHouse = new Map<number, ChartPlanet[]>();
+  const center = (house: number) => { const [x0, y0, x1, y1] = HOUSE_BOXES[house - 1]; return [(x0 + x1) / 2, (y0 + y1) / 2] as const; };
   for (const p of planets) {
     const list = byHouse.get(p.house) ?? [];
     list.push(p);
@@ -91,6 +95,10 @@ export default function NorthIndianChart({
         <line x1={B[0] - 7} y1={B[1] + 7} x2={D[0] + 7} y2={D[1] - 7} className="chart-stroke" pathLength={1} />
         <polygon points={`${P1[0]},${P1[1] + 7} ${P2[0] - 7},${P2[1]} ${P3[0]},${P3[1] - 7} ${P4[0] + 7},${P4[1]}`} className="chart-stroke" pathLength={1} />
       </g>
+      {relationships && <g className="chart-relation-lines" aria-hidden="true" pointerEvents="none">
+        {relationships.incoming.map(({ planet, house }) => <line key={`in-${planet}`} x1={center(house)[0]} y1={center(house)[1]} x2={center(relationships.focusHouse)[0]} y2={center(relationships.focusHouse)[1]} stroke="var(--workspace-teal, #73b8aa)" strokeWidth="1.5" strokeDasharray="4 5" opacity=".48" />)}
+        {relationships.outgoing.map(house => <line key={`out-${house}`} x1={center(relationships.focusHouse)[0]} y1={center(relationships.focusHouse)[1]} x2={center(house)[0]} y2={center(house)[1]} stroke="var(--color-gold-bright)" strokeWidth="1.25" opacity=".4" />)}
+      </g>}
 
       {HOUSE_POLYGONS.map((polygon, i) => {
         const houseNumber = i + 1;
@@ -99,6 +107,8 @@ export default function NorthIndianChart({
         const [sx, sy] = SIGN_ANCHORS[i];
         const isAscendant = houseNumber === 1;
         const picked = selected?.kind === "house" && selected.house === houseNumber;
+        const relatedFocus = relationships?.focusHouse === houseNumber;
+        const relatedOutgoing = relationships?.outgoing.includes(houseNumber);
         // Planets are laid out in a grid that always fits inside the house, shrinking only when crowded.
         const layout = layoutHouse(houseNumber, occupants.length, isAscendant ? 12 : 0);
         const fs = (glyphs ? 16 : 14) * layout.scale;
@@ -107,8 +117,9 @@ export default function NorthIndianChart({
           <g key={houseNumber}>
             <polygon
               points={polygonPoints(polygon)}
-              fill={picked ? "color-mix(in oklab, var(--color-gold) 22%, transparent)" : isAscendant ? `url(#${id}-lagna)` : "transparent"}
-              stroke="none"
+              fill={picked || relatedFocus ? "color-mix(in oklab, var(--color-gold) 16%, transparent)" : isAscendant ? `url(#${id}-lagna)` : "transparent"}
+              stroke={relatedFocus ? "var(--color-gold-bright)" : relatedOutgoing ? "var(--color-gold)" : "none"}
+              strokeWidth={relatedFocus ? 2 : 1}
               {...(onPick
                 ? {
                     role: "button",
@@ -126,6 +137,8 @@ export default function NorthIndianChart({
             {occupants.map((p, idx) => {
               const marks = p.markers ?? (p.retrograde ? "R" : "");
               const isPicked = selected?.kind === "planet" && selected.planet === p.planet;
+              const isLord = relationships?.lord === p.planet && p.layer !== "transit";
+              const isIncoming = relationships?.incoming.some(item => item.planet === p.planet) && p.layer !== "transit";
               return (
                 <text
                   key={`${p.layer ?? "natal"}-${p.planet}`}
@@ -135,8 +148,8 @@ export default function NorthIndianChart({
                   fontSize={fs}
                   fontWeight="600"
                   className={onPick ? "chart-fade cursor-pointer outline-none" : "chart-fade"}
-                  fill={p.layer === "transit" ? "var(--workspace-teal, #55B6A4)" : p.layer === "natal" ? "var(--color-gold-bright)" : p.dignity ? DIGNITY_COLOR[p.dignity] : "var(--color-cream)"}
-                  textDecoration={isPicked ? "underline" : undefined}
+                  fill={isLord ? "var(--color-gold-bright)" : isIncoming ? "var(--workspace-teal, #73b8aa)" : p.layer === "transit" ? "var(--workspace-teal, #55B6A4)" : p.layer === "natal" ? "var(--color-gold-bright)" : p.dignity ? DIGNITY_COLOR[p.dignity] : "var(--color-cream)"}
+                  textDecoration={isPicked || isLord || isIncoming ? "underline" : undefined}
                   style={glyphs ? { fontFamily: "'Noto Sans Symbols 2','Segoe UI Symbol','Apple Symbols',serif" } : undefined}
                   {...(onPick
                     ? {

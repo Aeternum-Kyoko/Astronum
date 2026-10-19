@@ -6,6 +6,23 @@ import { readHouses, readPlanets, type VargaContext } from "./vargaReading";
 import { periodsAt } from "./dashaTree";
 
 export type InspectionPick = { kind: "planet"; planet: PlanetName } | { kind: "house"; house: number };
+export interface ChartRelationships {
+  focusHouse: number;
+  lord: PlanetName;
+  occupants: PlanetName[];
+  incoming: { planet: PlanetName; house: number }[];
+  outgoing: number[];
+}
+
+export function chartRelationships(detail: ReturnType<typeof inspectChart>): ChartRelationships {
+  return {
+    focusHouse: detail.house,
+    lord: detail.lord,
+    occupants: detail.occupants.map(p => p.planet),
+    incoming: detail.incoming.map(p => ({ planet: p.planet, house: p.house })),
+    outgoing: detail.outgoing,
+  };
+}
 
 /** All house/sign relationships here belong to the named chart, never an implicit D1 fallback. */
 export function inspectChart(chart: KundaliChart, key: VargaKey, pick: InspectionPick | null, at: Date) {

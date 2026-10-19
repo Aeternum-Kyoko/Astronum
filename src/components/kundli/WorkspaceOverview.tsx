@@ -34,6 +34,10 @@ export default function WorkspaceOverview({ chart, go }: { chart: KundaliChart; 
   const selected = readings.find(item => item.key === (chosenArea ?? firstActive)) ?? readings[0];
   const synthesis = selected.reading.synthesis;
   const proof = selected.reading.evidence.flatMap(group => group.items).filter(item => synthesis.evidenceIds.includes(item.id));
+  const sourceFor = (id: string | null | undefined) => proof.find(item => item.id === id);
+  const supportSource = sourceFor(synthesis.support?.evidenceId);
+  const counterSource = sourceFor(synthesis.counterpoint?.evidenceId);
+  const timingSource = sourceFor(synthesis.timing.evidenceId);
   const running = periodsAt(chart.dashas, a.at, 3);
   const moon = chart.planets.find(planet => planet.planet === "Moon");
   const marks = useMemo(() => natalMarkers(chart), [chart]);
@@ -48,10 +52,11 @@ export default function WorkspaceOverview({ chart, go }: { chart: KundaliChart; 
       <article className="personal-area-result" key={selected.key}>
         <div className="personal-area-result-title"><div><span>{L(...selected.label)}</span><h4>{selected.reading.title}</h4></div><BirthReliabilityBadge chart={chart} varga={selected.varga} go={go} /></div>
         <p className="personal-area-lead">{synthesis.conclusion}</p>
-        <div className="personal-reading-factors"><div><b>{L("What supports it", "क्या सहारा देता है")}</b><p>{synthesis.support?.text ?? L("No clear support in these checks.", "इन जाँचों में स्पष्ट सहारा नहीं मिला।")}</p></div><div><b>{L("What complicates it", "क्या कठिन बनाता है")}</b><p>{synthesis.counterpoint?.text ?? L("No clear counterpoint in these checks.", "इन जाँचों में स्पष्ट विरोध नहीं मिला।")}</p></div></div>
-        <div className="personal-reading-timing"><b>{L("Why this period matters", "यह अवधि क्यों महत्वपूर्ण है")}</b><p>{synthesis.timing.text}</p></div>
+        <div className="personal-reading-factors"><div><b>{L("What supports it", "क्या सहारा देता है")}</b><p>{synthesis.support?.text ?? L("No clear support in these checks.", "इन जाँचों में स्पष्ट सहारा नहीं मिला।")}</p>{supportSource && <details className="personal-factor-source"><summary>{L("Inspect supporting factor", "सहायक आधार देखें")}</summary><EvidenceEntry evidence={supportSource} go={go} /></details>}</div><div><b>{L("What complicates it", "क्या कठिन बनाता है")}</b><p>{synthesis.counterpoint?.text ?? L("No clear counterpoint in these checks.", "इन जाँचों में स्पष्ट विरोध नहीं मिला।")}</p>{counterSource && <details className="personal-factor-source"><summary>{L("Inspect counterpoint", "विरोधी आधार देखें")}</summary><EvidenceEntry evidence={counterSource} go={go} /></details>}</div></div>
+        <div className="personal-reading-timing"><b>{L("Why this period matters", "यह अवधि क्यों महत्वपूर्ण है")}</b><p>{synthesis.timing.text}</p>{timingSource && <details className="personal-factor-source"><summary>{L("Inspect timing link", "समय का आधार देखें")}</summary><EvidenceEntry evidence={timingSource} go={go} /></details>}</div>
+        <p className="personal-reading-limit">{synthesis.limits.join(" ")}</p>
         <div className="personal-area-actions"><button type="button" onClick={() => go(selected.key)}>{L("Read the full analysis", "पूरा विश्लेषण पढ़ें")}</button><button type="button" onClick={() => go("transits")}>{L("See transits on this date", "इस तिथि के गोचर देखें")}</button></div>
-        <details className="personal-reading-proof"><summary>{L("See the chart evidence", "कुंडली प्रमाण देखें")}</summary><div>{proof.map(item => <EvidenceEntry key={item.id} evidence={item} go={go} />)}{proof.length === 0 && <p>{L("These checks do not establish a clear direction. Open the full analysis for placements and limits.", "इन जाँचों से स्पष्ट दिशा नहीं मिलती। स्थितियाँ और सीमाएँ देखने के लिए पूरा विश्लेषण खोलें।")}</p>}</div></details>
+        {proof.length === 0 && <p className="personal-reading-limit">{L("These checks do not establish a clear direction. Open the full analysis for placements and limits.", "इन जाँचों से स्पष्ट दिशा नहीं मिलती। स्थितियाँ और सीमाएँ देखने के लिए पूरा विश्लेषण खोलें।")}</p>}
       </article>
     </section>
     <section className="personal-chart-reference" aria-label={L("Birth charts", "जन्म कुंडलियाँ")}>
