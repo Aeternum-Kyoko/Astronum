@@ -1,7 +1,7 @@
 import { readingContext } from "./readingContext";
 import type { KundaliChart } from "./types";
 import type { CurrentTransit } from "./transits";
-import type { VargaKey } from "./constants";
+import { VARGA_KEYS, type PlanetName, type VargaKey } from "./constants";
 import type { Locale } from "../i18n/locale";
 import { term } from "../i18n/terms";
 import { pick } from "../i18n/ui";
@@ -11,6 +11,7 @@ export interface ReadingEvidence {
   id: string; house: number; tone: EvidenceTone; statement: string;
   observation: string; rule: string; limitation: string; sourceTab: string;
   method: "D1" | "Shadbala" | "Combustion" | "Ashtakavarga" | "Varga" | "Dasha" | "Transit";
+  destination: { chart: VargaKey; pick: { kind: "planet"; planet: PlanetName } | { kind: "house"; house: number } };
 }
 
 /** Each displayed assertion carries the measurement and exact rule that produced it.
@@ -21,7 +22,14 @@ export function readingEvidence(chart: KundaliChart, houses: readonly number[], 
   return readingContext(chart, houses, vargas, at).map(c => {
     const items: ReadingEvidence[] = [];
     const subject = L(`House ${c.house} lord ${c.lord.lord}`, `भाव ${c.house} के स्वामी ${n(c.lord.lord)}`);
-    const add = (key: string, method: ReadingEvidence["method"], tone: EvidenceTone, statement: string, observation: string, rule: string, limitation: string, sourceTab: string) => items.push({ id: `${c.house}:${key}`, house: c.house, method, tone, statement, observation, rule, limitation, sourceTab });
+    const add = (key: string, method: ReadingEvidence["method"], tone: EvidenceTone, statement: string, observation: string, rule: string, limitation: string, sourceTab: string) => {
+      const varga = key.startsWith("varga-") ? key.slice(6) as VargaKey : "D1";
+      const chartKey = VARGA_KEYS.includes(varga) ? varga : "D1";
+      const pick = method === "Ashtakavarga" || method === "Dasha" || method === "Transit"
+        ? { kind: "house" as const, house: c.house }
+        : { kind: "planet" as const, planet: c.lord.lord };
+      items.push({ id: `${c.house}:${key}`, house: c.house, method, tone, statement, observation, rule, limitation, sourceTab, destination: { chart: chartKey, pick } });
+    };
     const caveat = L("A single factor cannot establish an outcome; compare the other evidence and timing.", "एक संकेत से फल तय नहीं; अन्य संकेत और समय साथ देखें।");
     const placement = `${n(c.planet.sign)} · ${c.planet.degreeInSign.toFixed(4)}° · ${L("house", "भाव")} ${c.planet.house}`;
     add("placement", "D1", "context", L(`${subject} is placed in house ${c.planet.house}.`, `${subject} भाव ${c.planet.house} में हैं।`), placement,

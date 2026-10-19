@@ -1,28 +1,40 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useAnalysis } from "./AnalysisContext";
 import KundliChart, { type ChartPoint } from "../KundliChart";
 import type { KundaliChart } from "@/lib/astrology/types";
 import { type VargaKey } from "@/lib/astrology/constants";
 import { overlayPoints } from "@/lib/astrology/chartOverlay";
 import { natalMarkers } from "@/lib/astrology/chartMarkers";
-import { houseSignification, planetKeynote, vargaInfo } from "@/lib/astrology/content";
-import { aspectsSign } from "@/lib/astrology/aspects";
-import { readingEvidence } from "@/lib/astrology/readingEvidence";
+import { vargaInfo } from "@/lib/astrology/content";
 import { useDeviceStore } from "@/lib/useDeviceStore";
 import { useLocale } from "@/lib/i18n/LocaleContext";
 import { pick } from "@/lib/i18n/ui";
 import { term } from "@/lib/i18n/terms";
-import EvidenceEntry from "../EvidenceEntry";
 import InspectorPanel from "./InspectorPanel";
+import SelectedChartAnalysis from "./SelectedChartAnalysis";
 import ChartPicker, { ChartStyleButtons } from "./ChartPicker";
 import TransitModifiersPanel from "../TransitModifiersPanel";
 import BirthReliabilityBadge from "./BirthReliabilityBadge";
 
 export default function ChartWorkspace({ chart, mode, go, transitOnly = false }: { chart: KundaliChart; mode: "user" | "astrologer"; go: (slug: string) => void; transitOnly?: boolean }) {
   const a = useAnalysis()!; const locale = useLocale(); const L = pick(locale); const n = (s: string) => term(locale, s);
-  const [inspectorOpen, setInspectorOpen] = useState(false);
-  const select = (selected: typeof a.selected) => { a.update({ selected }); setInspectorOpen(true); };
+  const { open: inspectorOpen, side: inspectionSide } = a.inspector;
+  const setInspectorOpen = (open: boolean) => a.setInspector({ ...a.inspector, open });
+  const setInspectionSide = (side: "primary" | "secondary") => a.setInspector({ ...a.inspector, side });
+  const select = (selected: typeof a.selected) => { a.setFocusedEvidence(null); a.setInspector({ side: "primary", open: true }); a.update({ selected }); };
+  const inspectedKey = a.compare && inspectionSide === "secondary" ? a.secondary : a.primary;
+  const focus = a.focusedEvidence;
+  const focusedPick = focus?.evidence.destination.pick;
+  const showingFocus = focus && inspectedKey === focus.evidence.destination.chart && focusedPick?.kind === a.selected?.kind && (focusedPick?.kind === "planet" ? focusedPick.planet === (a.selected?.kind === "planet" ? a.selected.planet : null) : focusedPick?.house === (a.selected?.kind === "house" ? a.selected.house : null));
+  const returnToReading = () => {
+    if (!focus) return;
+    const { returnTab, evidence } = focus;
+    a.setFocusedEvidence(null);
+    a.setInspector({ open: false, side: "primary" });
+    go(returnTab);
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-evidence-id="${CSS.escape(evidence.id)}"] summary`)?.focus());
+  };
   const transits = a.transits;
   const transitPoints = overlayPoints(transits, chart.ascendant.signIndex);
   const marks = useMemo(() => natalMarkers(chart), [chart]);
@@ -40,9 +52,8 @@ export default function ChartWorkspace({ chart, mode, go, transitOnly = false }:
   const natal = chart.planets.find(p => p.planet === selected);
   const transit = transits.find(p => p.planet === selected);
   const house = a.selected?.kind === "house" ? a.selected.house : natal?.house ?? 1;
-  const evidence = readingEvidence(chart, [house], [a.primary, ...(a.secondary === "transit" ? [] : [a.secondary])], a.at, a.overlay || a.secondary === "transit" ? transits : null, locale).flatMap(c => c.items);
   const [notes, saveNotes] = useDeviceStore<Record<string, string>>(`kundli-notes:${chart.utcDate}:${chart.input.latitude}`, {});
-  const noteKey = selected ? `planet:${selected}` : `house:${house}`;
+  const noteKey = `${inspectedKey}:${selected ? `planet:${selected}` : `house:${house}`}`;
   const pickChart = (key: VargaKey, second?: VargaKey | "transit") => a.update({ primary: key, reference: "lagna", ...(second ? { secondary: second, compare: true } : {}) });
   const openPersonalChart = (slug: string, update: Parameters<typeof a.update>[0]) => { go(slug); a.update(update); };
   if (transitOnly) return <section className="chart-workspace transit-only-workspace" aria-label={L("Transit chart", "गोचर कुंडली")}>
@@ -78,6 +89,7 @@ export default function ChartWorkspace({ chart, mode, go, transitOnly = false }:
     )}
     <ChartPicker value={primary} label={L("Choose a chart", "कुंडली चुनें")} onChange={key => {
       if (key === "transit") return;
+      a.setInspector({ side: "primary", open: true });
       if (mode === "user") openPersonalChart(key === "D1" ? "rasi" : key === "D9" ? "navamsa" : "vargas", { primary: key, reference: "lagna", overlay: false, compare: false });
       else pickChart(key);
     }} />
@@ -86,20 +98,18 @@ export default function ChartWorkspace({ chart, mode, go, transitOnly = false }:
     {a.overlay && a.filter === "selected" && !selected && <p className="px-4 pt-3 text-xs text-muted">{L("Select a natal planet to show its transit position.", "गोचर स्थिति देखने के लिए जन्म ग्रह चुनें।")}</p>}
     <div className={a.compare ? "workspace-chart-pair" : "workspace-chart-single"}>
       <div className="workspace-chart"><h3>{primary} {a.overlay && primary === "D1" ? L("with transits", "गोचर सहित") : primary === "D1" ? a.reference === "lagna" ? L("natal · Lagna", "जन्म · लग्न") : a.reference === "moon" ? L("natal · Moon reference", "जन्म · चंद्र आधार") : a.reference === "chalit" ? L("natal · Bhava Chalit", "जन्म · भाव चलित") : L("natal · Lal Kitab", "जन्म · लाल किताब") : L("natal", "जन्म")}</h3>{primary !== "D1" && <BirthReliabilityBadge chart={chart} varga={primary} go={go} />}<KundliChart ascendantSignIndex={referenceSign} planets={left} style={a.style} selected={a.selected} onPick={select} ariaLabel={a.overlay && primary === "D1" ? L("D1 birth chart with transit positions", "गोचर स्थितियों सहित D1 जन्म कुंडली") : `${primary} ${vargaInfo(primary, locale).title} · ${a.style === "north" ? L("North Indian", "उत्तर भारतीय") : L("South Indian", "दक्षिण भारतीय")}`} /></div>
-      {a.compare && <div className="workspace-chart"><ChartPicker value={a.secondary} label={L("Compare with", "तुलना करें")} transit onChange={secondary => a.update({ secondary })} />{a.secondary !== "D1" && a.secondary !== "transit" && <BirthReliabilityBadge chart={chart} varga={a.secondary} go={go} />}<KundliChart ascendantSignIndex={a.secondary === "transit" || a.secondary === "D1" ? chart.ascendant.signIndex : chart.divisionalCharts[a.secondary].ascendant.signIndex} planets={a.secondary === "transit" ? filtered : points(a.secondary)} style={a.style} selected={a.selected} onPick={select} ariaLabel={a.secondary === "transit" ? L("Transit chart in natal houses", "जन्म भावों में गोचर कुंडली") : `${a.secondary} ${vargaInfo(a.secondary, locale).title} · ${L("comparison chart", "तुलना कुंडली")}`} /></div>}
+      {a.compare && <div className="workspace-chart"><ChartPicker value={a.secondary} label={L("Compare with", "तुलना करें")} transit onChange={secondary => a.update({ secondary })} />{a.secondary !== "D1" && a.secondary !== "transit" && <BirthReliabilityBadge chart={chart} varga={a.secondary} go={go} />}<KundliChart ascendantSignIndex={a.secondary === "transit" || a.secondary === "D1" ? chart.ascendant.signIndex : chart.divisionalCharts[a.secondary].ascendant.signIndex} planets={a.secondary === "transit" ? filtered : points(a.secondary)} style={a.style} selected={a.selected} onPick={selected => { a.setInspector({ side: "secondary", open: true }); a.update({ selected }); }} ariaLabel={a.secondary === "transit" ? L("Transit chart in natal houses", "जन्म भावों में गोचर कुंडली") : `${a.secondary} ${vargaInfo(a.secondary, locale).title} · ${L("comparison chart", "तुलना कुंडली")}`} /></div>}
     </div>
     <button type="button" className="inspector-trigger" aria-expanded={inspectorOpen} onClick={() => setInspectorOpen(!inspectorOpen)}>{L("Planet and house details", "ग्रह और भाव विवरण")}</button>
     <InspectorPanel open={inspectorOpen} onClose={() => setInspectorOpen(false)}>
-
-      <div className="inspector-heading"><h3>{selected ? n(selected) : `${L("House", "भाव")} ${house}`}</h3><div className="inspector-picks" role="group" aria-label={L("Inspect planet", "ग्रह देखें")}>{chart.planets.map(p => <button type="button" key={p.planet} aria-pressed={selected === p.planet} onClick={() => a.update({ selected: { kind: "planet", planet: p.planet } })}>{n(p.planet)}</button>)}</div><div className="inspector-picks" role="group" aria-label={L("Inspect house", "भाव देखें")}>{Array.from({ length: 12 }, (_, i) => <button type="button" key={i} aria-pressed={!selected && house === i + 1} onClick={() => a.update({ selected: { kind: "house", house: i + 1 } })}>{i + 1}</button>)}</div></div>
-      <p className="mt-2 text-sm text-muted">{selected ? planetKeynote(natal!.planet, locale) : houseSignification(house, locale)}</p>
-      {natal ? <dl className="inspector-positions"><div><dt>● {L("Natal D1", "जन्म D1")}</dt><dd>{n(natal.sign)} · {natal.degreeInSign.toFixed(2)}° · {L("House", "भाव")} {natal.house}</dd><dd>{n(natal.nakshatra)} · {L("Pada", "पद")} {natal.pada}{natal.dignity && ` · ${n(natal.dignity)}`}</dd></div>{transit && (a.overlay || a.secondary === "transit") && <div><dt className="text-[#55B6A4]">◇ {L("Transit", "गोचर")}</dt><dd>{n(transit.sign)} · {transit.degree.toFixed(2)}° · {L("Natal house", "जन्म भाव")} {((transit.signIndex - chart.ascendant.signIndex + 12) % 12) + 1}</dd><dd>{transit.retrograde ? L("Retrograde", "वक्री") : L("Direct", "मार्गी")}</dd></div>}</dl> : <p className="mt-3 text-sm text-cream">{L("Natal occupants", "जन्म ग्रह")}: {chart.planets.filter(p => p.house === house).map(p => n(p.planet)).join(", ") || L("No planets", "कोई ग्रह नहीं")}{a.overlay && <><br />{L("Transit occupants", "गोचर ग्रह")}: {transitPoints.filter(p => p.house === house).map(p => n(p.planet)).join(", ") || L("No planets", "कोई ग्रह नहीं")}</>}</p>}
-      {transit && (a.overlay || a.secondary === "transit") && <p className="mt-3 text-xs text-muted">{L("Whole-sign graha drishti to natal planets", "जन्म ग्रहों पर राशि-आधारित ग्रह दृष्टि")}: {chart.planets.filter(p => aspectsSign(transit.planet, ((p.signIndex - transit.signIndex + 12) % 12) + 1)).map(p => n(p.planet)).join(", ") || L("None", "कोई नहीं")}. {L("Nodes use the 7th aspect convention.", "राहु-केतु के लिए सप्तम दृष्टि।")}</p>}
-      {natal && mode === "astrologer" && <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted">{[a.primary, ...(a.secondary !== "transit" ? [a.secondary] : [])].map(key => { const p = chart.divisionalCharts[key].planets.find(p => p.planet === natal.planet)!; return <p key={key}>{key}: {n(p.sign)} · {L("House", "भाव")} {p.house}</p>; })}{chart.shadbala.filter(s => s.planet === natal.planet).map(s => <p key={s.planet}>{L("Shadbala", "षड्बल")}: {s.rupas.toFixed(2)} / {s.requiredRupas}</p>)}</div>}
-      {mode === "astrologer" && <p className="mt-3 text-[11px] text-muted">{L("Inspector evidence uses natal D1 houses. Divisional charts are birth-time sensitive; review precision before interpreting finer divisions.", "प्रमाण जन्म D1 भावों से हैं। सूक्ष्म वर्ग जन्म-समय संवेदनशील हैं; पहले सटीकता जाँचें।")}</p>}
-      <details className="mt-4"><summary className="cursor-pointer text-sm font-semibold text-gold-bright">{L(`Evidence for natal house ${house}`, `जन्म भाव ${house} के प्रमाण`)}</summary><div className="mt-3 space-y-2">{evidence.map(e => <EvidenceEntry key={e.id} evidence={e} go={go} />)}</div></details>
-      {selected && (a.overlay || a.secondary === "transit") && <details className="mt-4"><summary className="cursor-pointer text-sm font-semibold text-[#55B6A4]">{L("Transit modifiers", "गोचर संशोधक")}</summary><div className="mt-3"><TransitModifiersPanel chart={chart} transits={transits} at={a.at} detailed={mode === "astrologer"} selectedPlanet={selected} /></div></details>}
-      {mode === "astrologer" && <label className="mt-4 block text-xs text-muted">{L("Notes for this planet or house", "इस ग्रह या भाव के नोट्स")}<textarea className="input mt-2 w-full" rows={3} value={notes[noteKey] ?? ""} onChange={e => saveNotes({ ...notes, [noteKey]: e.target.value })} /><span>{L("Saved on this device.", "इस उपकरण पर सहेजे गए।")}</span></label>}
+      {showingFocus && <div className="evidence-focus"><span>{L("Following this claim", "इस कथन का आधार")}</span><p>{focus.evidence.statement}</p><small>{focus.evidence.observation}</small><div className="evidence-actions"><button type="button" onClick={() => { a.setFocusedEvidence(null); a.setInspector({ open: false, side: "primary" }); go(focus.evidence.sourceTab); }}>{L("Open calculation section", "गणना भाग खोलें")}</button><button type="button" onClick={returnToReading}>{L("Back to reading", "व्याख्या पर लौटें")}</button></div></div>}
+      {a.compare && <div className="inspector-picks" role="group" aria-label={L("Inspection chart", "विश्लेषण कुंडली")}><button type="button" aria-pressed={inspectionSide === "primary"} onClick={() => setInspectionSide("primary")}>{primary}</button><button type="button" aria-pressed={inspectionSide === "secondary"} onClick={() => setInspectionSide("secondary")}>{a.secondary}</button></div>}
+      {inspectedKey === "transit" ? <TransitModifiersPanel chart={chart} transits={transits} at={a.at} detailed={mode === "astrologer"} selectedPlanet={selected ?? undefined} /> : <>
+        {inspectedKey === "D1" && inspectionSide === "primary" && a.reference !== "lagna" && <p className="mb-3 text-sm text-gold-bright">{L("Detailed interpretation below uses the natal Lagna houses. Return to that reference to align the chart and reading.", "नीचे विस्तृत व्याख्या जन्म लग्न के भावों से है। चित्र और व्याख्या मिलाने के लिए लग्न आधार चुनें।")} <button type="button" onClick={() => a.update({ reference: "lagna" })}>{L("Show Lagna", "लग्न देखें")}</button></p>}
+        <SelectedChartAnalysis key={`${inspectedKey}:${selected ?? house}`} chart={chart} chartKey={inspectedKey} selected={a.selected?.kind === "house" ? a.selected : natal ? { kind: "planet", planet: natal.planet } : null} onPick={selected => { a.setFocusedEvidence(null); a.update({ selected }); }} at={a.at} go={go} />
+      </>}
+      {selected && a.overlay && inspectedKey === "D1" && <details className="mt-4"><summary className="cursor-pointer text-sm font-semibold text-[#55B6A4]">{L("Transit modifiers", "गोचर संशोधक")}</summary><div className="mt-3"><TransitModifiersPanel chart={chart} transits={transits} at={a.at} detailed={mode === "astrologer"} selectedPlanet={selected} /></div></details>}
+      {mode === "astrologer" && <label className="mt-4 block text-xs text-muted">{L("Notes for this chart selection", "इस कुंडली चयन के नोट्स")}<textarea className="input mt-2 w-full" rows={3} value={notes[noteKey] ?? ""} onChange={e => saveNotes({ ...notes, [noteKey]: e.target.value })} /><span>{L("Saved on this device.", "इस उपकरण पर सहेजे गए।")}</span></label>}
     </InspectorPanel>
   </section>;
 }

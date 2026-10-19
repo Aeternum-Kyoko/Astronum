@@ -1,12 +1,13 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DateTime } from "luxon";
 import { useDeviceStore } from "@/lib/useDeviceStore";
 import type { KundaliChart } from "@/lib/astrology/types";
 import type { ChartPick, ChartStyle } from "../KundliChart";
 import { currentTransits, type CurrentTransit } from "@/lib/astrology/transits";
 import { VARGA_KEYS, type VargaKey } from "@/lib/astrology/constants";
+import type { ReadingEvidence } from "@/lib/astrology/readingEvidence";
 
 interface AnalysisState {
   date: string;
@@ -21,6 +22,10 @@ interface AnalysisState {
   selected: ChartPick | null;
 }
 interface Analysis extends AnalysisState {
+  inspector: { open: boolean; side: "primary" | "secondary" };
+  setInspector: (value: { open: boolean; side: "primary" | "secondary" }) => void;
+  focusedEvidence: { evidence: ReadingEvidence; returnTab: string } | null;
+  setFocusedEvidence: (value: { evidence: ReadingEvidence; returnTab: string } | null) => void;
   at: Date;
   transits: CurrentTransit[];
   today: string;
@@ -29,6 +34,8 @@ interface Analysis extends AnalysisState {
 }
 const Context = createContext<Analysis | null>(null);
 export function AnalysisProvider({ chart, children }: { chart: KundaliChart; children: ReactNode }) {
+  const [inspector, setInspector] = useState<{ open: boolean; side: "primary" | "secondary" }>({ open: false, side: "primary" });
+  const [focusedEvidence, setFocusedEvidence] = useState<{ evidence: ReadingEvidence; returnTab: string } | null>(null);
   const today = DateTime.now().setZone(chart.input.timezone).toISODate()!;
   const initial = useMemo<AnalysisState>(() => ({ date: today, time: "12:00", style: "north", reference: "lagna", primary: "D1", secondary: "D9", overlay: false, compare: false, filter: "all", selected: null }), [today]);
   const key = `kundli-workspace:${chart.utcDate}:${chart.input.latitude}:${chart.input.longitude}`;
@@ -66,8 +73,9 @@ export function AnalysisProvider({ chart, children }: { chart: KundaliChart; chi
       if (next.overlay) next.reference = "lagna";
       save(next);
     };
-    restore(); window.addEventListener("popstate", restore);
-    return () => window.removeEventListener("popstate", restore);
+    const onHistoryChange = () => { setFocusedEvidence(null); setInspector({ open: false, side: "primary" }); restore(); };
+    restore(); window.addEventListener("popstate", onHistoryChange);
+    return () => window.removeEventListener("popstate", onHistoryChange);
   }, [key, initial, chart.input.timezone, save]);
   const latest = useRef(state);
   useEffect(() => { latest.current = state; }, [state]);
@@ -75,7 +83,7 @@ export function AnalysisProvider({ chart, children }: { chart: KundaliChart; chi
   const at = useMemo(() => DateTime.fromISO(`${date}T${time}`, { zone: chart.input.timezone }).toJSDate(), [date, time, chart.input.timezone]);
   const moonSign = chart.planets.find(p => p.planet === "Moon")!.signIndex;
   const transits = useMemo(() => currentTransits(moonSign, chart.ascendant.signIndex, at), [moonSign, chart.ascendant.signIndex, at]);
-  return <Context.Provider value={{ ...state, at, transits, today, zone: chart.input.timezone, update: patch => {
+  return <Context.Provider value={{ ...state, inspector, setInspector, focusedEvidence, setFocusedEvidence, at, transits, today, zone: chart.input.timezone, update: patch => {
     const next = { ...latest.current, ...patch }; latest.current = next; save(next);
     const url = new URL(window.location.href);
     url.searchParams.set("analysisDate", next.date); url.searchParams.set("analysisTime", next.time);

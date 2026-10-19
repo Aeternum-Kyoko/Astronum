@@ -73,12 +73,13 @@ describe("chart-specific readings", () => {
     expect(summarise(c).points.join(" ")).toMatch(/birth chart's 10th lord, Saturn, lands in this chart's 3rd/);
   });
 
-  it("reads the D30 as risk: a strong planet means the misfortune stays contained", () => {
+  it("reads D30 strength as a supporting risk factor without promising safety", () => {
     const c = ctx("D30", 0, { Mars: 0 }); // Mars in Aries, own sign, in the 1st
     const mars = planet(c, "Mars");
     expect(mars.verdict).toBe("Strong");
     expect(mars.reading).toMatch(/risk of accidents/);
-    expect(mars.reading).toMatch(/stays contained/);
+    expect(mars.reading).toMatch(/supporting factor/);
+    expect(mars.reading).toMatch(/does not rule out difficulty/);
     expect(summarise(c).headline).toMatch(/resilience/i);
   });
 

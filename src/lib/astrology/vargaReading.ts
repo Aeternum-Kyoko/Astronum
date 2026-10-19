@@ -478,7 +478,7 @@ export function readPlanets(ctx: VargaContext): PlanetReading[] {
     }
     if (vargottama)
       s.push(
-        `It is vargottama — in the same sign as in your birth chart — so its promise is steady and reliable.`,
+        `It is vargottama — in the same sign as in your birth chart — which adds continuity to this placement, but does not settle the outcome.`,
       );
 
     const good = aspectedBy.filter((a) => BENEFICS.has(a));
@@ -496,18 +496,18 @@ export function readPlanets(ctx: VargaContext): PlanetReading[] {
     if (RISK_CHART.has(varga))
       s.push(
         verdict === "Strong"
-          ? `Well placed, so this risk stays contained and is unlikely to become a serious theme.`
+          ? `This placement offers a supporting factor when considering ${role}; it does not rule out difficulty.`
           : verdict === "Balanced"
-            ? `Moderately placed: it can surface now and then, mostly during ${p.planet}'s periods — ordinary care is enough.`
-            : `The most exposed point: watch for ${role}, especially during ${p.planet}'s periods — prevention and remedies help.`,
+            ? `This is a mixed indicator for ${role}; compare the other chart factors before drawing a conclusion.`
+            : `This placement calls for extra care in interpreting ${role}; it cannot predict an event or replace practical advice.`,
       );
     else
       s.push(
         verdict === "Strong"
-          ? `Overall a real asset: expect good results in ${role}, especially during ${p.planet}'s dasha and antardasha.`
+          ? `This placement supports ${role}. ${p.planet}'s periods may make the topic more relevant, while results depend on the rest of the chart and real circumstances.`
           : verdict === "Balanced"
-            ? `Overall mixed: results in ${role} come with steady effort, most clearly during ${p.planet}'s periods.`
-            : `Overall a weak point: be patient and deliberate with ${role}, especially during ${p.planet}'s periods.`,
+            ? `The signals for ${role} are mixed here. Review the other factors and ${p.planet}'s periods before forming a timing judgment.`
+            : `This placement suggests friction around ${role}. ${p.planet}'s periods may make the topic more relevant, without establishing an outcome.`,
       );
 
     const basis = [

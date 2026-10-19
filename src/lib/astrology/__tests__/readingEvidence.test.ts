@@ -28,4 +28,19 @@ describe("traceable reading evidence", () => {
     const hindi = readingEvidence(chart, [7], ["D9"], at, [], "hi")[0];
     expect(hindi.items[0].statement).toContain("भाव");
   });
+  it("points each assertion to the chart factor it measures", () => {
+    const items = readingEvidence(chart, [7, 10], ["D9", "D10"], at, [], "hi").flatMap(group => group.items);
+    expect(items.length).toBeGreaterThan(10);
+    for (const item of items) {
+      expect(item.destination.chart).toBe(item.method === "Varga" ? item.id.split("varga-")[1] : "D1");
+      if (item.destination.pick.kind === "planet") {
+        const planet = item.destination.pick.planet;
+        expect(planet).toBe(chart.houseLords.find(h => h.house === item.house)?.lord);
+        const planets = item.destination.chart === "D1" ? chart.planets : chart.divisionalCharts[item.destination.chart].planets;
+        expect(planets.some(p => p.planet === planet)).toBe(true);
+      } else {
+        expect(item.destination.pick.house).toBe(item.house);
+      }
+    }
+  });
 });

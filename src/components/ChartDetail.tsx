@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useAnalysis } from "./kundli/AnalysisContext";
+import type { InspectionPick } from "@/lib/astrology/chartInspection";
 import SegmentedControl from "@/components/SegmentedControl";
 import type { VargaKey } from "@/lib/astrology/constants";
 import { VARGA_INFO } from "@/lib/astrology/content";
@@ -25,7 +27,15 @@ export default function ChartDetail({
   /** The birth chart, to spot vargottama planets and place the relevant D1 house lord in this chart. */
   natal: KundaliChart;
 }) {
-  const [view, setView] = useState<"houses" | "planets">("houses");
+  const [fallbackView, setView] = useState<"houses" | "planets">("houses");
+  const analysis = useAnalysis();
+  const selection = analysis?.primary === vargaKey ? analysis.selected : null;
+  const view = selection ? selection.kind === "planet" ? "planets" : "houses" : fallbackView;
+  const select = (selected: InspectionPick) => {
+    analysis?.update({ primary: vargaKey, reference: "lagna", selected });
+    analysis?.setInspector({ open: true, side: "primary" });
+    document.querySelector(".chart-workspace")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const ctx: VargaContext = {
     varga: vargaKey,
@@ -68,7 +78,7 @@ export default function ChartDetail({
             <SegmentedControl
               layoutId="chart-detail-view"
               value={view}
-              onChange={setView}
+              onChange={value => { setView(value); analysis?.update({ selected: null }); }}
               options={[
                 { value: "houses", label: "House Analysis" },
                 { value: "planets", label: "Planet Analysis" },
@@ -94,6 +104,7 @@ export default function ChartDetail({
                         <span className={`text-xs font-semibold ${VERDICT_COLOR[h.verdict]}`}>{h.verdict}</span>
                       </div>
                       <p className="mt-2 text-sm leading-relaxed text-cream">{h.reading}</p>
+                      {analysis && <button type="button" className="chart-detail-link" aria-pressed={selection?.kind === "house" && selection.house === h.house} onClick={() => select({ kind: "house", house: h.house })}>Explore house {h.house} in {vargaKey} →</button>}
                     </div>
                   ))}
                 </div>
@@ -135,6 +146,7 @@ export default function ChartDetail({
                     </div>
                     <p className="mt-1 text-xs text-muted">{p.basis}</p>
                     <p className="mt-2 text-sm leading-relaxed text-cream">{p.reading}</p>
+                    {analysis && <button type="button" className="chart-detail-link" aria-pressed={selection?.kind === "planet" && selection.planet === p.planet} onClick={() => select({ kind: "planet", planet: p.planet })}>Explore {p.planet} in {vargaKey} →</button>}
                   </div>
                 ))}
               </div>
