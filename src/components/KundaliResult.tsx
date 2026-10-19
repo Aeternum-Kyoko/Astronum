@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { DateTime } from "luxon";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import type { KundaliChart } from "@/lib/astrology/types";
@@ -156,6 +157,7 @@ function KundaliWorkspace({
   const [savedMode, saveMode] = useDeviceStore<string>("astronum-kundli-mode", "user");
   const mode = savedMode === "astrologer" ? "astrologer" : "user";
   const [mobilePane, setMobilePane] = useState<"chart" | "reading">("chart");
+  const [transitReadingOpen, setTransitReadingOpen] = useState(false);
   const [search, setSearch] = useState("");
   const analysis = useAnalysis()!;
   const [paneWidth, setPaneWidth] = useDeviceStore<number>("kundli-pane-width", 55);
@@ -170,7 +172,7 @@ function KundaliWorkspace({
     if (tab === "D1 · Rasi Chart" && (analysis.primary !== "D1" || analysis.overlay || analysis.compare)) analysis.update({ primary: "D1", overlay: false, compare: false });
     if (tab === "D9 · Navamsa" && (analysis.primary !== "D9" || analysis.overlay || analysis.compare)) analysis.update({ primary: "D9", overlay: false, compare: false });
     if (tab === "More Vargas" && (analysis.overlay || analysis.compare || ["D1", "D9"].includes(analysis.primary))) analysis.update({ primary: ["D1", "D9"].includes(analysis.primary) ? "D10" : analysis.primary, overlay: false, compare: false });
-    if (tab === "Transits" && (analysis.primary !== "D1" || !analysis.overlay || analysis.compare)) analysis.update({ primary: "D1", reference: "lagna", overlay: true, compare: false });
+    if (tab === "Transits" && (analysis.primary !== "D1" || analysis.overlay || analysis.compare)) analysis.update({ primary: "D1", reference: "lagna", overlay: false, compare: false, filter: "all" });
   }, [tab, analysis]);
   const [visited, setVisited] = useState<Tab[]>([initial]);
   const expertGroups = [
@@ -185,9 +187,10 @@ function KundaliWorkspace({
   const [directory, setDirectory] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [modeNotice, setModeNotice] = useState<string | null>(null);
-  const setTab = (value: Tab, history = true) => {
+  const setTab = (value: Tab, history = true, useToday = false) => {
     const t = cleanTab(value);
     setMobilePane(["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas", "Compare Charts", "Transits"].includes(t) ? "chart" : "reading");
+    if (t === "Transits") setTransitReadingOpen(false);
     if (!USER_TABS.has(t) && mode === "user") { saveMode("astrologer"); setModeNotice(pick(locale)("This specialist section opens in Astrologer view.", "यह विशेष अनुभाग ज्योतिषी दृश्य में खुलता है।")); }
     else setModeNotice(null);
     setVisited(current => current.includes(t) ? current : [...current, t]);
@@ -195,7 +198,7 @@ function KundaliWorkspace({
     if (t === "D1 · Rasi Chart") analysis.update({ primary: "D1", overlay: false, compare: false });
     if (t === "More Vargas") analysis.update({ primary: ["D1", "D9"].includes(analysis.primary) ? "D10" : analysis.primary, overlay: false, compare: false });
     if (t === "D9 · Navamsa") analysis.update({ primary: "D9", overlay: false, compare: false });
-    if (t === "Transits") analysis.update({ primary: "D1", reference: "lagna", overlay: true, compare: false });
+    if (t === "Transits") { const now = DateTime.now().setZone(analysis.zone); analysis.update({ primary: "D1", reference: "lagna", overlay: false, compare: false, ...(useToday ? { date: now.toISODate()!, time: now.toFormat("HH:mm:ss") } : {}), filter: "all" }); }
     const topicVarga: Partial<Record<Tab, VargaKey>> = { Career: "D10", Relationships: "D9", Wealth: "D2", Education: "D24", Property: "D4" };
     if (topicVarga[t]) analysis.update({ primary: "D1", secondary: topicVarga[t], compare: mode === "astrologer", overlay: false });
     if (t === "Compare Charts") analysis.update({ compare: true });
@@ -244,17 +247,18 @@ function KundaliWorkspace({
         </header>
         {modeNotice && <p className="workspace-mode-notice" role="status">{modeNotice}</p>}
         <div id="kundli-sections" className="workspace-navigation">
-          <nav aria-label={pick(locale)("Kundli destinations", "कुंडली भाग")} className="workspace-destinations">{groups.map(g => <button type="button" key={g.name} aria-current={activeGroup.name === g.name ? "page" : undefined} onClick={() => { if (activeGroup.name === g.name) setOpenGroup(openGroup === g.name ? null : g.name); else { setTab(g.tabs[0]); setOpenGroup(g.name); } }}>{groupLabel(g.name)}</button>)}</nav><button className="workspace-find" type="button" onClick={() => { setDirectory(!directory); setOpenGroup(null); }} aria-expanded={directory}>{pick(locale)("All tools", "सभी उपकरण")}</button>
+          <nav aria-label={pick(locale)("Kundli destinations", "कुंडली भाग")} className="workspace-destinations">{groups.map(g => <button type="button" key={g.name} aria-current={activeGroup.name === g.name ? "page" : undefined} onClick={() => { if (activeGroup.name === g.name) setOpenGroup(openGroup === g.name ? null : g.name); else { setTab(g.tabs[0], true, g.tabs[0] === "Transits"); setOpenGroup(g.name); } }}>{groupLabel(g.name)}</button>)}</nav><button className="workspace-find" type="button" onClick={() => { setDirectory(!directory); setOpenGroup(null); }} aria-expanded={directory}>{pick(locale)("All tools", "सभी उपकरण")}</button>
         </div>
         <AnalysisCalendar compact />
-        {directory && <div className="workspace-directory"><label><span className="sr-only">{pick(locale)("Find a section", "भाग खोजें")}</span><input autoFocus type="search" className="input w-full" value={search} onChange={e => setSearch(e.target.value)} placeholder={pick(locale)("Search charts, life areas, and tools", "कुंडलियाँ, जीवन क्षेत्र और उपकरण खोजें")} /></label><div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">{groups.map(g => <section key={g.name}><h3 className="mb-2 text-sm text-cream">{groupLabel(g.name)}</h3>{g.tabs.filter(t => `${t} ${tr(t)}`.toLowerCase().includes(search.toLowerCase())).map(t => <button key={t} type="button" onClick={() => setTab(t)} className="block py-2 text-left text-xs text-muted hover:text-gold-bright">{label(t)}</button>)}</section>)}</div></div>}
+        {directory && <div className="workspace-directory"><label><span className="sr-only">{pick(locale)("Find a section", "भाग खोजें")}</span><input autoFocus type="search" className="input w-full" value={search} onChange={e => setSearch(e.target.value)} placeholder={pick(locale)("Search charts, life areas, and tools", "कुंडलियाँ, जीवन क्षेत्र और उपकरण खोजें")} /></label><div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">{groups.map(g => <section key={g.name}><h3 className="mb-2 text-sm text-cream">{groupLabel(g.name)}</h3>{g.tabs.filter(t => `${t} ${tr(t)}`.toLowerCase().includes(search.toLowerCase())).map(t => <button key={t} type="button" onClick={() => setTab(t, true, t === "Transits")} className="block py-2 text-left text-xs text-muted hover:text-gold-bright">{label(t)}</button>)}</section>)}</div></div>}
         {tab !== "Summary" && <div className="workspace-section-heading"><div><span>{groupLabel(activeGroup.name)}</span><h3>{label(tab)}</h3></div><button type="button" aria-expanded={openGroup === activeGroup.name} aria-controls={openGroup === activeGroup.name ? "workspace-tool-choices" : undefined} onClick={() => setOpenGroup(openGroup === activeGroup.name ? null : activeGroup.name)}>{openGroup === activeGroup.name ? pick(locale)("Close tools", "उपकरण बंद करें") : pick(locale)("Browse tools", "उपकरण देखें")}</button></div>}
-        {openGroup === activeGroup.name && <nav id="workspace-tool-choices" className="workspace-tool-choices" aria-label={pick(locale)("Choose a tool", "उपकरण चुनें")}>{activeGroup.tabs.map(t => <button type="button" key={t} onClick={() => setTab(t)} aria-current={tab === t ? "page" : undefined}>{label(t)}</button>)}</nav>}
-        {mode === "astrologer" && !["Summary", "Life Report", "Signal Calendar"].includes(tab) && <WorkspaceLayouts chart={chart} width={paneWidth} setWidth={setPaneWidth} />}
-        {tab !== "Summary" && tab !== "Life Report" && tab !== "Signal Calendar" && <div className="mobile-pane-control" role="group" aria-label={pick(locale)("Workspace view", "कार्यक्षेत्र दृश्य")}><button type="button" aria-pressed={mobilePane === "chart"} onClick={() => setMobilePane("chart")}>{pick(locale)("Chart", "कुंडली")}</button><button type="button" aria-pressed={mobilePane === "reading"} onClick={() => setMobilePane("reading")}>{pick(locale)("Reading & evidence", "व्याख्या और प्रमाण")}</button></div>}
-        <div data-mobile-pane={analysis.inspector.open ? "chart" : mobilePane} className="workspace-body" data-section={tab === "Summary" ? "overview" : tab === "Signal Calendar" ? "calendar" : tab === "Life Report" && mode === "user" ? "report" : undefined} style={{ "--chart-pane-width": `${Math.min(65, Math.max(40, paneWidth))}%` } as React.CSSProperties}>
-          {(tab !== "Summary" && tab !== "Signal Calendar" && (mode === "astrologer" || tab !== "Life Report")) && <aside className="workspace-canvas"><ChartWorkspace chart={chart} mode={mode} go={go} transitOnly={tab === "Transits"} />{(mode === "astrologer" || activeGroup.name === "Timing") && <TimingStrip chart={chart} go={go} mode={mode} />}</aside>}
-          <main className="workspace-reading" aria-label={pick(locale)("Reading and analysis", "व्याख्या और विश्लेषण")}>
+        {openGroup === activeGroup.name && <nav id="workspace-tool-choices" className="workspace-tool-choices" aria-label={pick(locale)("Choose a tool", "उपकरण चुनें")}>{activeGroup.tabs.map(t => <button type="button" key={t} onClick={() => setTab(t, true, t === "Transits")} aria-current={tab === t ? "page" : undefined}>{label(t)}</button>)}</nav>}
+        {mode === "astrologer" && !["Summary", "Life Report", "Signal Calendar", "Transits"].includes(tab) && <WorkspaceLayouts chart={chart} width={paneWidth} setWidth={setPaneWidth} />}
+        {tab === "Transits" && <div className="transit-view-switch" role="group" aria-label={pick(locale)("Transit view", "गोचर दृश्य")}><button type="button" aria-pressed={!transitReadingOpen} onClick={() => { setTransitReadingOpen(false); setMobilePane("chart"); }}>{pick(locale)("Sky chart only", "केवल आकाश कुंडली")}</button><button type="button" aria-pressed={transitReadingOpen} onClick={() => { setTransitReadingOpen(true); setMobilePane("reading"); }}>{pick(locale)("Compare with my birth chart", "जन्म कुंडली से तुलना")}</button></div>}
+        {tab !== "Summary" && tab !== "Life Report" && tab !== "Signal Calendar" && (tab !== "Transits" || transitReadingOpen) && <div className="mobile-pane-control" role="group" aria-label={pick(locale)("Workspace view", "कार्यक्षेत्र दृश्य")}><button type="button" aria-pressed={mobilePane === "chart"} onClick={() => setMobilePane("chart")}>{pick(locale)("Chart", "कुंडली")}</button><button type="button" aria-pressed={mobilePane === "reading"} onClick={() => setMobilePane("reading")}>{pick(locale)("Reading & evidence", "व्याख्या और प्रमाण")}</button></div>}
+        <div data-mobile-pane={analysis.inspector.open ? "chart" : mobilePane} className="workspace-body" data-section={tab === "Summary" ? "overview" : tab === "Signal Calendar" ? "calendar" : tab === "Transits" && !transitReadingOpen ? "transit-sky" : tab === "Life Report" && mode === "user" ? "report" : undefined} style={{ "--chart-pane-width": `${Math.min(65, Math.max(40, paneWidth))}%` } as React.CSSProperties}>
+          {(tab !== "Summary" && tab !== "Signal Calendar" && (mode === "astrologer" || tab !== "Life Report")) && <aside className="workspace-canvas"><ChartWorkspace chart={chart} mode={mode} go={go} transitOnly={tab === "Transits"} />{tab !== "Transits" && (mode === "astrologer" || activeGroup.name === "Timing") && <TimingStrip chart={chart} go={go} mode={mode} />}</aside>}
+          {(tab !== "Transits" || transitReadingOpen) && <main className="workspace-reading" aria-label={pick(locale)("Reading and analysis", "व्याख्या और विश्लेषण")}>
           {visited.map(panelTab => <div className="reading-section" data-reading={panelTab} key={panelTab} hidden={panelTab !== tab}>
               {panelTab === "Transits" && <><TransitsPanel report={report} chart={chart} detailed={mode === "astrologer"} /><div className="mt-6"><ReadingObservations chart={chart} /></div></>}
               {panelTab === "Summary" && (mode === "astrologer" ? <AstrologerDesk chart={chart} go={go} /> : <WorkspaceOverview chart={chart} go={go} />)}
@@ -312,7 +316,7 @@ function KundaliWorkspace({
               {panelTab === "House Lords" && <HouseLordsTab chart={chart} />}
               {mode === "astrologer" && <ReadingContextPanel chart={chart} report={report} section={panelTab} go={go} />}
           </div>)}
-          </main>
+          </main>}
         </div>
 
         {locale === "hi" ? (

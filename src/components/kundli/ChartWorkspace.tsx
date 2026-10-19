@@ -1,10 +1,11 @@
 "use client";
 import { useMemo } from "react";
+import { DateTime } from "luxon";
 import { useAnalysis } from "./AnalysisContext";
 import KundliChart, { type ChartPoint } from "../KundliChart";
 import type { KundaliChart } from "@/lib/astrology/types";
 import { type VargaKey } from "@/lib/astrology/constants";
-import { overlayPoints } from "@/lib/astrology/chartOverlay";
+import { overlayPoints, transitSkyChart } from "@/lib/astrology/chartOverlay";
 import { natalMarkers } from "@/lib/astrology/chartMarkers";
 import { vargaInfo } from "@/lib/astrology/content";
 import { useDeviceStore } from "@/lib/useDeviceStore";
@@ -17,6 +18,7 @@ import ChartPicker, { ChartStyleButtons } from "./ChartPicker";
 import TransitModifiersPanel from "../TransitModifiersPanel";
 import BirthReliabilityBadge from "./BirthReliabilityBadge";
 import { chartRelationships, inspectChart, type InspectionPick } from "@/lib/astrology/chartInspection";
+import { SIGNS } from "@/lib/astrology/constants";
 
 export default function ChartWorkspace({ chart, mode, go, transitOnly = false }: { chart: KundaliChart; mode: "user" | "astrologer"; go: (slug: string) => void; transitOnly?: boolean }) {
   const a = useAnalysis()!; const locale = useLocale(); const L = pick(locale); const n = (s: string) => term(locale, s);
@@ -38,12 +40,15 @@ export default function ChartWorkspace({ chart, mode, go, transitOnly = false }:
   };
   const transits = a.transits;
   const transitPoints = overlayPoints(transits, chart.ascendant.signIndex);
+  const sky = useMemo(() => transitSkyChart(transits, a.at, chart.input.latitude, chart.input.longitude), [transits, a.at, chart.input.latitude, chart.input.longitude]);
   const marks = useMemo(() => natalMarkers(chart), [chart]);
   const primaryRelations = useMemo(() => a.selected && (a.primary !== "D1" || a.reference === "lagna") ? chartRelationships(inspectChart(chart, a.primary, a.selected as InspectionPick, a.at)) : null, [chart, a.primary, a.reference, a.selected, a.at]);
   const secondaryRelations = useMemo(() => a.selected && a.secondary !== "transit" ? chartRelationships(inspectChart(chart, a.secondary, a.selected as InspectionPick, a.at)) : null, [chart, a.secondary, a.selected, a.at]);
   const points = (key: VargaKey): ChartPoint[] => key === "D1" ? chart.planets.map(p => ({ ...p, markers: marks[p.planet], layer: a.overlay ? "natal" : undefined })) : chart.divisionalCharts[key].planets;
   const selected = a.selected?.kind === "planet" ? a.selected.planet : null;
+  const selectedSkyHouse = a.selected?.kind === "house" ? a.selected.house : null;
   const filtered = transitPoints.filter(p => a.filter === "all" || (a.filter === "slow" ? ["Mars", "Jupiter", "Saturn", "Rahu", "Ketu"].includes(p.planet) : p.planet === selected));
+  const skyFiltered = sky.points.filter(p => a.filter === "all" || (a.filter === "slow" ? ["Mars", "Jupiter", "Saturn", "Rahu", "Ketu"].includes(p.planet) : p.planet === selected));
   const primary = a.primary;
   const referenceSign = primary !== "D1" ? chart.divisionalCharts[primary].ascendant.signIndex : a.reference === "moon" ? chart.planets.find(p => p.planet === "Moon")!.signIndex : a.reference === "lalkitab" ? 0 : chart.ascendant.signIndex;
   const natalPoints = points(primary).map(p => {
@@ -59,16 +64,19 @@ export default function ChartWorkspace({ chart, mode, go, transitOnly = false }:
   const noteKey = `${inspectedKey}:${selected ? `planet:${selected}` : `house:${house}`}`;
   const pickChart = (key: VargaKey, second?: VargaKey | "transit") => a.update({ primary: key, reference: "lagna", ...(second ? { secondary: second, compare: true } : {}) });
   const openPersonalChart = (slug: string, update: Parameters<typeof a.update>[0]) => { go(slug); a.update(update); };
+  const showToday = () => { const now = DateTime.now().setZone(a.zone); a.update({ date: now.toISODate()!, time: now.toFormat("HH:mm:ss"), filter: "all" }); };
   if (transitOnly) return <section className="chart-workspace transit-only-workspace" aria-label={L("Transit chart", "गोचर कुंडली")}>
-    <div className="transit-chart-heading"><div><span className="transit-orbit" aria-hidden="true">◎</span><div><h2>{L("The sky in motion", "गतिमान आकाश")}</h2><p>{L("Transit positions in your natal houses", "जन्म भावों में गोचर स्थितियाँ")} · {a.date} {a.time}</p></div></div><ChartStyleButtons value={a.style} onChange={style => a.update({ style })} /></div>
+    <div className="transit-chart-heading"><div><span className="transit-orbit" aria-hidden="true">◎</span><div><h2>{a.date === a.today ? L("Today's transit chart", "आज की गोचर कुंडली") : L("Transit chart at selected date", "चुनी तिथि की गोचर कुंडली")}</h2><p>{L("Current sky only", "केवल वर्तमान आकाश")} · {a.date} {a.time.slice(0, 5)} · {chart.input.place}</p></div></div><button className="transit-today-button" type="button" onClick={showToday}>{L("Show today", "आज देखें")}</button></div>
+    <div className="transit-sky-context"><span>{L("Transit ascendant", "गोचर लग्न")}: <strong>{n(SIGNS[sky.ascendantSignIndex])} {sky.ascendantDegree.toFixed(1)}°</strong></span><span>{L("Lahiri sidereal · whole-sign houses · place shown above", "लाहिरी निरयण · पूर्ण राशि भाव · ऊपर दर्शाया स्थान")}</span></div>
+    <div className="transit-style"><ChartStyleButtons value={a.style} onChange={style => a.update({ style })} /></div>
     <div className="transit-filter" role="group" aria-label={L("Transit planets", "गोचर ग्रह")}>
       {(["all", "slow", "selected"] as const).map(filter => <button key={filter} type="button" aria-pressed={a.filter === filter} onClick={() => a.update({ filter })}>{filter === "all" ? L("All planets", "सभी ग्रह") : filter === "slow" ? L("Slow planets", "धीमे ग्रह") : L("Selected planet", "चुना ग्रह")}</button>)}
     </div>
     {a.filter === "selected" && !selected && <p className="transit-filter-hint">{L("Choose a planet below to see its transit.", "उसका गोचर देखने के लिए नीचे ग्रह चुनें।")}</p>}
-    <div className="transit-solo-chart"><KundliChart ascendantSignIndex={chart.ascendant.signIndex} planets={filtered} style={a.style} selected={a.selected} onPick={select} ariaLabel={L("Transit-only chart in natal houses", "जन्म भावों में केवल गोचर कुंडली")} /></div>
+    <div className="transit-solo-chart"><KundliChart ascendantSignIndex={sky.ascendantSignIndex} planets={skyFiltered} style={a.style} selected={a.selected} onPick={select} ariaLabel={L("Transit-only sky chart", "केवल गोचर आकाश कुंडली")} /></div>
     <div className="transit-planet-rail" role="group" aria-label={L("Inspect transit planet", "गोचर ग्रह देखें")}>{transits.map(p => <button type="button" key={p.planet} aria-pressed={selected === p.planet} onClick={() => select({ kind: "planet", planet: p.planet })}><strong>{n(p.planet)}</strong><span>{n(p.sign)} · {p.degree.toFixed(1)}°</span></button>)}</div>
     <button type="button" className="inspector-trigger" aria-expanded={inspectorOpen} onClick={() => setInspectorOpen(true)}>{L("Planet and house details", "ग्रह और भाव विवरण")}</button>
-    <InspectorPanel open={inspectorOpen} onClose={() => setInspectorOpen(false)}><h3>{selected ? n(selected) : L("Transit details", "गोचर विवरण")}</h3>{transit && <p className="mt-3 text-sm text-muted">{n(transit.sign)} · {transit.degree.toFixed(2)}° · {L("Natal house", "जन्म भाव")} {transit.houseFromLagna}</p>}<TransitModifiersPanel chart={chart} transits={transits} at={a.at} detailed={mode === "astrologer"} selectedPlanet={selected ?? undefined} /></InspectorPanel>
+    <InspectorPanel open={inspectorOpen} onClose={() => setInspectorOpen(false)}><h3>{selected ? n(selected) : L("Transit sky details", "गोचर आकाश विवरण")}</h3><p className="mt-3 text-sm text-muted">{L("All houses here are counted from the transit ascendant, not your birth ascendant.", "यहाँ सभी भाव गोचर लग्न से गिने गए हैं, जन्म लग्न से नहीं।")}</p>{transit && <p className="mt-3 text-sm text-cream">{n(transit.sign)} · {transit.degree.toFixed(2)}° · {L("Transit house", "गोचर भाव")} {sky.points.find(p => p.planet === selected)?.house}</p>}{selectedSkyHouse && <p className="mt-3 text-sm text-cream">{L("Transit house", "गोचर भाव")} {selectedSkyHouse} · {sky.points.filter(p => p.house === selectedSkyHouse).map(p => n(p.planet)).join(", ") || L("No planets in this house", "इस भाव में कोई ग्रह नहीं")}</p>}</InspectorPanel>
   </section>;
   return <section className={`chart-workspace ${mode === "astrologer" ? "expert-charts" : ""}`} aria-label={L("Chart workspace", "कुंडली कार्यक्षेत्र")}>
     {mode === "user" ? (
@@ -76,7 +84,7 @@ export default function ChartWorkspace({ chart, mode, go, transitOnly = false }:
         <div className="user-chart-choices" role="group" aria-label={L("Choose chart", "कुंडली चुनें")}>
           <button type="button" aria-pressed={primary === "D1" && !a.overlay} onClick={() => openPersonalChart("rasi", { primary: "D1", reference: "lagna", overlay: false, compare: false })}>{L("Birth chart", "जन्म कुंडली")} <span>D1</span></button>
           <button type="button" aria-pressed={primary === "D9" && !a.overlay} onClick={() => openPersonalChart("navamsa", { primary: "D9", overlay: false, compare: false })}>{L("Navamsa", "नवांश")} <span>D9</span></button>
-          <button type="button" aria-pressed={a.overlay} onClick={() => openPersonalChart("transits", { primary: "D1", reference: "lagna", overlay: true, compare: false })}>{L("Transits", "गोचर")}</button>
+          <button type="button" aria-pressed={transitOnly} onClick={() => openPersonalChart("transits", { primary: "D1", reference: "lagna", overlay: false, compare: false })}>{L("Transits", "गोचर")}</button>
 
         </div>
         <ChartStyleButtons value={a.style} onChange={style => a.update({ style })} />

@@ -455,10 +455,20 @@
 .analysis-month-grid button[aria-pressed=true] { background:var(--color-gold); color:var(--color-on-gold); font-weight:700; }
 .analysis-date-popover p { margin-top:.6rem; color:var(--color-muted); font-size:.7rem; }
 .transit-only-workspace { border-top:2px solid var(--color-gold); }
+.kundli-workspace .workspace-body[data-section=transit-sky] { display:block; }
+.workspace-body[data-section=transit-sky] .workspace-canvas { width:100%; max-width:820px; margin-inline:auto; }
+.transit-view-switch { display:flex; flex-wrap:wrap; gap:.35rem; margin:1rem 0; padding:.3rem; width:fit-content; max-width:100%; border:1px solid var(--color-border); border-radius:999px; background:var(--color-surface); }
+.transit-view-switch button { min-height:44px; padding:.5rem .9rem; border-radius:999px; color:var(--color-muted); font-size:.78rem; }
+.transit-view-switch button[aria-pressed=true] { background:var(--color-gold); color:var(--color-on-gold); font-weight:700; }
 .transit-chart-heading { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:1rem; padding:1.5rem; }
 .transit-chart-heading > div:first-child { display:flex; align-items:center; gap:.8rem; }
 .transit-chart-heading h2 { font-family:Georgia,serif; font-size:1.5rem; color:var(--color-cream); }
 .transit-chart-heading p { color:var(--color-muted); font-size:.75rem; }
+.transit-today-button { min-height:44px; padding:.55rem .9rem; border:1px solid var(--color-gold); border-radius:999px; color:var(--color-gold-bright); font-size:.78rem; font-weight:700; }
+.transit-today-button:hover { background:color-mix(in srgb,var(--color-gold) 15%,transparent); }
+.transit-sky-context { display:flex; flex-wrap:wrap; gap:.35rem 1rem; padding:0 1.5rem 1rem; color:var(--color-muted); font-size:.73rem; }
+.transit-sky-context strong { color:var(--color-cream); }
+.transit-style { padding:0 1.5rem 1rem; }
 .transit-orbit { font-family:Georgia,serif; font-size:2.4rem; color:var(--color-gold); line-height:1; }
 .transit-filter { display:flex; flex-wrap:wrap; gap:.4rem; padding:0 1.5rem 1rem; }
 .transit-filter button { min-height:44px; padding:.45rem .75rem; border:1px solid var(--color-border); border-radius:999px; color:var(--color-muted); font-size:.76rem; }

@@ -52,7 +52,7 @@ export function AnalysisProvider({ chart, children }: { chart: KundaliChart; chi
   useEffect(() => {
     const restore = () => {
       const params = new URL(window.location.href).searchParams;
-      if (!params.has("analysisDate") && !params.has("chartA")) return;
+      if (!params.has("analysisDate") && !params.has("chartA") && params.get("tab") !== "transits") return;
       let base = initial;
       try { base = { ...initial, ...JSON.parse(localStorage.getItem(key) ?? "{}") }; } catch { /* use defaults */ }
       const date = params.get("analysisDate") ?? base.date;
@@ -69,7 +69,10 @@ export function AnalysisProvider({ chart, children }: { chart: KundaliChart; chi
       if (section === "rasi") { next.primary = "D1"; next.overlay = false; next.compare = false; }
       if (section === "navamsa") { next.primary = "D9"; next.overlay = false; next.compare = false; }
       if (section === "vargas") { if (next.primary === "D1" || next.primary === "D9") next.primary = "D10"; next.overlay = false; next.compare = false; }
-      if (section === "transits") { next.primary = "D1"; next.overlay = true; next.compare = false; next.reference = "lagna"; }
+      if (section === "transits") {
+        next.primary = "D1"; next.overlay = false; next.compare = false; next.reference = "lagna"; next.filter = "all";
+        if (!params.has("analysisDate")) { const now = DateTime.now().setZone(chart.input.timezone); next.date = now.toISODate()!; next.time = now.toFormat("HH:mm:ss"); }
+      }
       if (next.overlay) next.reference = "lagna";
       save(next);
     };

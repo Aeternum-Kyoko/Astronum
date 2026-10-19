@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calculateKundali } from "../kundali";
 import { currentTransits } from "../transits";
-import { overlayPoints } from "../chartOverlay";
+import { overlayPoints, transitSkyChart } from "../chartOverlay";
 import { periodsAt } from "../dashaTree";
 const chart = calculateKundali({ name: "Test", date: "1990-04-12", time: "06:45", latitude: 26.9124, longitude: 75.7873, timezone: "Asia/Kolkata", place: "Jaipur" });
 describe("chart workspace", () => {
@@ -20,6 +20,19 @@ describe("chart workspace", () => {
     expect(cancer.find(p => p.planet === "Jupiter")!.house).toBe(1); // Cancer transit in Cancer natal lagna
     expect(cancer.find(p => p.planet === "Saturn")!.house).toBe(9); // Pisces wraps around
     expect(cancer.find(p => p.planet === "Sun")!.house).toBe(3); // Virgo
+  });
+  it("builds a standalone transit sky from the chosen instant and place, independent of natal houses", () => {
+    const at = new Date("2026-10-19T09:00:00Z");
+    const transits = currentTransits(6, 0, at);
+    const sky = transitSkyChart(transits, at, 26.9124, 75.7873);
+    expect(sky.points).toHaveLength(9);
+    expect(sky.points.every(p => p.layer === "transit")).toBe(true);
+    for (const point of sky.points) {
+      expect(point.house).toBe(((point.signIndex - sky.ascendantSignIndex + 12) % 12) + 1);
+    }
+    const otherNatal = currentTransits(0, 7, at);
+    expect(transitSkyChart(otherNatal, at, 26.9124, 75.7873)).toEqual(sky);
+    expect(transitSkyChart(transits, at, 51.5072, -0.1276).ascendantSignIndex).not.toBe(sky.ascendantSignIndex);
   });
   it("identifies repeated lords by their date interval and switches at the exact boundary", () => {
     const cycles = [
