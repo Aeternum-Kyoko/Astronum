@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { addTransitionType, startTransition, useCallback, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { mobileNavigation, savedMobileChart } from "@/lib/mobileNavigation";
 import { motion } from "motion/react";
 import BottomSheet from "@/components/BottomSheet";
 import ThemeToggle from "@/components/ThemeToggle";
 import { promptInstall, useInstallState } from "@/components/AppChrome";
-import { isActivePath, isGroup, PRIMARY_NAV, SECONDARY_LINKS } from "@/lib/nav";
+import { isGroup, PRIMARY_NAV, SECONDARY_LINKS, type NavItem } from "@/lib/nav";
 import { localizeHref, switchLocaleHref, type Locale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 import { haptic, hapticsEnabled, setHapticsEnabled } from "@/lib/haptics";
@@ -42,16 +43,21 @@ function Icon({ d, active }: { d: string; active?: boolean }) {
 /** App-style bottom navigation for phones and tablets: four destinations and a More sheet. Hidden from lg up and in the admin area. */
 export default function MobileTabBar({ locale }: { locale: Locale }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [more, setMore] = useState(false);
+  const closeMore = useCallback(() => setMore(false), []);
   const labels = getDictionary(locale).chrome.tabs;
   if (pathname?.startsWith("/admin") || pathname?.startsWith("/hi/admin")) return null;
   const hi = locale === "hi";
   const plain = hi ? pathname?.replace(/^\/hi(?=\/|$)/, "") || "/" : pathname;
-  const activeTab = TABS.find((t) => (t.href === "/" ? plain === "/" : isActivePath(plain, t.href)))?.key ?? null;
+  const activeTab = mobileNavigation(pathname ?? "/").tab;
+  const rememberChart = () => {
+    if (plain === "/kundali") try { sessionStorage.setItem("astronum-mobile-chart", window.location.pathname + window.location.search); } catch { /* Storage is optional. */ }
+  };
 
   return (
     <>
-      <nav aria-label="Quick" className="glass glass-lens fixed inset-x-3 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-50 rounded-[1.75rem] lg:hidden print:hidden">
+      <nav aria-label="Quick" className="mobile-app-tabs fixed inset-x-0 bottom-0 z-50 lg:hidden print:hidden">
         <ul className="grid grid-cols-5">
           {TABS.map((tab) => {
             const href = localizeHref(locale, tab.href);
@@ -61,6 +67,18 @@ export default function MobileTabBar({ locale }: { locale: Locale }) {
                 <Link
                   href={href}
                   transitionTypes={["tab"]}
+                  onClick={event => {
+                    rememberChart();
+                    closeMore();
+                    if (pathname === href) {
+                      event.preventDefault();
+                      window.scrollTo({ top:0, behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+                    } else if (tab.key === "kundli") {
+                      let saved: string | null = null;
+                      try { saved = savedMobileChart(sessionStorage.getItem("astronum-mobile-chart"), href); } catch { /* Open the standard chart entry. */ }
+                      if (saved) { event.preventDefault(); startTransition(() => { addTransitionType("tab"); router.push(saved); }); }
+                    }
+                  }}
                   aria-current={active ? "page" : undefined}
                   className={`relative flex flex-col items-center gap-0.5 pt-2 pb-2 text-[11px] font-medium transition-colors select-none ${active ? "text-gold-bright" : "text-muted"}`}
                 >
@@ -87,21 +105,22 @@ export default function MobileTabBar({ locale }: { locale: Locale }) {
           <li>
             <button
               type="button"
-              onClick={() => setMore(true)}
+              onClick={() => { rememberChart(); setMore(true); }}
               aria-haspopup="dialog"
               aria-expanded={more}
+              aria-current={activeTab === "more" ? "page" : undefined}
               data-haptic="selection"
               className={`flex w-full flex-col items-center gap-0.5 pt-2 pb-2 text-[11px] font-medium select-none ${more ? "text-gold-bright" : "text-muted"}`}
             >
               <Icon d="M3 4.5h10M3 8h10M3 11.5h10" active={more} />
-              {labels.more}
+              {hi ? "सभी उपकरण" : "Explore"}
             </button>
           </li>
         </ul>
       </nav>
 
-      <BottomSheet open={more} onClose={() => setMore(false)} title={labels.more}>
-        <MoreSheet locale={locale} close={() => setMore(false)} pathname={pathname ?? "/"} />
+      <BottomSheet open={more} onClose={closeMore} title={hi ? "जानें और खोजें" : "Explore Astronum"}>
+        <MoreSheet locale={locale} close={closeMore} pathname={pathname ?? "/"} />
       </BottomSheet>
     </>
   );
@@ -112,6 +131,9 @@ function MoreSheet({ locale, close, pathname }: { locale: Locale; close: () => v
   const lx = (h: string) => localizeHref(locale, h);
   const install = useInstallState();
   const [showIos, setShowIos] = useState(false);
+  const [search, setSearch] = useState("");
+  const query = search.trim().toLocaleLowerCase();
+  const matchingGroups = [...PRIMARY_NAV.filter(isGroup), { label:"Guidance", labelHi:"मार्गदर्शन", items:PRIMARY_NAV.filter((item): item is NavItem => !isGroup(item)) }].map(group => ({ ...group, items:group.items.filter(item => !query || `${item.label} ${item.labelHi ?? ""} ${item.description ?? ""} ${item.descriptionHi ?? ""}`.toLocaleLowerCase().includes(query)) })).filter(group => group.items.length > 0);
   const hapticsOn = useSyncExternalStore(
     (cb) => {
       window.addEventListener("storage", cb);
@@ -126,8 +148,10 @@ function MoreSheet({ locale, close, pathname }: { locale: Locale; close: () => v
   );
 
   return (
-    <div className="space-y-6">
-      <ul className="grid grid-cols-4 gap-2">
+    <div className="mobile-explore-content space-y-6">
+      <label className="mobile-tool-search"><span className="sr-only">{hi ? "उपकरण खोजें" : "Search tools"}</span><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder={hi ? "कुंडली, मिलान, मुहूर्त खोजें…" : "Search charts, matching, muhurat…"} /></label>
+      {query && <p className="text-sm text-muted" role="status">{matchingGroups.length ? (hi ? "मिले हुए उपकरण" : "Matching tools") : (hi ? "कोई उपकरण नहीं मिला। दूसरा शब्द खोजें।" : "No tools found. Try another word.")}</p>}
+      {!query && <ul className="grid grid-cols-4 gap-2">
         {QUICK.map((q) => (
           <li key={q.href}>
             <Link href={lx(q.href)} onClick={close} transitionTypes={["nav-forward"]} className="flex flex-col items-center gap-1.5 rounded-2xl bg-surface px-1 py-3 text-center text-[11px] font-medium text-cream active:scale-95">
@@ -138,9 +162,9 @@ function MoreSheet({ locale, close, pathname }: { locale: Locale; close: () => v
             </Link>
           </li>
         ))}
-      </ul>
+      </ul>}
 
-      {PRIMARY_NAV.filter(isGroup).map((g) => (
+      {matchingGroups.map((g) => (
         <section key={g.label}>
           <h2 className="px-1 text-xs font-semibold text-muted">{hi ? g.labelHi : g.label}</h2>
           <ul className="mt-1.5 divide-y divide-border/50 overflow-hidden rounded-2xl bg-surface">
@@ -161,7 +185,7 @@ function MoreSheet({ locale, close, pathname }: { locale: Locale; close: () => v
         </section>
       ))}
 
-      <section>
+      <section hidden={Boolean(query)}>
         <h2 className="px-1 text-xs font-semibold text-muted">{hi ? "सेटिंग्स" : "Settings"}</h2>
         <ul className="mt-1.5 divide-y divide-border/50 overflow-hidden rounded-2xl bg-surface text-sm">
           <li className="flex items-center justify-between px-4 py-3">

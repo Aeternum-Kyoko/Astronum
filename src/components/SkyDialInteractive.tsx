@@ -1,19 +1,23 @@
 "use client";
 
-import { NAKSHATRAS, SIGNS, SIGN_GLYPHS, type PlanetName } from "@/lib/astrology/constants";
-import { useId, useState } from "react";
+import { DASHA_SEQUENCE, NAKSHATRAS, SIGNS, SIGN_GLYPHS, SIGN_LORDS, type PlanetName } from "@/lib/astrology/constants";
+import { planetKeynote } from "@/lib/astrology/content";
+import { tithiIndex, tithiName } from "@/lib/astrology/birthDetails";
+import { useEffect, useId, useState } from "react";
 import { term } from "@/lib/i18n/terms";
-import type { SkySnapshot } from "./SkyDial";
+import type { SkySnapshot } from "@/lib/skySnapshot";
+import { skyLabelAngles, skyDegreeText } from "@/lib/skyDial";
 import "./sky-dial.css";
 
 /**
- * The live sky: all nine grahas at their true sidereal longitude right now,
+ * The live sky: all nine grahas at their calculated Lahiri sidereal longitude,
  * on a dial engraved like a Jantar Mantar instrument — a 360° scale, the
  * twelve rashis and the twenty-seven nakshatras. 0° Aries sits at nine
  * o'clock and longitude runs counter-clockwise, as on a traditional wheel.
  */
 
 const C = 300; // centre of the 600×600 canvas
+const GRAHA_GLYPH: Record<PlanetName, string> = { Sun:"☉", Moon:"☽", Mars:"♂", Mercury:"☿", Jupiter:"♃", Venus:"♀", Saturn:"♄", Rahu:"☊", Ketu:"☋" };
 const LABEL: Record<PlanetName, string> = {
   Sun: "Su",
   Moon: "Mo",
@@ -38,46 +42,65 @@ function arc(from: number, to: number, r: number): string {
   return `M ${x1} ${y1} A ${r} ${r} 0 ${to - from > 180 ? 1 : 0} 0 ${x2} ${y2}`;
 }
 
-/** Spreads planets that sit close together onto inner orbits so labels never collide. */
-function orbits(positions: SkySnapshot["positions"]): Map<PlanetName, number> {
-  const sorted = [...positions].sort((a, b) => a.longitude - b.longitude);
-  const radius = new Map<PlanetName, number>();
-  const ORBITS = [186, 160, 134, 108];
-  sorted.forEach((p, i) => {
-    let level = 0;
-    for (let j = i - 1; j >= 0; j--) {
-      const gap = p.longitude - sorted[j].longitude;
-      if (gap > 11) break;
-      level = Math.max(level, ORBITS.indexOf(radius.get(sorted[j].planet)!) + 1);
-    }
-    radius.set(p.planet, ORBITS[Math.min(level, ORBITS.length - 1)]);
-  });
-  return radius;
-}
-
 export default function SkyDialInteractive({ positions, at, className = "", locale }: { positions: SkySnapshot["positions"]; at: string; className?: string; locale: "en" | "hi" }) {
-  const sky = { positions };
+  const [sky, setSky] = useState({ positions, at });
+  const [refreshFailed, setRefreshFailed] = useState(false);
+  const [zoomed, setZoomed] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    let pending = false;
+    const refresh = async () => {
+      if (document.hidden || pending) return;
+      pending = true;
+      try {
+        const response = await fetch("/api/sky", { signal: controller.signal, cache: "no-store" });
+        if (!response.ok) throw new Error("Sky refresh failed");
+        const data = await response.json() as { at: string; positions: SkySnapshot["positions"] };
+        if (!Number.isFinite(Date.parse(data.at)) || !Array.isArray(data.positions) || data.positions.length !== positions.length ||
+          new Set(data.positions.map(p => p.planet)).size !== positions.length ||
+          !data.positions.every(p => positions.some(initial => initial.planet === p.planet) && Number.isFinite(p.longitude) && p.longitude >= 0 && p.longitude < 360)) throw new Error("Invalid sky snapshot");
+        setSky(data); setRefreshFailed(false);
+      } catch {
+        if (!controller.signal.aborted) setRefreshFailed(true);
+      } finally { pending = false; }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 60000);
+    const visible = () => { if (!document.hidden) void refresh(); };
+    document.addEventListener("visibilitychange", visible);
+    return () => { controller.abort(); window.clearInterval(timer); document.removeEventListener("visibilitychange", visible); };
+  }, [positions]);
   const [selected, setSelected] = useState<PlanetName>("Moon");
   const gradientId = useId();
   const hi = locale === "hi";
-  const active = positions.find(p => p.planet === selected)!;
+  const active = sky.positions.find(p => p.planet === selected)!;
   const activeNak = Math.floor(active.longitude / (360 / 27));
   const pada = Math.floor((active.longitude % (360 / 27)) / (360 / 108)) + 1;
   const moon = sky.positions.find((p) => p.planet === "Moon")!;
   const moonNak = Math.floor(moon.longitude / (360 / 27));
-  const radius = orbits(sky.positions);
+  const sun = sky.positions.find(p => p.planet === "Sun")!;
+  const lunarDay = tithiName(tithiIndex(sun.longitude, moon.longitude));
+  const labels = skyLabelAngles(sky.positions);
   const summary = sky.positions
-    .map((p) => `${p.planet} in ${SIGNS[Math.floor(p.longitude / 30)]} ${(p.longitude % 30).toFixed(0)}°`)
+    .map((p) => `${term(locale,p.planet)} in ${term(locale,SIGNS[Math.floor(p.longitude / 30)])} ${skyDegreeText(p.longitude)}`)
     .join(", ");
 
   return (
     <section className={`sky-instrument ${className}`} aria-label={hi ? "वर्तमान आकाश" : "Current sky"}>
-      <div className="sky-instrument-heading"><span>{hi ? "इस समय का आकाश" : "The sky at this moment"}</span><time dateTime={at}>{new Date(at).toLocaleString(hi ? "hi-IN" : "en-IN", {timeZone:"Asia/Kolkata",day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})} IST</time></div>
+      <div className="sky-instrument-heading"><span>{hi ? "आज का गोचर चक्र" : "Today's Gochar Chakra"}</span><time dateTime={sky.at}>{new Date(sky.at).toLocaleString(hi ? "hi-IN" : "en-IN", {timeZone:"Asia/Kolkata",day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})} IST</time></div>
+      <div className="sky-wheel-tools"><span>{hi ? "पृथ्वी से दृश्य · लाहिरी निरयन" : "Earth view · Lahiri sidereal"}</span><button type="button" aria-pressed={zoomed} onClick={() => setZoomed(!zoomed)}>{zoomed ? (hi ? "सामान्य दृश्य" : "Fit wheel") : (hi ? "बड़ा करें" : "Enlarge wheel")}</button></div>
+      <div className="sky-wheel-viewport" data-zoomed={zoomed} tabIndex={zoomed ? 0 : undefined} role="group" aria-label={hi ? "ग्रह चक्र, बड़ा होने पर स्क्रॉल करें" : "Sky wheel; scroll to explore when enlarged"}>
       <svg viewBox="-40 -40 680 680" className="sky-instrument-dial" role="group" aria-label={hi ? "ग्रह चुनने के लिए नीचे के बटन उपयोग करें" : `Sidereal sky dial: ${summary}. Select a planet below to explore.`}>
       <defs>
+
+        <radialGradient id={`${gradientId}-hub`} cx="32%" cy="25%" r="75%">
+          <stop offset="0%" stopColor="#55432c" />
+          <stop offset="40%" stopColor="#2e2418" />
+          <stop offset="100%" stopColor="#15110d" />
+        </radialGradient>
         <radialGradient id={gradientId} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#1b2a55" />
-          <stop offset="100%" stopColor="#0e1733" />
+          <stop offset="0%" stopColor="#2d251c" />
+          <stop offset="100%" stopColor="#161311" />
         </radialGradient>
       </defs>
 
@@ -92,7 +115,7 @@ export default function SkyDialInteractive({ positions, at, className = "", loca
           cy={C}
           r={r}
           fill="none"
-          stroke="#3a4c80"
+          stroke="#67553d"
           strokeWidth={r === 294 ? 1.5 : 1}
           className="dial-ring"
           style={{ ["--len" as string]: `${Math.ceil(2 * Math.PI * r)}` }}
@@ -100,7 +123,7 @@ export default function SkyDialInteractive({ positions, at, className = "", loca
       ))}
 
       {/* 360° scale: every degree, longer every 5°, longest every 10° */}
-      <g stroke="#566a9e" strokeWidth={0.75}>
+      <g stroke="#9f8967" strokeWidth={0.75}>
         {Array.from({ length: 360 }, (_, d) => {
           const len = d % 10 === 0 ? 12 : d % 5 === 0 ? 8 : 4;
           const [x1, y1] = point(d, 294);
@@ -120,10 +143,10 @@ export default function SkyDialInteractive({ positions, at, className = "", loca
           const nameRotation = ((tangent + 270) % 180) - 90;
           return (
             <g key={sign}>
-              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#3a4c80" />
+              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#67553d" />
               <title>{term(locale, sign)}</title>
-              <text x={nameX} y={nameY} transform={`rotate(${nameRotation} ${nameX} ${nameY})`} textAnchor="middle" dominantBaseline="central" fontSize={17} fill="#c7cfe6">{term(locale, sign)}</text>
-              <text x={tx} y={ty} textAnchor="middle" dominantBaseline="central" fontSize={15} fill="#c7cfe6">
+              <text x={nameX} y={nameY} transform={`rotate(${nameRotation} ${nameX} ${nameY})`} textAnchor="middle" dominantBaseline="central" fontSize={20} fontWeight={500} fill="#eef0f5">{term(locale, sign)}</text>
+              <text x={tx} y={ty} textAnchor="middle" dominantBaseline="central" fontSize={19} fill="#e1d1b9">
                 {SIGN_GLYPHS[i]}
               </text>
             </g>
@@ -149,50 +172,53 @@ export default function SkyDialInteractive({ positions, at, className = "", loca
           </g>
         );
       })()}
-      <g stroke="#3a4c80">
+      <g stroke="#67553d">
         {NAKSHATRAS.map((n, i) => {
           const [x1, y1] = point(i * (360 / 27), 246);
           const [x2, y2] = point(i * (360 / 27), 212);
           const [tx, ty] = point((i + .5) * (360 / 27), 229);
-          return <g key={n}><title>{term(locale,n)}</title><line x1={x1} y1={y1} x2={x2} y2={y2} /><text x={tx} y={ty} fill={i === moonNak ? "#f2c14e" : "#aebbdc"} stroke="none" textAnchor="middle" dominantBaseline="central" fontSize={10}>{i+1}</text></g>;
+          return <g key={n}><title>{term(locale,n)}</title><line x1={x1} y1={y1} x2={x2} y2={y2} /><text x={tx} y={ty} fill={i === moonNak ? "#f2c14e" : "#aebbdc"} stroke="none" textAnchor="middle" dominantBaseline="central" fontSize={14}>{i+1}</text></g>;
         })}
       </g>
 
-      {/* Planets: a pointer from the hub, a marker on its orbit, and its name */}
+      {/* Exact longitude dots stay fixed; leader lines connect separated labels. */}
       <g className="dial-planets">
         {sky.positions.map((p) => {
-          const r = radius.get(p.planet)!;
-          const [hx, hy] = point(p.longitude, 64);
-          const [px, py] = point(p.longitude, r);
-          const [lx, ly] = point(p.longitude, r - 20);
-          const [sx, sy] = point(p.longitude, 212);
-          const accent = p.planet === "Sun" || p.planet === "Moon";
+          const [px, py] = point(p.longitude, 205);
+          const [lx, ly] = point(labels.get(p.planet)!, 153);
+          const accent = selected === p.planet;
           return (
-            <g key={p.planet} className={selected === p.planet ? "sky-planet selected" : "sky-planet"} onClick={() => setSelected(p.planet)} style={{cursor:"pointer",opacity:selected === p.planet ? 1 : .55}}>
-              <circle cx={px} cy={py} r={18} fill="transparent" />
-              {selected === p.planet && <circle cx={px} cy={py} r={11} fill="none" stroke="#69c6bc" strokeWidth={1.5} />}
-              <line x1={hx} y1={hy} x2={sx} y2={sy} stroke={accent ? "#e8a915" : "#6f82b8"} strokeOpacity={accent ? 0.7 : 0.45} strokeWidth={1} />
-              <circle cx={px} cy={py} r={accent ? 6 : 4.5} fill={accent ? "#e8a915" : "#eef0f5"} stroke="#0e1733" strokeWidth={2} />
-              <text x={lx} y={ly} textAnchor="middle" dominantBaseline="central" fontSize={13} fontWeight={600} fill={accent ? "#f2c14e" : "#eef0f5"}>
-                {LABEL[p.planet]}
-              </text>
-              <title>{`${p.planet}: ${SIGNS[Math.floor(p.longitude / 30)]} ${(p.longitude % 30).toFixed(1)}°`}</title>
+            <g key={p.planet} className={selected === p.planet ? "sky-planet selected" : "sky-planet"} onClick={() => setSelected(p.planet)} style={{cursor:"pointer"}}>
+              <path d={`M ${px} ${py} L ${lx} ${ly}`} fill="none" stroke={accent ? "#f2cf91" : "#7185ad"} strokeOpacity={accent ? .9 : .45} strokeWidth={accent ? 1.5 : 1} />
+              <circle cx={px} cy={py} r={accent ? 5 : 3.5} fill={accent ? "#f2cf91" : "#c4cede"} />
+              <g transform={`translate(${lx} ${ly})`}>
+                <circle r={22} fill="#211b14" stroke={accent ? "#efd19e" : "#84704f"} strokeWidth={accent ? 2 : 1} />
+                <text y={8} textAnchor="middle" fontSize={27} fill={accent ? "#f0d3a2" : "#d5c3a2"}>{GRAHA_GLYPH[p.planet]}</text>
+                <text y={39} textAnchor="middle" fontSize={18} fontWeight={600} fill={accent ? "#f2cf91" : "#eef0f5"} stroke="#17130f" strokeWidth={4} paintOrder="stroke">{LABEL[p.planet]}</text>
+              </g>
+              <title>{`${term(locale,p.planet)}: ${term(locale,SIGNS[Math.floor(p.longitude / 30)])} ${skyDegreeText(p.longitude)}`}</title>
             </g>
           );
         })}
       </g>
 
-      {/* Hub */}
-      <circle cx={C} cy={C} r={62} fill="#0a1128" stroke="#3a4c80" />
-      <text x={C} y={C-13} textAnchor="middle" fontSize={16} fill="#eee9dd">{term(locale,selected)}</text>
-      <text x={C} y={C+12} textAnchor="middle" fontSize={14} fill="#69c6bc">{(active.longitude % 30).toFixed(1)}°</text>
-      <text x={C} y={C+33} textAnchor="middle" fontSize={10} fill="#aebbdc">{hi ? "निरयन" : "Sidereal"}</text>
+      {/* The centre is the observer, never the selected planet or the Sun. */}
+      <circle cx={C} cy={C} r={51} fill={`url(#${gradientId}-hub)`} stroke="#8c7856" />
+      <path d="M300 254 346 300 300 346 254 300ZM267 267H333V333H267Z" fill="none" stroke="#d4b078" strokeOpacity=".4" />
+      <text x={C} y={C+3} textAnchor="middle" fontSize={19} fill="#f1eadc">{hi ? "गोचर" : "Gochar"}</text>
+      <text x={C} y={C+22} textAnchor="middle" fontSize={11} fill="#c9af86">{hi ? "निरयन" : "Sidereal"}</text>
       </svg>
-      <div className="sky-planet-legend" role="group" aria-label={hi ? "ग्रह चुनें" : "Select a planet"}>{positions.map(p => <button key={p.planet} type="button" aria-pressed={selected === p.planet} onClick={() => setSelected(p.planet)}>{term(locale,p.planet)}</button>)}</div>
-      <div className="sky-reading" aria-live="polite" aria-atomic="true">
-        <p><strong>{term(locale,selected)}</strong> {hi ? "राशि" : "in"} <strong>{term(locale,SIGNS[Math.floor(active.longitude / 30)])}</strong> <span>{(active.longitude % 30).toFixed(1)}°</span></p>
-        <p>{term(locale,NAKSHATRAS[activeNak])} <span className="sky-reading-divider" aria-hidden="true">/</span> {hi ? "पद" : "Pada"} {pada} <span className="sky-reading-divider" aria-hidden="true">/</span> {hi ? "नक्षत्र" : "Nakshatra"} {activeNak+1} {hi ? " / २७" : "of 27"}</p>
       </div>
+      <div className="sky-planet-legend" role="group" aria-label={hi ? "ग्रह चुनें" : "Select a planet"}>{sky.positions.map(p => <button key={p.planet} type="button" aria-pressed={selected === p.planet} onClick={() => setSelected(p.planet)}><span className={`sky-body-dot body-${p.planet.toLowerCase()}`} aria-hidden="true" /><span>{term(locale,p.planet)}</span><small>{skyDegreeText(p.longitude)}</small></button>)}</div>
+      <div className="sky-reading" aria-live="polite" aria-atomic="true">
+        <p><strong>{term(locale,selected)}</strong> {hi ? "राशि" : "in"} <strong>{term(locale,SIGNS[Math.floor(active.longitude / 30)])}</strong> <span>{skyDegreeText(active.longitude)}</span></p>
+        <p>{term(locale,NAKSHATRAS[activeNak])} <span className="sky-reading-divider" aria-hidden="true">/</span> {hi ? "पद" : "Pada"} {pada} <span className="sky-reading-divider" aria-hidden="true">/</span> {hi ? "नक्षत्र" : "Nakshatra"} {activeNak+1} {hi ? " / २७" : "of 27"}</p>
+        <dl className="sky-astrology-facts"><div><dt>{hi ? "राशि स्वामी" : "Sign lord"}</dt><dd>{term(locale,SIGN_LORDS[Math.floor(active.longitude / 30)])}</dd></div><div><dt>{hi ? "नक्षत्र स्वामी" : "Star lord"}</dt><dd>{term(locale,DASHA_SEQUENCE[activeNak % 9])}</dd></div><div><dt>{hi ? "आज की तिथि" : "Lunar day"}</dt><dd>{term(locale,`${lunarDay.paksha} ${lunarDay.tithi}`)}</dd></div></dl>
+        <p className="sky-meaning">{hi ? `${term(locale,selected)} के पारंपरिक कारक: ${planetKeynote(selected,locale)}। व्यक्तिगत फल जानने के लिए इसे अपनी जन्म कुंडली के साथ देखें।` : `In Jyotish, ${selected} signifies ${planetKeynote(selected,locale)}. Read this transit against your birth chart for personal context.`}</p>
+        <a className="sky-personal-link" href={hi ? "/hi/kundali?tab=transits" : "/kundali?tab=transits"}>{hi ? "अपनी कुंडली में गोचर देखें" : "See transits in my birth chart"}</a>
+      </div>
+      <p className="sky-refresh-status" role="status">{refreshFailed ? (hi ? "अपडेट उपलब्ध नहीं। अंतिम गणना दिखाई गई है।" : "Update unavailable. Showing the last calculation.") : (hi ? "हर मिनट नई गणना" : "Recalculated every minute")}</p>
+      <details className="sky-method"><summary>{hi ? "इस चक्र को कैसे पढ़ें" : "How to read this wheel"}</summary><p>{hi ? "बिंदु ग्रहों के भूकेन्द्रीय लाहिरी निरयन देशांतर दिखाते हैं। चिह्नों को पढ़ने के लिए अलग रखा गया है; रेखाएँ वास्तविक स्थितियों से जोड़ती हैं। आकार और दूरी मापानुसार नहीं हैं। राहु और केतु माध्य चंद्र नोड हैं, भौतिक ग्रह नहीं। यह स्थानीय क्षितिज या दूरबीन का दृश्य नहीं है।" : "Dots mark calculated geocentric Lahiri sidereal longitudes. Planet labels are separated for readability; lines connect them to their exact positions. Sizes, lighting, and distances are illustrative. Rahu and Ketu are mean lunar nodes, not physical planets. This is a longitude chart, not a local horizon or telescope view."}</p></details>
       <p className="sky-dial-key">{hi ? "स्वर्ण चिह्न चंद्रमा का वर्तमान नक्षत्र दिखाता है। नक्षत्र चक्र में 1–27 अंक हैं।" : "Gold marks the Moon’s current Nakshatra. The star ring is numbered 1–27."}</p>
     </section>
   );

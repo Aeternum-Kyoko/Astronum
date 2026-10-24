@@ -1,0 +1,95 @@
+/* Desktop-only theme. Phone and tablet styling lives in mobile-app.css. */
+@media (min-width:1024px) {
+/* Shared cinematic language across tools, readings, accounts, and reference pages. */
+.cinema-site { --cinema-red:#e53843; --cinema-red-hover:#fa4b56; background:var(--color-ink); }
+.cinema-site .site-cinema-header { background:color-mix(in srgb,var(--color-ink-deep) 96%,transparent); backdrop-filter:blur(18px); box-shadow:0 1px #ffffff0d; }
+.cinema-site .site-cinema-header::before { display:none; }
+.cinema-site .site-cinema-header>div { max-width:1440px; padding-inline:clamp(1.2rem,4vw,4rem); }
+.cinema-site .cinema-wordmark>span { color:var(--cinema-red); font-size:1.5rem; font-weight:750; font-variation-settings:"wdth" 90; letter-spacing:-.035em; }
+.cinema-site .cinema-wordmark>svg { width:24px; color:var(--color-gold); }
+.cinema-site .cinema-primary { color:#fff; background:var(--cinema-red); border-radius:4px; }
+.cinema-site .cinema-primary:hover { background:var(--cinema-red-hover); }
+.cinema-site :is(button.bg-gold,a.bg-gold,button[type=submit].bg-gold) { background:var(--cinema-red); color:#fff; border-radius:4px; }
+.cinema-site :is(button.bg-gold,a.bg-gold):hover { background:var(--cinema-red-hover); }
+.cinema-site .site-cinema-header nav[aria-label=Main] :is(a,button) { border-radius:4px; }
+.cinema-site .site-cinema-header nav[aria-label=Main]>div>button { font-size:1rem; }
+.cinema-site #nav-menu { border-radius:6px; border-color:var(--color-border); box-shadow:0 20px 50px #0007; }
+.cinema-site .card-edge { border-radius:8px; box-shadow:none; background:var(--color-surface); border-color:var(--color-border); }
+.cinema-site .card-glass { border-radius:8px; }
+.cinema-site .tool-entry-header>p:first-child { background:transparent; padding:0; border:0; color:var(--color-gold-bright); font-size:1rem; }
+.cinema-site .tool-entry-header h1 { font-size:clamp(2.7rem,5.5vw,5rem); }
+.cinema-site .tool-entry-header>p:last-child { font-size:1.1rem; line-height:1.8; }
+.cinema-site .tool-result-header { border-radius:7px; box-shadow:none; }
+.cinema-site .input { border-radius:5px; min-height:46px; }
+.cinema-site footer { background:var(--color-ink-deep); border-color:var(--color-border); }
+.cinema-site footer .font-display { color:var(--cinema-red); font-weight:700; }
+.cinema-site nav[aria-label=Quick] { border-radius:8px; background:color-mix(in srgb,var(--color-ink-deep) 97%,transparent); box-shadow:0 -1px #ffffff18; }
+.cinema-site nav[aria-label=Quick] a[aria-current] { color:var(--cinema-red); }
+.cinema-site nav[aria-label=Quick] a[aria-current]>span:first-child { opacity:.3; }
+.cinema-site h1,.cinema-site h2 { font-variation-settings:"wdth" 92; }
+.cinema-site .cinema-home .home-observatory { background:#111010; }
+.cinema-site .cinema-home .home-observatory::before { background:radial-gradient(ellipse at 85% 35%,#55402b30,transparent 58%),linear-gradient(110deg,#141111,#161211); }
+.cinema-site .home-cosmic-planet,.cinema-site .home-orbit-moon { display:none; }
+.cinema-site .home-orbit { border-color:#c6a26828; box-shadow:none; }
+.cinema-site .home-cosmic-backdrop { opacity:.4; }
+.cinema-site .home-feature-label { display:block; margin-bottom:1.2rem; color:#d8b47c; font-size:1rem; font-weight:550; }
+.cinema-site .home-observatory .home-observatory-inner { align-items:start; padding-top:4rem; padding-bottom:3rem; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); }
+.cinema-site .home-observatory-copy { padding-top:3.5rem; }
+.cinema-site .home-observatory .home-observatory-copy h1 { font-size:clamp(3rem,5.6vw,5.8rem); max-width:12ch; line-height:1.02; }
+.cinema-site .home-observatory .home-observatory-body { color:#bfb7b1; max-width:40ch; }
+.cinema-site .home-observatory .home-observatory-now { border-color:#e53843; }
+.cinema-site .home-observatory .home-observatory-actions a:first-child { border:1px solid #e53843; background:#e53843; color:#fff; box-shadow:none; }
+.cinema-site .home-observatory .home-observatory-actions a:first-child:hover { background:#fa4b56; }
+.cinema-site .home-sky-strip { border-color:#c9ac7530; }
+.cinema-site .home-reading-includes>div { padding-block:2.5rem; }
+.cinema-site .home-tools { max-width:1440px; padding-inline:clamp(1.2rem,4vw,4rem); }
+.cinema-site .home-tools>div:first-child h2 { font-size:clamp(2rem,3.5vw,3rem); }
+.cinema-site .home-tools>div:nth-child(2) { display:block; margin-top:2.5rem; }
+.cinema-site .home-tool-group { margin-top:2.7rem; }
+.cinema-site .home-tool-group>h3 { border:0; margin-bottom:1rem; padding:0; font-size:1.5rem; }
+.cinema-site .home-tool-group>ul { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1rem; }
+.cinema-site .home-tool-link { --poster-tone:#58412d; position:relative; isolation:isolate; display:flex; flex-direction:column; justify-content:end; gap:1rem; min-height:270px; height:100%; border:1px solid #ffffff14; border-radius:7px; padding:1.4rem; background:linear-gradient(160deg,color-mix(in srgb,var(--poster-tone) 70%,#171717),#1a1919 78%); overflow:hidden; transition:transform .2s,border-color .2s; }
+.cinema-site .home-tool-link[data-tool=matching],.cinema-site .home-tool-link[data-tool=personal] { --poster-tone:#623c47; }
+.cinema-site .home-tool-link[data-tool=horoscope],.cinema-site .home-tool-link[data-tool=panchang] { --poster-tone:#454968; }
+.cinema-site .home-tool-link[data-tool=festivals],.cinema-site .home-tool-link[data-tool=muhurat] { --poster-tone:#615035; }
+.cinema-site .home-tool-link[data-tool=numerology],.cinema-site .home-tool-link[data-tool=vastu] { --poster-tone:#36534c; }
+.cinema-site .home-tool-link::before { content:""; position:absolute; z-index:-1; width:170px; height:170px; right:-45px; top:-45px; border:1px solid #e4ca9f25; border-radius:50%; box-shadow:0 0 0 25px #e4ca9f06,0 0 0 50px #e4ca9f04; }
+.cinema-site .home-tool-link>span:first-child { width:64px; height:64px; border-radius:0; background:transparent; color:#e2c69e; }
+.cinema-site .home-tool-link>span:first-child svg { width:44px; height:44px; }
+.cinema-site .home-tool-link>span:last-child>span:first-child { font-size:1.35rem; color:#f6eee6; }
+.cinema-site .home-tool-link>span:last-child>span:nth-child(2) { margin-top:.65rem; color:#c9c0b9; font-size:.98rem; line-height:1.65; }
+.cinema-site .home-tool-link:hover { transform:translateY(-5px); border-color:#c9ad7d; }
+.cinema-site .cinema-zodiac { background:var(--color-ink-deep); }
+.cinema-site .cinema-zodiac ul { grid-template-columns:repeat(6,minmax(0,1fr)); gap:.8rem; }
+.cinema-site .cinema-zodiac a { display:flex; flex-direction:column; align-items:start; gap:.5rem; border:1px solid var(--color-border); padding:1.3rem 1rem; border-radius:5px; background:var(--color-surface); font-size:1.25rem; }
+.cinema-site .cinema-zodiac a:hover { border-color:var(--cinema-red); }
+.cinema-site .sky-wheel-tools>span { color:#dac49f; }
+.cinema-site .sky-instrument-heading { justify-content:space-between; }
+.cinema-site .sky-instrument-heading>span { font-size:1.2rem; color:#f1e7d7; }
+.cinema-site .home-observatory .sky-instrument-dial { filter:drop-shadow(0 15px 30px #0006); }
+.cinema-site .home-floating-instrument { transform:none; }
+.cinema-site .home-observatory .sky-reading { background:#201b16; border:1px solid #a78a5545; }
+.cinema-site .sky-planet-legend button { background:#211e1b; border-color:#4c4034; }
+.cinema-site .home-observatory .sky-planet-legend { display:flex; flex-wrap:nowrap; justify-content:start; gap:.5rem; overflow-x:auto; padding-bottom:.7rem; scrollbar-width:thin; scrollbar-color:#8c7046 #211e1b; }
+.cinema-site .home-observatory .sky-planet-legend button { flex:0 0 104px; }
+.cinema-site .sky-planet-legend button[aria-pressed=true] { background:#a8874826; border-color:#d4b078; }
+.cinema-site .sky-astrology-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; margin-top:1.1rem; padding-top:1rem; border-top:1px solid #77603960; text-align:left; }
+.sky-astrology-facts dt { color:#b8aa97; font-size:.8rem; }.sky-astrology-facts dd { color:#f0d2a1; font-size:1rem; margin-top:.3rem; }
+.cinema-site .sky-reading .sky-meaning { font-size:1rem; color:#dfd4c3; text-align:left; line-height:1.8; margin-top:1rem; }
+.sky-personal-link { display:block; margin-top:1rem; text-align:left; color:#edc68f; font-size:.95rem; text-decoration:underline; text-underline-offset:4px; }
+.cinema-site .cinema-horoscope-card { position:relative; isolation:isolate; overflow:hidden; min-height:270px; padding:1.5rem; background:linear-gradient(150deg,color-mix(in srgb,var(--color-surface) 90%,#ad7c4b),var(--color-surface) 75%); }
+.cinema-horoscope-card::before { content:attr(data-glyph); position:absolute; right:.7rem; bottom:1.8rem; z-index:-1; font-size:7rem; line-height:1; color:var(--color-gold); opacity:.07; }
+.cinema-site .cinema-horoscope-card>p { margin-top:1.5rem; font-size:1rem; line-height:1.8; max-width:30ch; }
+.cinema-site .cinema-horoscope-card:hover { border-color:var(--color-gold); }
+.cinema-site .cinema-reference-card { position:relative; overflow:hidden; min-height:280px; padding:1.5rem; background:linear-gradient(150deg,color-mix(in srgb,var(--color-surface) 83%,#775c7e),var(--color-surface) 75%); }
+.cinema-reference-symbol { display:block; color:var(--color-gold-bright); font-size:3rem; line-height:1.2; margin-bottom:1.4rem; }
+.cinema-site .cinema-reference-card h2 { font-size:1.5rem; font-variation-settings:"wdth" 95; }
+.cinema-site .cinema-reference-card>p:last-child { font-size:1rem; line-height:1.8; }
+.cinema-site .cinema-learn>div>div:first-child { text-align:left; }
+.cinema-site .cinema-learn>div>div:first-child p { margin-inline:0; }
+:root[data-theme=light] .cinema-site .card-edge { background:var(--color-surface); }
+@media(max-width:1000px) { .cinema-site .home-tool-group>ul { grid-template-columns:repeat(4,240px); overflow-x:auto; padding:.3rem .2rem 1rem; scroll-snap-type:x proximity; }.cinema-site .home-tool-link { scroll-snap-align:start; }.cinema-site .cinema-zodiac ul { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+@media(max-width:700px) { .cinema-site .home-observatory .home-observatory-inner { grid-template-columns:1fr; padding-top:2.5rem; gap:2.5rem; }.cinema-site .home-observatory-copy { padding-top:0; }.cinema-site .home-observatory .home-observatory-copy h1 { font-size:clamp(3rem,12vw,4rem); }.cinema-site .home-tool-group>ul { grid-template-columns:repeat(4,225px); }.cinema-site .cinema-zodiac ul { grid-template-columns:repeat(2,minmax(0,1fr)); }.cinema-site .sky-astrology-facts { gap:.6rem; }.cinema-site .sky-instrument-heading { justify-content:center; }.cinema-site .home-tools { padding-block:3rem; }.cinema-site .home-tool-group { margin-top:2rem; } }
+@media(prefers-reduced-motion:reduce) { .cinema-site .home-tool-link { transition:none; }.cinema-site .home-tool-link:hover { transform:none; } }
+
+}

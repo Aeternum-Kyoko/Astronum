@@ -21,6 +21,8 @@ import "@/components/kundli/entry.css";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 type View = "form" | "loading" | "result";
+const chartMemory = new Map<string,{at:number;chart:KundaliChart;report:KundaliReport}>();
+
 
 export default function KundaliForm() {
   const locale = useLocale();
@@ -43,6 +45,7 @@ export default function KundaliForm() {
       : null
   );
   const [loading, setLoading] = useState(Boolean(urlParams));
+  const [calculationInput, setCalculationInput] = useState<BirthParams | null>(urlParams);
   const [error, setError] = useState<string | null>(null);
   const [chart, setChart] = useState<KundaliChart | null>(null);
   const [report, setReport] = useState<KundaliReport | null>(null);
@@ -54,8 +57,11 @@ export default function KundaliForm() {
 
   // Keep the latest version (with any sections loaded since) on this device for offline use.
   useEffect(() => {
-    if (chart && report && !offlineFrom) void saveChart(chart.input, chart, report);
-  }, [chart, report, offlineFrom]);
+    if (chart && report && !offlineFrom) {
+      void saveChart(chart.input, chart, report);
+      chartMemory.set(`${locale}:${toBirthQuery(chart.input)}`,{at:Date.now(),chart,report});
+    }
+  }, [chart, report, offlineFrom, locale]);
 
   /** Fetch the heavy report sections a tab needs, once each, and merge them in. */
   async function loadSections(sections: HeavySection[]) {
@@ -98,15 +104,25 @@ export default function KundaliForm() {
     const epoch = ++generation.current;
     pending.current.clear(); failedSections.current.clear(); setSectionError(null);
     setError(null);
+    setCalculationInput(params);
     setLoading(true);
+    setChart(null);
+    const started = performance.now();
+    let firstEntry = true;
+    try { firstEntry = sessionStorage.getItem("kundli-entry-seen-v2") !== "1"; } catch { /* session animation still works */ }
+    let ready = false;
+    const cacheKey = `${locale}:${toBirthQuery(params)}`;
     try {
-      const res = await fetch("/api/kundali", {
+      const cached = chartMemory.get(cacheKey);
+      const res = cached && Date.now()-cached.at < 300000 ? null : await fetch("/api/kundali", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...params, locale }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? t("Something went wrong"));
+      const data = res ? await res.json() : cached!;
+      if (res && !res.ok) throw new Error(data.error ?? t("Something went wrong"));
+      chartMemory.set(cacheKey,{at:Date.now(),chart:data.chart,report:data.report});
+      ready = true;
 
       if (generation.current !== epoch) return;
       const nextQuery = new URLSearchParams(toBirthQuery(params));
@@ -129,6 +145,7 @@ export default function KundaliForm() {
       const stored = err instanceof TypeError ? await loadChart(params) : null;
       if (generation.current !== epoch) return;
       if (stored) {
+        ready = true;
         setChart(stored.chart);
         setReport(stored.report);
         setOfflineFrom(stored.savedAt);
@@ -138,6 +155,12 @@ export default function KundaliForm() {
         haptic("error");
       }
     } finally {
+      if (ready && firstEntry) {
+        const minimum = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 150 : 4200;
+        const remaining = minimum - (performance.now()-started);
+        if (remaining>0) await new Promise(resolve=>window.setTimeout(resolve,remaining));
+        try { sessionStorage.setItem("kundli-entry-seen-v2","1"); } catch { /* optional storage */ }
+      }
       if (generation.current === epoch) setLoading(false);
     }
   }
@@ -174,6 +197,7 @@ export default function KundaliForm() {
 
   return (
     <div ref={anchorRef} className="scroll-mt-24">
+      {loading && calculationInput && <div className="kundli-entry-overlay"><KundliCalculation birth={calculationInput} chart={chart}/></div>}
       <AnimatePresence mode="wait">
         {view === "form" && (
           <motion.div
@@ -250,22 +274,11 @@ export default function KundaliForm() {
           </motion.div>
         )}
 
-        {view === "loading" && (
-          <motion.div
-            key="loading"
-            initial={false}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.15, ease: EASE_OUT_EXPO }}
-            className="mx-auto max-w-4xl"
-          >
-            <KundliCalculation name={name} date={date} time={time} place={selectedPlace?.displayName ?? ""} />
-          </motion.div>
-        )}
-
-        {view === "result" && chart && (
+        {chart && (
           <motion.div
             key="result"
+            inert={loading || undefined}
+            aria-hidden={loading || undefined}
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}

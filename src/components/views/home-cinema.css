@@ -1,0 +1,48 @@
+/* The live observatory becomes the landing page's central cinematic scene. */
+.home-observatory { position:relative; isolation:isolate; overflow:hidden; background:#070c19; border-bottom:1px solid #e1bb7830; }
+.home-observatory::before { content:""; position:absolute; inset:0; z-index:-1; pointer-events:none; background:radial-gradient(ellipse at 75% 35%,#24386470,transparent 52%),radial-gradient(ellipse at 5% 100%,#4e273735,transparent 50%); }
+.home-cosmic-backdrop { position:absolute; inset:0; z-index:-1; overflow:hidden; pointer-events:none; background-image:radial-gradient(1px 1px at 12% 19%,#e9e2d5 90%,transparent),radial-gradient(1.5px 1.5px at 82% 24%,#ece3d0 90%,transparent),radial-gradient(1px 1px at 43% 72%,#a7b9dd 90%,transparent),radial-gradient(1px 1px at 67% 9%,#eee 90%,transparent),radial-gradient(1px 1px at 26% 55%,#b0bada 90%,transparent); background-size:263px 277px,437px 391px,311px 353px,509px 467px,193px 233px; }
+.home-cosmic-horizon { position:absolute; width:160%; height:750px; left:-30%; bottom:-690px; border-radius:50%; border:1px solid #d1ae784d; box-shadow:0 -5px 50px #b18b6525,0 -35px 100px #243d6e35; background:#090e1c; }
+.home-cosmic-planet { position:absolute; width:230px; height:230px; top:-155px; left:38%; border-radius:50%; background:radial-gradient(circle at 25% 75%,#ac8d6c,#373b52 32%,#0b1020 65%); box-shadow:-8px 12px 50px #c4a67c18; opacity:.7; }
+.home-observatory .home-observatory-inner { position:relative; display:grid; align-items:center; grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr); gap:clamp(2rem,5vw,6rem); max-width:1440px; margin:auto; padding:clamp(3rem,6vw,6rem) clamp(1.3rem,5vw,5rem) 3.5rem; }
+.home-observatory-copy { position:relative; min-width:0; z-index:2; }
+.home-observatory .home-observatory-copy h1 { max-width:11ch; margin:0; color:#f4f0e9; font-family:var(--font-display); font-weight:560; font-size:clamp(3.5rem,6.5vw,6.7rem); line-height:1.02; letter-spacing:-.035em; text-wrap:balance; }
+.home-observatory :is(.home-observatory-short,.home-observatory-body) { max-width:43ch; margin-top:1.75rem; color:#b9c3d7; font-size:clamp(1.05rem,1.3vw,1.2rem); line-height:1.85; }
+.home-observatory-short { display:none; }
+.home-observatory .home-observatory-now { max-width:43ch; margin-top:2.2rem; padding-left:1rem; border-left:2px solid #d9b37d; }
+.home-observatory .home-observatory-now p { color:#e3e7ef; font-size:1rem; line-height:1.75; }
+.home-observatory .home-observatory-now small { display:block; margin-top:.5rem; color:#a0aec8; font-size:.8rem; }
+.home-observatory .home-observatory-actions { display:flex; align-items:center; flex-wrap:wrap; gap:1rem 1.5rem; margin-top:2.2rem; }
+.home-observatory .home-observatory-actions a { display:inline-flex; align-items:center; min-height:50px; color:#ebd0a9; font-size:1rem; font-weight:600; text-decoration:none; }
+.home-observatory .home-observatory-actions a:first-child { padding:.85rem 1.5rem; border:1px solid #f3d2a3; border-radius:5px; background:linear-gradient(135deg,#efd0a0,#cea16b); color:#171525; box-shadow:0 5px 25px #d9aa6520,inset 0 1px #fff8; }
+.home-observatory .home-observatory-actions a:last-child:hover { text-decoration:underline; text-underline-offset:5px; }
+.home-observatory a:focus-visible { outline:2px solid #f2d596; outline-offset:5px; }
+.home-observatory .home-observatory-dial { --sky-tilt-x:0deg; --sky-tilt-y:0deg; position:relative; min-width:0; grid-column:auto; grid-row:auto; max-width:none; perspective:1200px; filter:none; }
+.home-floating-instrument { position:relative; transform:rotateX(var(--sky-tilt-x)) rotateY(var(--sky-tilt-y)); transition:transform .35s ease-out; transform-style:preserve-3d; }
+.home-observatory .sky-instrument { position:relative; width:100%; max-width:590px; margin:auto; }
+.home-observatory .sky-instrument-heading { position:relative; z-index:1; margin-bottom:1rem; font-size:.85rem; }
+.home-observatory .sky-instrument-dial { max-width:530px; filter:drop-shadow(0 18px 4px #0003) drop-shadow(0 30px 35px #0008); }
+.home-observatory .sky-instrument-dial>circle:first-of-type { stroke:#c5a779; stroke-width:2; }
+.home-orbital-scene { position:absolute; inset:4% -13% 14%; pointer-events:none; }
+.home-orbit { position:absolute; inset:13% -4%; border:1px solid #d4b18450; border-radius:50%; transform:rotate(-28deg) rotateX(58deg); box-shadow:0 1px 0 #ffffff0a,0 0 30px #c7985620; }
+.home-orbit-outer { inset:3% -12%; border-color:#7388ae35; transform:rotate(32deg) rotateX(57deg); }
+.home-orbit-inner::after { content:""; position:absolute; top:50%; left:-9px; width:17px; height:17px; border-radius:50%; background:radial-gradient(circle at 30% 25%,#ffe0a8,#bd9061 40%,#3e3447 80%); box-shadow:0 0 25px #e0b27470; }
+.home-orbit-moon { position:absolute; width:clamp(45px,7vw,90px); aspect-ratio:1; right:-1%; top:10%; border-radius:50%; background:radial-gradient(circle at 28% 25%,#d9d4cb,#8c8a93 28%,#353b50 55%,#0a1020 78%); box-shadow:inset -7px -8px 15px #0009,0 0 50px #9db8e520; }
+.home-observatory .sky-planet-legend { margin-top:1rem; gap:.2rem; }
+.home-observatory .sky-planet-legend button { font-size:.85rem; min-height:44px; color:#bcc9e1; }
+.home-observatory .sky-reading { margin-top:.8rem; padding:1rem; border:1px solid #cfb08230; border-radius:6px; background:linear-gradient(110deg,#1b2a454d,#101a2d80); box-shadow:0 12px 30px #0003; }
+.home-observatory .sky-dial-key { font-size:.8rem; line-height:1.7; }
+.home-sky-strip { position:relative; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.3fr); align-items:center; max-width:1280px; margin:0 auto; padding:1.75rem 2rem 2.5rem; border-top:1px solid #d6bb8f30; gap:2rem; }
+.home-sky-strip>div { display:flex; flex-direction:column; gap:.45rem; }
+.home-sky-strip>div>span { color:#a7b4cd; font-size:.85rem; }.home-sky-strip strong { color:#f0dfc4; font-size:1.1rem; font-weight:500; }
+.home-sky-strip>a { display:flex; gap:1rem; align-items:center; justify-content:end; color:#dfc49a; font-size:.95rem; }.home-sky-strip>a>span { font-size:1.4rem; }
+@media(max-width:1000px) { .home-observatory .home-observatory-inner { gap:2rem; padding-inline:1.5rem; }.home-observatory .home-observatory-copy h1 { font-size:clamp(3rem,6.5vw,5rem); }.home-orbital-scene { inset:8% -3% 20%; }.home-sky-strip { gap:1.3rem; padding-inline:1.5rem; } }
+@media(max-width:700px) {
+  .home-observatory .home-observatory-inner { grid-template-columns:1fr; gap:3rem; padding:3rem 1.3rem 2rem; }
+  .home-observatory .home-observatory-copy h1 { max-width:13ch; font-size:clamp(3rem,12vw,4.5rem); }
+  .home-observatory-short { display:block; }.home-observatory-body { display:none; }
+  .home-observatory .home-observatory-now { margin-top:1.5rem; }.home-observatory .home-observatory-actions { margin-top:1.5rem; }
+  .home-observatory .home-observatory-dial { width:100%; max-width:540px; justify-self:center; }.home-floating-instrument { transform:none; }.home-orbital-scene { inset:8% 0 20%; }
+  .home-sky-strip { grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.5rem; margin-inline:1.3rem; padding:1.5rem 0 2rem; }.home-sky-strip>a { justify-content:start; font-size:.9rem; line-height:1.6; }
+}
+@media(prefers-reduced-motion:reduce) { .home-observatory * { scroll-behavior:auto!important; animation:none!important; transition:none!important; }.home-floating-instrument { transform:none; } }

@@ -2,7 +2,7 @@ import type { KundaliChart } from "./types";
 import { SIGN_LORDS, SIGNS, type PlanetName, type VargaKey } from "./constants";
 import { getAspectedHouses } from "./aspects";
 import { getDignity } from "./dignity";
-import { readHouses, readPlanets, type VargaContext } from "./vargaReading";
+import { readHouses, readPlanets, readConjunctions, type VargaContext } from "./vargaReading";
 import { periodsAt } from "./dashaTree";
 
 export type InspectionPick = { kind: "planet"; planet: PlanetName } | { kind: "house"; house: number };
@@ -46,6 +46,8 @@ export function inspectChart(chart: KundaliChart, key: VargaKey, pick: Inspectio
   return { key, planets, planet, house, sign: SIGNS[signIndex], lord,
     lordPlacement: planets.find(p => p.planet === lord)!, occupants, incoming, outgoing,
     planetReading, houseReading,
+    conjunctPlanets: planet ? occupants.filter(p => p.planet !== planet.planet) : occupants,
+    conjunctionReadings: key === "D2" ? [] : readConjunctions(ctx).filter(group => group.house === house),
     // Broad natal periods only; a varga does not have a separate Vimshottari clock.
     periods: periodsAt(chart.dashas, at, 2).filter(period => related.has(period.lord)),
     natal: planet ? chart.planets.find(p => p.planet === planet.planet)! : null,

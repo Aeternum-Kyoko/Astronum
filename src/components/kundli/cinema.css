@@ -1,0 +1,146 @@
+/* Kundli's reading library is deliberately scoped: the live home observatory keeps its identity. */
+.kundli-cinema-page {
+  --color-ink:#111113; --color-ink-deep:#0b0b0d; --color-surface:#1b1b20;
+  --color-surface-raised:#26262d; --color-border:#38383f; --color-cream:#f7f5f1;
+  --color-muted:#bcbac4; --color-gold:#e4b978; --color-gold-bright:#f1cf9b;
+  --color-on-gold:#171216; --chart-top:#202027; --chart-bottom:#15151a;
+  --glass-bg:#1b1b20; --floating-shadow:#0009; --input-inset:#0004;
+  background:#111113; color:#f7f5f1; color-scheme:dark; min-height:85vh;
+}
+.kundli-cinema-page .kundli-page-frame { padding-top:2.5rem; padding-bottom:5rem; max-width:1480px; }
+.kundli-cinema-page .kundli-profile-header { padding:1.5rem 0 2rem; margin:0; border-bottom:1px solid #ffffff15; }
+.kundli-cinema-page .kundli-profile-header h1 { font-size:clamp(1.8rem,3vw,2.7rem); }
+.kundli-cinema-page .kundli-profile-header p { line-height:1.7; }
+.kundli-cinema-page .kundli-workspace { --workspace-teal:#e4b978; }
+.kundli-cinema-page .kundli-workspace > .print\:hidden { display:block; }
+.kundli-cinema-page .kundli-workspace .workspace-navigation { position:sticky; top:4rem; display:flex; align-items:center; gap:1rem; width:100%; max-height:none; overflow:visible; border-radius:0; background:#111113f5; border-bottom:1px solid #ffffff1a; }
+.kundli-cinema-page .kundli-workspace .workspace-destinations { display:flex; flex:1; min-width:0; overflow-x:auto; gap:1.5rem; }
+.kundli-cinema-page .kundli-workspace .workspace-destinations button { flex:0 0 auto; width:auto; border:0; border-bottom:3px solid transparent; border-radius:0; background:transparent; padding:.8rem .25rem; white-space:nowrap; }
+.kundli-cinema-page .kundli-workspace .workspace-destinations button[aria-current] { background:transparent; border-bottom-color:#e63b46; color:#fff; }
+.kundli-cinema-page .kundli-workspace .workspace-find { width:auto; flex:none; margin:0; }
+.kundli-cinema-page .kundli-workspace .analysis-calendar-compact { background:transparent; border:0; box-shadow:none; }
+.kundli-cinema-page .kundli-workspace .analysis-compact-trigger { color:#bcbac4; }
+.kundli-cinema-page .workspace-header { padding:1rem 0; border:0; }
+.kundli-cinema-page .workspace-header h2 { font-size:1.1rem; font-family:inherit; font-weight:600; }
+.kundli-cinema-page .workspace-navigation { background:#111113f5; backdrop-filter:blur(16px); border-bottom:1px solid #ffffff1a; }
+.kundli-cinema-page .workspace-destinations { gap:1.8rem; }
+.kundli-cinema-page .workspace-destinations button { font-size:1rem; min-height:52px; color:#bcbac4; }
+.kundli-cinema-page .workspace-destinations button[aria-current] { color:#fff; border-color:#e63b46; }
+.kundli-cinema-page .workspace-find { font-size:.9rem; min-height:44px; color:#eee; }
+.kundli-cinema-page .workspace-directory { padding:1.5rem; }
+.kundli-cinema-page .workspace-directory button { font-size:.95rem; min-height:44px; }
+.kundli-cinema-page .analysis-calendar { margin:0; padding-block:.9rem; }
+.kundli-cinema-page .analysis-compact-trigger { font-size:.9rem; }
+.kundli-cinema-page .workspace-section-heading h3 { font-size:clamp(1.8rem,3vw,2.5rem); }
+.kundli-cinema-page .workspace-tool-choices button { font-size:.95rem; min-height:44px; }
+.kundli-cinema-page .cinema-back { display:block; padding:.85rem 0 0; color:#ddd8d1; font-size:.95rem; min-height:44px; }
+.kundli-cinema-page .workspace-reading { font-size:1rem; line-height:1.75; }
+.kundli-cinema-page #kundli-sections { scroll-margin-top:4.5rem; }
+.kundli-cinema-page .chart-workspace { background:#17171d; border-color:#38383f; }
+.kundli-cinema-page .chart-workspace-toolbar,.kundli-cinema-page .workspace-inspector { background:#1b1b20; }
+.kundli-cinema-page .workspace-reading :is(.text-xs,.text-sm) { font-size:.95rem; line-height:1.75; }
+.kundli-cinema-page .workspace-reading p { max-width:75ch; }
+.kundli-cinema-page .workspace-reading :is(td,th) { font-size:.9rem; line-height:1.6; padding:.8rem; }
+.kundli-cinema-page .workspace-reading .card-edge { background:#1b1b20; border-color:#38383f; }
+.kundli-cinema-page .personal-overview { display:block; }
+.kundli-cinema-page .kundli-workspace .personal-overview .cinema-feature { padding:clamp(1.5rem,4vw,4rem); }
+.kundli-cinema-page .cinema-feature { position:relative; isolation:isolate; display:grid; grid-template-columns:1.1fr 1fr; align-items:center; min-height:460px; padding:clamp(1.5rem,4vw,4rem); overflow:hidden; border-radius:10px; background:radial-gradient(ellipse at 85% 25%,#492b424d,transparent 65%),#15151b; }
+.cinema-feature::after { content:""; position:absolute; inset:0; pointer-events:none; z-index:-1; background:linear-gradient(0deg,#111113,transparent 35%); }
+.cinema-feature-copy { position:relative; z-index:2; }
+.cinema-feature-series { color:#e4b978; font-size:.95rem; font-weight:600; }
+.kundli-cinema-page .cinema-feature h2 { margin:1rem 0; font-family:var(--font-display); font-size:clamp(2.8rem,5.5vw,5rem); font-weight:650; letter-spacing:-.045em; line-height:1.04; color:#faf7f2; }
+.cinema-birth-signs { display:flex; flex-wrap:wrap; gap:.7rem 1.4rem; margin:1.25rem 0; color:#e7d0ae; font-weight:600; }
+.cinema-birth-signs span+span::before { content:""; display:inline-block; width:4px; height:4px; margin-right:1.4rem; vertical-align:middle; background:#827685; border-radius:50%; }
+.kundli-cinema-page .cinema-feature-copy>p { max-width:48ch; font-size:1.08rem; line-height:1.8; color:#c3bfca; }
+.cinema-feature-actions { display:flex; flex-wrap:wrap; gap:.75rem; margin-top:1.8rem; }
+.cinema-feature-actions button { min-height:48px; padding:.8rem 1.4rem; border-radius:5px; color:#fff; background:#ffffff19; font-size:1rem; font-weight:650; }
+.cinema-feature-actions button:first-child { background:#df303e; }
+.cinema-feature-actions button:first-child:hover { background:#f34250; }
+.cinema-feature-actions button span { margin-right:.4rem; font-size:.8rem; }
+.kundli-cinema-page .cinema-feature-copy .cinema-nakshatra { margin-top:1.5rem; font-size:.9rem; color:#aba4b3; }
+.cinema-nakshatra strong { margin-left:.6rem; color:#ead7bb; font-weight:500; }
+.cinema-feature-art { position:relative; width:100%; aspect-ratio:1; max-width:470px; justify-self:center; }
+.cinema-feature-art svg { position:absolute; inset:0; width:100%; height:100%; color:#d8b486; stroke:currentColor; stroke-width:.65; opacity:.55; transform:rotate(-12deg); }
+.cinema-planet { position:absolute; inset:20%; border-radius:50%; background:radial-gradient(circle at 32% 25%,#e6c694 0,#b78c67 12%,#624855 36%,#24202e 65%,#101015 80%); box-shadow:inset -20px -10px 40px #0009,0 0 100px #c3936320; }
+.kundli-cinema-page .cinema-timing { display:flex; align-items:center; justify-content:space-between; gap:1.5rem; margin:1.2rem 0 3rem; padding:1.3rem 1.5rem; border-left:3px solid #e13b47; background:#1a1a1f; border-radius:3px; }
+.cinema-timing h3 { font-size:1.1rem; font-weight:650; color:#f6f3ef; }
+.cinema-timing p { color:#bcbac4; font-size:.9rem; margin-top:.3rem; }
+.cinema-timing>strong { font-size:1.15rem; color:#e9c695; }
+.cinema-timing>button { flex-shrink:0; border:1px solid #5c5355; border-radius:4px; padding:.7rem 1rem; font-size:.9rem; color:#f3eee7; min-height:44px; }
+.kundli-cinema-page .personal-area-reading { margin:0; padding:0; border:0; background:transparent; }
+.cinema-row-heading { display:flex; align-items:end; justify-content:space-between; gap:1rem; margin-bottom:1.25rem; }
+.kundli-cinema-page .cinema-row-heading h3 { color:#f7f5f1; font-size:clamp(1.5rem,2.5vw,2rem); font-weight:600; }
+.cinema-row-heading p { margin-top:.35rem; color:#bcbac4; font-size:1rem; }
+.cinema-row-heading>span { color:#aaa5b2; font-size:.9rem; }
+.cinema-topic-row { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:1rem; padding:.4rem .2rem 1.3rem; }
+.cinema-topic { --poster:#55436c; position:relative; display:flex; flex-direction:column; min-width:0; min-height:255px; overflow:hidden; border:1px solid #ffffff12; border-radius:7px; text-align:left; background:linear-gradient(155deg,color-mix(in srgb,var(--poster),#15151b 35%),#19191f 90%); transition:transform .2s,border-color .2s; }
+.cinema-topic-relationships { --poster:#87454f; }.cinema-topic-wealth { --poster:#516b54; }.cinema-topic-education { --poster:#3e647c; }.cinema-topic-property { --poster:#8a6544; }
+.cinema-topic:hover { transform:translateY(-5px); border-color:#ffffff80; }
+.cinema-topic[aria-pressed=true] { border-color:#efc992; box-shadow:0 0 0 1px #efc992; }
+.cinema-topic-art { display:block; width:100%; height:145px; padding:1rem; }
+.cinema-topic-art svg { height:100%; width:100%; stroke:#eee0cf; stroke-width:1.5; }
+.cinema-topic-art circle { opacity:.18; stroke-width:.8; }
+.cinema-topic-copy { display:flex; flex-direction:column; gap:.25rem; padding:0 1.1rem 1rem; }
+.cinema-topic-copy strong { color:#fff7ef; font-size:1.25rem; font-weight:650; }
+.cinema-topic-copy>span { color:#d1c7d1; font-size:.87rem; line-height:1.5; }
+.cinema-topic-selected { display:block; margin-top:auto; padding:.6rem 1.1rem; background:#0003; color:#c1b9c6; font-size:.8rem; }
+.cinema-topic[aria-pressed=true] .cinema-topic-selected { background:#e4b978; color:#20191a; font-weight:650; }
+.kundli-cinema-page .personal-area-result { margin-top:.5rem; padding:clamp(1.4rem,3vw,2.5rem); border:1px solid #ffffff16; border-radius:8px; background:#1b1b20; }
+.kundli-cinema-page .personal-area-result-title h4 { font-size:clamp(1.3rem,2.2vw,1.8rem); line-height:1.35; }
+.kundli-cinema-page .personal-area-result-title span { font-size:.95rem; color:#e4b978; }
+.kundli-cinema-page .personal-area-lead { max-width:70ch; font-size:1.2rem; line-height:1.85; color:#eee9e3; margin-top:1.25rem; }
+.cinema-reading-details { margin-top:1.5rem; border-top:1px solid #ffffff18; }
+.cinema-reading-details>summary { padding:1rem 0; cursor:pointer; color:#e4b978; font-size:1rem; }
+.kundli-cinema-page .personal-reading-factors { margin-top:.5rem; gap:1.5rem; }
+.kundli-cinema-page .personal-reading-factors p,.kundli-cinema-page .personal-reading-timing p { font-size:1rem; line-height:1.8; }
+.kundli-cinema-page .personal-reading-factors b,.kundli-cinema-page .personal-reading-timing b { font-size:1rem; }
+.kundli-cinema-page .personal-reading-limit { font-size:.9rem; line-height:1.75; color:#bcbac4; }
+.kundli-cinema-page .personal-area-actions { margin-top:1.5rem; gap:.8rem; }
+.kundli-cinema-page .personal-area-actions button { font-size:1rem; min-height:46px; border-radius:4px; padding:.7rem 1rem; }
+.kundli-cinema-page .personal-area-actions button:first-child { background:#f0ebe4; color:#1a171c; }
+.cinema-timing-library { margin-top:3.5rem; }
+.cinema-timing-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; }
+.cinema-timing-row button { position:relative; overflow:hidden; padding:1.6rem; min-height:210px; border:1px solid #ffffff17; border-radius:7px; background:linear-gradient(120deg,#29212e,#1a1a20); text-align:left; }
+.cinema-timing-row button:nth-child(2) { background:linear-gradient(120deg,#1f2a38,#1a1a20); }.cinema-timing-row button:nth-child(3) { background:linear-gradient(120deg,#352c24,#1a1a20); }
+.cinema-timing-row button>span { position:absolute; right:1.1rem; top:-.4rem; color:#ffffff15; font-size:7rem; line-height:1.3; }
+.cinema-timing-row strong { position:relative; display:block; color:#f5eee8; font-size:1.3rem; }
+.cinema-timing-row p { position:relative; margin-top:.7rem; max-width:27ch; color:#c3bdca; font-size:1rem; line-height:1.7; }
+.cinema-timing-row small { display:block; margin-top:1.4rem; color:#e4b978; font-size:.9rem; }
+.cinema-timing-row button:hover { border-color:#e4b978; }
+.kundli-cinema-page .personal-chart-reference { margin-top:3.5rem; padding:0; border:0; background:transparent; }
+.kundli-cinema-page .personal-chart-heading h3 { font-size:1.8rem; }
+.kundli-cinema-page .personal-chart-heading p { font-size:1rem; line-height:1.7; }
+.kundli-cinema-page .personal-chart-pair { gap:1.5rem; margin-top:1.5rem; }
+.kundli-cinema-page .personal-chart-pair article { padding:1.5rem; border:1px solid #ffffff17; border-radius:7px; background:#19191e; }
+.kundli-cinema-page .personal-chart-pair h4 { font-size:1.2rem; }.kundli-cinema-page .personal-chart-pair p { font-size:.95rem; }
+.kundli-cinema-page .personal-chart-pair article>button,.kundli-cinema-page .personal-more-paths button { min-height:44px; font-size:.95rem; }
+.kundli-cinema-page .personal-journal-disclosure { margin-top:2rem; font-size:1rem; background:#1b1b20; }
+.kundli-cinema-page :is(button,a,summary,input,select):focus-visible { outline:2px solid #f1cf9b; outline-offset:4px; }
+.kundli-cinema-page .kundli-entry-intro { min-height:380px; }
+.kundli-cinema-page .kundli-entry-copy h1 { font-size:clamp(3rem,5.6vw,5.3rem); }
+.kundli-cinema-page .kundli-entry-form { border-radius:8px; border:1px solid #ffffff20; box-shadow:none; }
+.kundli-cinema-page .kundli-entry-submit { background:#df303e; color:#fff; border-radius:5px; }
+.kundli-cinema-page .kundli-entry-submit:hover { background:#f34250; }
+.kundli-cinema-page input,.kundli-cinema-page select { color-scheme:dark; }
+@media(min-width:1024px) { .kundli-cinema-page .mode-user .workspace-body:not([data-section]) { grid-template-columns:minmax(300px,.75fr) minmax(0,1.25fr); } }
+@media(max-width:1000px) { .cinema-topic-row { grid-template-columns:repeat(5,190px); overflow-x:auto; scroll-snap-type:x proximity; scrollbar-width:thin; scrollbar-color:#61535c transparent; }.cinema-topic { scroll-snap-align:start; }.cinema-timing { flex-wrap:wrap; }.cinema-timing>div { flex-basis:100%; }.cinema-feature-art { opacity:.75; }.cinema-row-heading>span { display:none; } }
+@media(max-width:640px) {
+  .kundli-cinema-page .kundli-page-frame { padding-top:.7rem; padding-inline:1rem; }
+  .kundli-cinema-page .kundli-profile-header { padding:1rem 0 1.3rem; }
+  .kundli-cinema-page .kundli-profile-header p { font-size:.9rem; }
+  .kundli-cinema-page .workspace-header h2 { display:block; font-size:.95rem; }
+  .kundli-cinema-page .workspace-header { flex-wrap:wrap; gap:.75rem; }
+  .kundli-cinema-page .workspace-destinations { gap:1rem; }.kundli-cinema-page .workspace-destinations button { font-size:.9rem; }
+  .kundli-cinema-page .cinema-feature { display:block; min-height:0; padding:2rem 1.2rem; }
+  .kundli-cinema-page .kundli-workspace .personal-overview .cinema-feature { padding:2rem 1.2rem; }
+  .cinema-feature-art { position:absolute; top:0; right:-80px; width:290px; opacity:.28; z-index:0; }
+  .kundli-cinema-page .cinema-feature h2 { font-size:3rem; max-width:12ch; }.kundli-cinema-page .cinema-feature-copy>p { font-size:1rem; }
+  .cinema-feature-actions { gap:.5rem; }.cinema-feature-actions button { padding:.75rem 1rem; font-size:.95rem; }
+  .kundli-cinema-page .cinema-timing { padding:1.1rem; gap:1rem; margin-bottom:2rem; }.cinema-timing>strong { font-size:1rem; }
+  .cinema-topic-row { grid-template-columns:repeat(5,165px); gap:.8rem; }.cinema-topic { min-height:235px; }.cinema-topic-copy strong { font-size:1.1rem; }
+  .cinema-timing-row { grid-template-columns:1fr; }.cinema-timing-row button { min-height:180px; }
+  .kundli-cinema-page .personal-area-lead { font-size:1.1rem; }.kundli-cinema-page .personal-area-result-title { flex-wrap:wrap; gap:.8rem; }
+  .kundli-cinema-page .personal-chart-pair { grid-template-columns:1fr; }.kundli-cinema-page .personal-chart-heading { flex-wrap:wrap; gap:1rem; }
+}
+@media(prefers-reduced-motion:reduce) { .cinema-topic { transition:none; }.cinema-topic:hover { transform:none; } }
+@media print { .kundli-cinema-page { background:white; color:black; }.kundli-cinema-page .kundli-page-frame { padding:0; } }

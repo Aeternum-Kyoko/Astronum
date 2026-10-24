@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function HindiKundaliPage() {
   return (
-    <section className="relative">
+    <section className="relative kundli-cinema-page">
       <div className="kundli-page-frame relative mx-auto max-w-[1600px] px-5 py-16 md:py-24">
         <Suspense
           fallback={

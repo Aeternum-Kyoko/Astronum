@@ -8,17 +8,19 @@ import { pick } from "@/lib/i18n/ui";
 
 const FREQUENT: VargaKey[] = ["D1", "D9", "D10", "D2", "D3"];
 
-export default function ChartPicker({ value, onChange, label, transit = false }: {
+export default function ChartPicker({ value, onChange, label, transit = false, compact = false }: {
   value: VargaKey | "transit";
   onChange: (value: VargaKey | "transit") => void;
   label: string;
   transit?: boolean;
+  compact?: boolean;
 }) {
   const locale = useLocale();
   const L = pick(locale);
   const [expanded, setExpanded] = useState(false);
   const frequent = value !== "transit" && !FREQUENT.includes(value) ? [...FREQUENT, value] : FREQUENT;
   const other = VARGA_KEYS.filter(key => !frequent.includes(key));
+  if (compact) return <label className="rebuilt-compact-picker"><span>{label}</span><select value={value} onChange={event => onChange(event.target.value as VargaKey | "transit")}>{VARGA_KEYS.map(key => <option key={key} value={key}>{key} · {vargaInfo(key,locale).title}</option>)}{transit && <option value="transit">{L("Transits", "गोचर")}</option>}</select></label>;
   const chartButton = (key: VargaKey) => {
     const info = vargaInfo(key, locale);
     return <button type="button" key={key} aria-pressed={value === key} title={info.blurb} onClick={() => onChange(key)}><strong>{key}</strong><span>{info.title}</span></button>;

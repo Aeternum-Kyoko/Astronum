@@ -71,7 +71,7 @@ export default function Header({ locale }: { locale: Locale }) {
   return (
     <motion.header
       data-solid={solid ? "true" : undefined}
-      className="glass sticky top-0 z-50 pt-[env(safe-area-inset-top)] print:hidden"
+      className="site-cinema-header glass sticky top-0 z-50 pt-[env(safe-area-inset-top)] print:hidden"
     >
       <div className="relative mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
         <div className="flex items-center gap-1">
@@ -82,7 +82,7 @@ export default function Header({ locale }: { locale: Locale }) {
               </svg>
             </button>
           )}
-          <Link href={href("/")} transitionTypes={["tab"]} className="flex items-center gap-2.5">
+          <Link href={href("/")} transitionTypes={["tab"]} className="cinema-wordmark flex items-center gap-2.5">
             <MoonMark />
             <span className="font-display text-xl font-semibold text-cream">Astronum</span>
           </Link>
@@ -133,7 +133,7 @@ export default function Header({ locale }: { locale: Locale }) {
           </span>
           <Link
             href={href("/kundali")}
-            className="ml-2 hidden rounded-full bg-gold px-5 py-2 text-sm font-medium text-on-gold transition-colors hover:bg-gold-bright xl:inline-block"
+            className="cinema-primary ml-2 hidden rounded-full bg-gold px-5 py-2 text-sm font-medium text-on-gold transition-colors hover:bg-gold-bright xl:inline-block"
           >
             {t.generateKundli}
           </Link>

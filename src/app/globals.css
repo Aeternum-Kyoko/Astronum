@@ -3,23 +3,23 @@
 
 /* Observatory palette: indigo sky, plaster, and engraved gold. */
 :root {
-  --color-ink:#0e1733;
-  --color-ink-deep:#0a1128;
-  --color-surface:#142043;
-  --color-surface-raised:#1b2a55;
-  --color-border:#2a3a6b;
-  --color-gold:#dfac43;
-  --color-gold-bright:#f1ca75;
-  --color-cream:#eef0f5;
-  --color-muted:#b3bdd8;
+  --color-ink:#141414;
+  --color-ink-deep:#090909;
+  --color-surface:#202020;
+  --color-surface-raised:#2b2b2b;
+  --color-border:#3a3a3a;
+  --color-gold:#d8b47c;
+  --color-gold-bright:#f0d3a2;
+  --color-cream:#f5f3ef;
+  --color-muted:#bdb9b5;
   --color-rose:#ef7b76;
-  --color-violet:#1b2a55;
-  --color-on-gold:#0e1733;
-  --glass-bg:rgb(20,32,67);
+  --color-violet:#2b2b2b;
+  --color-on-gold:#141414;
+  --glass-bg:rgb(28,28,28);
   --input-inset:rgba(0,0,0,.25);
   --floating-shadow:rgba(3,6,18,.6);
-  --chart-top:#142043;
-  --chart-bottom:#0e1733;
+  --chart-top:#202020;
+  --chart-bottom:#141414;
   --glass-hi:rgba(255,255,255,.2);
   --glass-rim:rgba(0,0,0,.34);
   --glass-shine:rgba(255,255,255,.16);
@@ -51,16 +51,16 @@
 
 /* A section that is always the night sky, whatever the page theme (the home page hero). */
 .theme-night {
-  --color-ink:#0e1733;
-  --color-ink-deep:#0a1128;
-  --color-surface:#142043;
-  --color-surface-raised:#1b2a55;
-  --color-border:#2a3a6b;
-  --color-gold:#dfac43;
-  --color-gold-bright:#f1ca75;
-  --color-on-gold:#0e1733;
-  --color-cream:#eef0f5;
-  --color-muted:#b3bdd8;
+  --color-ink:#141414;
+  --color-ink-deep:#090909;
+  --color-surface:#202020;
+  --color-surface-raised:#2b2b2b;
+  --color-border:#3a3a3a;
+  --color-gold:#d8b47c;
+  --color-gold-bright:#f0d3a2;
+  --color-on-gold:#141414;
+  --color-cream:#f5f3ef;
+  --color-muted:#bdb9b5;
   background:var(--color-ink);
   color:var(--color-cream);
 }

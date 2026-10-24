@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The development badge otherwise covers the phone's Home tab.
+  devIndicators: false,
   experimental: {
     // The app has two root layouts ((en) and hi), so URLs matching neither need app/global-not-found.tsx.
     globalNotFound: true,

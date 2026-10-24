@@ -27,35 +27,8 @@ export default function KundliHeader({ chart, onEdit }: { chart: KundaliChart; o
   const locale = useLocale(); const L = pick(locale);
   const { name, date, time, place } = chart.input;
   const moon = chart.planets.find((p) => p.planet === "Moon")!;
-  return (
-    <header className="kundli-profile-header mb-4 print:hidden">
-      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-6">
-        <div className="min-w-0">
-          <h1 className="text-3xl leading-tight font-bold tracking-tight text-cream md:text-4xl">{name}</h1>
-          <p className="mt-3 text-base text-muted md:text-lg">
-            {formatDate(date,locale)} · {formatTime(time)}
-            {place ? ` · ${place.split(",")[0]}` : ""}
-          </p>
-          <p className="font-tabular mt-1 text-sm text-muted">
-            <span className="text-cream">{term(locale,chart.ascendant.sign)}</span> {L("Lagna","लग्न")} {dmsText(chart.ascendant.degreeInSign)} · {L("Moon in","चंद्र राशि")} <span className="text-cream">{term(locale,moon.sign)}</span> ({term(locale,moon.nakshatra)}) · Lahiri {chart.ayanamsa.toFixed(2)}°
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <SaveChartButton input={chart.input} />
-          <a href={`/api/kundali/pdf?${toBirthQuery(chart.input)}`} onClick={event => {
-            const selected = new URLSearchParams(window.location.search);
-            const url = new URL(event.currentTarget.href);
-            const date = selected.get("analysisDate"), time = selected.get("analysisTime");
-            if (date && time) { url.searchParams.set("analysisDate", date); url.searchParams.set("analysisTime", time); }
-            event.currentTarget.href = url.toString();
-          }} className="rounded-full bg-gold px-5 py-2 text-sm font-semibold text-on-gold transition-colors hover:bg-gold-bright">
-            {L("Download PDF","PDF डाउनलोड करें")}
-          </a>
-          <ActionsMenu onEdit={onEdit} />
-        </div>
-      </div>
-    </header>
-  );
+  return <div className="obs-profile-bar print:hidden"><details><summary>{L("Birth details", "जन्म विवरण")}<span>{formatDate(date,locale)} · {formatTime(time)} · {place.split(",")[0]}</span></summary><div><strong>{name}</strong><p>{formatDate(date,locale)} · {formatTime(time)} · {place}</p><p>{L("Lagna", "लग्न")}: {term(locale,chart.ascendant.sign)} {dmsText(chart.ascendant.degreeInSign)} · {L("Moon", "चंद्र")}: {term(locale,moon.sign)} · Lahiri {chart.ayanamsa.toFixed(2)}°</p><button type="button" onClick={onEdit}>{L("Edit birth details", "जन्म विवरण बदलें")}</button></div></details><div className="obs-profile-actions"><SaveChartButton input={chart.input}/><a href={`/api/kundali/pdf?${toBirthQuery(chart.input)}`} onClick={event=>{const selected=new URLSearchParams(window.location.search);const url=new URL(event.currentTarget.href);for(const key of ["analysisDate","analysisTime"]){const value=selected.get(key);if(value)url.searchParams.set(key,value);}event.currentTarget.href=url.toString();}}>{L("PDF", "PDF")}</a><ActionsMenu onEdit={onEdit}/></div></div>;
+
 }
 
 function ActionsMenu({ onEdit }: { onEdit: () => void }) {

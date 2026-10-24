@@ -1,0 +1,91 @@
+/* Independent phone/tablet design. Desktop rules are isolated in cinema-site.css. */
+.mobile-app-header,.mobile-home-shortcuts,.mobile-sky-trigger { display:none; }
+.responsive-sky-panel { min-width:0; }
+@media (max-width:1023px) {
+  body.cinema-site {
+    --color-ink:#101620; --color-ink-deep:#0b1019; --color-surface:#1a2230; --color-surface-raised:#252f40;
+    --color-border:#344052; --color-cream:#f3f3f4; --color-muted:#b1bdd0; --color-gold:#efbd81; --color-gold-bright:#ffdbac; --color-on-gold:#21190f;
+    --glass-bg:#1a2230; --chart-top:#1a2230; --chart-bottom:#101620;
+    --app-accent:#efbd81; --app-nav-height:68px;
+    background:var(--color-ink); color:var(--color-cream); padding-bottom:calc(var(--app-nav-height) + env(safe-area-inset-bottom) + 16px); -webkit-tap-highlight-color:transparent;
+  }
+  :root[data-theme=light] body.cinema-site { --color-ink:#f3f5f8; --color-ink-deep:#fff; --color-surface:#fff; --color-surface-raised:#e8edf4; --color-border:#cfd8e6; --color-cream:#152139; --color-muted:#56637a; --color-gold:#9a5e20; --color-gold-bright:#815019; --color-on-gold:#fff; --glass-bg:#fff; --chart-top:#fff; --chart-bottom:#f3f5f8; --app-accent:#9a5e20; }
+  .cinema-site>.site-cinema-header { display:none; }
+  .cinema-site .mobile-app-header { position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:12px; min-height:68px; padding:calc(8px + env(safe-area-inset-top)) 18px 8px; background:color-mix(in srgb,var(--color-ink) 96%,transparent); border-bottom:1px solid color-mix(in srgb,var(--color-border) 55%,transparent); backdrop-filter:blur(12px); }
+  .mobile-header-brand,.mobile-header-back,.mobile-header-account { display:grid; place-items:center; flex:none; width:44px; height:44px; border:1px solid var(--color-border); border-radius:14px; color:var(--app-accent); background:var(--color-surface); }
+  .mobile-header-brand svg { width:25px; height:25px; }.mobile-header-title { min-width:0; flex:1; }.mobile-header-title>span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:1.1rem; font-weight:650; line-height:1.3; }.mobile-header-title small { display:block; font-size:.75rem; margin-top:3px; color:var(--color-muted); }
+  .cinema-site .mobile-app-tabs { padding:6px 8px calc(6px + env(safe-area-inset-bottom)); background:var(--color-ink-deep); border-top:1px solid var(--color-border); box-shadow:0 -8px 30px #0002; }
+  .cinema-site .mobile-app-tabs { isolation:isolate; transform:translate3d(0,0,0); }
+  .mobile-app-tabs a,.mobile-app-tabs button { position:relative; min-height:56px; font-size:.72rem; line-height:1.4; color:var(--color-muted); touch-action:manipulation; }
+  .mobile-app-tabs a[aria-current],.mobile-app-tabs button[aria-expanded=true],.mobile-app-tabs button[aria-current] { color:var(--app-accent); }
+  .mobile-app-tabs a[aria-current]::before,.mobile-app-tabs button[aria-current]::before { content:""; position:absolute; width:24px; height:3px; border-radius:3px; background:var(--app-accent); top:0; left:calc(50% - 12px); }
+  .mobile-app-tabs a[aria-current]>span:first-child { opacity:.55; }
+  .cinema-site .mobile-app-tabs :focus-visible { outline-offset:-2px; }
+  .cinema-site .card-edge,.cinema-site .card-glass { background:var(--color-surface); border-radius:18px; border-color:var(--color-border); box-shadow:none; }
+  .cinema-site .input { min-height:48px; border-radius:12px; font-size:1rem; }
+  .cinema-site :is(input,select,textarea) { scroll-margin-block:100px 120px; }
+  .cinema-site :is(a,button,input,summary,select) { touch-action:manipulation; }
+  .cinema-site :is(button,a):active { -webkit-tap-highlight-color:transparent; }
+  .cinema-site :is(button.bg-gold,a.bg-gold) { border-radius:12px; }
+  .cinema-site h1,.cinema-site h2 { font-variation-settings:"wdth" 96; }
+  .cinema-site main { min-width:0; }
+  .cinema-site .theme-night { --color-ink:#101620; --color-ink-deep:#0b1019; --color-surface:#1a2230; --color-surface-raised:#252f40; --color-border:#344052; --color-gold:#efbd81; --color-gold-bright:#ffdbac; --color-cream:#f3f3f4; --color-muted:#b1bdd0; --color-on-gold:#21190f; }
+  .cinema-site .home-observatory { background:#101620; border-bottom:0; }
+  .cinema-site .home-observatory::before { background:radial-gradient(ellipse at 95% 0,#34466350,transparent 65%); }
+  .cinema-site .home-cosmic-planet,.cinema-site .home-cosmic-horizon,.cinema-site .home-orbital-scene { display:none; }
+  .cinema-site .home-cosmic-backdrop { opacity:.3; }
+  .cinema-site .home-feature-label { display:block; color:#efbd81; font-size:.82rem; margin-bottom:.75rem; }
+  .cinema-site .home-observatory .home-observatory-inner { display:grid; grid-template-columns:minmax(0,1fr); gap:1.4rem; padding:1.6rem 18px 1rem; }
+  .cinema-site .home-observatory-copy { padding:0; }
+  .cinema-site .home-observatory .home-observatory-copy h1 { font-size:clamp(2.4rem,9vw,3.3rem); max-width:16ch; line-height:1.08; }
+  .cinema-site .home-observatory-short { display:block; margin-top:1rem; font-size:1rem; line-height:1.7; }
+  .cinema-site .home-observatory-body { display:none; }
+  .cinema-site .home-observatory-now { margin-top:1.25rem; padding:1rem; border:1px solid #344052; border-radius:14px; background:#1a223080; }
+  .cinema-site .home-observatory-now p { font-size:.95rem; line-height:1.7; }.cinema-site .home-observatory-now small { font-size:.75rem; }
+  .cinema-site .home-observatory .home-observatory-actions { margin-top:1.25rem; gap:.5rem 1rem; }
+  .cinema-site .home-observatory .home-observatory-actions a { font-size:.9rem; min-height:48px; }
+  .cinema-site .home-observatory .home-observatory-actions a:first-child { border-radius:12px; background:#efbd81; border-color:#efbd81; box-shadow:none; color:#21190f; padding:.75rem 1.1rem; }
+  .cinema-site .mobile-home-shortcuts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+  .mobile-home-shortcuts a { display:flex; flex-direction:column; align-items:center; gap:10px; padding:15px 4px; min-height:88px; border:1px solid #344052; border-radius:16px; background:#1a2230; font-size:.75rem; color:#d3dfef; text-align:center; }
+  .mobile-home-shortcuts svg { color:#efbd81; }.mobile-home-shortcuts a:active { background:#293548; }
+  .mobile-sky-trigger { display:flex; width:100%; align-items:center; justify-content:space-between; gap:1rem; padding:16px; background:#1a2230; border:1px solid #344052; border-radius:16px; text-align:left; color:#f3f3f4; }
+  .mobile-sky-trigger strong { display:block; font-size:1.05rem; font-weight:600; }.mobile-sky-trigger small { display:block; color:#b1bdd0; font-size:.8rem; line-height:1.5; margin-top:4px; }.mobile-sky-trigger>span:last-child { font-size:1.6rem; color:#efbd81; }
+  .responsive-sky-panel[data-expanded=false] .responsive-sky-content { display:none; }
+  .responsive-sky-panel[data-expanded=true] .responsive-sky-content { padding-top:1.5rem; }
+  .cinema-site .home-observatory .home-observatory-dial { max-width:600px; margin:auto; }
+  .cinema-site .home-floating-instrument { transform:none; }
+  .cinema-site .sky-instrument-heading { justify-content:center; }
+  .cinema-site .sky-wheel-tools { gap:10px; }.cinema-site .sky-wheel-tools button { border-radius:10px; }
+  .cinema-site .sky-reading { background:#1a2230; border-color:#344052; border-radius:16px; }
+  .cinema-site .sky-astrology-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:16px; padding-top:16px; border-top:1px solid #344052; text-align:left; }
+  .sky-astrology-facts dt { font-size:.75rem; color:#b1bdd0; }.sky-astrology-facts dd { color:#efbd81; font-size:.9rem; line-height:1.6; margin-top:4px; }
+  .cinema-site .sky-reading .sky-meaning { font-size:.95rem; line-height:1.8; margin-top:16px; text-align:left; }.sky-personal-link { display:block; text-align:left; color:#efbd81; font-size:.9rem; padding-top:12px; }
+  .cinema-site .home-sky-strip { grid-template-columns:repeat(3,minmax(0,1fr)); padding:1rem 0; margin:0 18px; gap:10px; border-top-color:#344052; }.home-sky-strip>div>span { font-size:.72rem; }.home-sky-strip strong { font-size:.85rem; line-height:1.5; }.home-sky-strip>a { grid-column:1/-1; justify-content:start; min-height:44px; font-size:.85rem; }
+  .cinema-site .home-reading-includes>div { padding:1.5rem 18px; gap:1rem; }.cinema-site .home-reading-includes ul { display:none; }.cinema-site .home-reading-includes h2 { font-size:1.5rem; }
+  .cinema-site .home-tools { padding:2rem 18px; }.cinema-site .home-tools>div:first-child h2 { font-size:2rem; line-height:1.15; }.cinema-site .home-tools>div:first-child p { font-size:1rem; margin-top:12px; }
+  .cinema-site .home-tools>div:nth-child(2) { display:block; margin-top:1.5rem; }
+  .cinema-site .home-tool-group { margin-top:1.6rem; }.home-tool-group>h3 { font-size:1.2rem; border:0; padding:0; margin-bottom:12px; }
+  .cinema-site .home-tool-group>ul { display:grid; grid-template-columns:repeat(4,minmax(230px,72vw)); gap:12px; overflow-x:auto; scroll-snap-type:x proximity; overscroll-behavior-inline:contain; scrollbar-width:none; padding:2px 2px 12px; }
+  .cinema-site .home-tool-link { display:flex; flex-direction:column; gap:16px; min-height:210px; padding:20px; border:1px solid var(--color-border); border-radius:18px; background:var(--color-surface); scroll-snap-align:start; }
+  .cinema-site .home-tool-link>span:first-child { width:48px; height:48px; border-radius:14px; background:var(--color-surface-raised); }.cinema-site .home-tool-link>span:first-child svg { width:26px; height:26px; }
+  .cinema-site .home-tool-link>span:last-child>span:first-child { font-size:1.2rem; }.cinema-site .home-tool-link>span:last-child>span:nth-child(2) { font-size:.95rem; line-height:1.65; margin-top:8px; }
+  .cinema-site .cinema-zodiac>div { padding:2rem 18px; }.cinema-site .cinema-zodiac h2 { font-size:1.8rem; }.cinema-site .cinema-zodiac ul { margin-top:1.5rem; gap:10px; grid-template-columns:repeat(2,minmax(0,1fr)); }.cinema-site .cinema-zodiac a { flex-direction:column; align-items:start; gap:4px; border:1px solid var(--color-border); border-radius:14px; background:var(--color-surface); padding:14px; font-size:1.1rem; }
+  .cinema-site .cinema-horoscope-card { border-radius:18px; padding:20px; min-height:210px; }.cinema-site .cinema-horoscope-card>p { font-size:1rem; line-height:1.75; }
+  .cinema-site .cinema-reference-card { padding:20px; border-radius:18px; }.cinema-reference-symbol { display:block; color:var(--color-gold); font-size:2rem; margin-bottom:12px; }
+  .cinema-site .kundli-page-frame { padding:16px 16px 2rem; }.cinema-site .kundli-workspace .workspace-navigation { top:calc(68px + env(safe-area-inset-top)); }.cinema-site #kundli-sections { scroll-margin-top:calc(76px + env(safe-area-inset-top)); }
+  .cinema-site .kundli-workspace .workspace-destinations { gap:1rem; }.cinema-site .kundli-workspace .workspace-find { font-size:.85rem; }.cinema-site .kundli-entry-intro { min-height:0; }.cinema-site .kundli-entry-copy h1 { font-size:2.6rem; }.cinema-site .kundli-entry-art { display:none; }
+  .cinema-site .kundli-cinema-page .analysis-compact-trigger { color:#bcbac4; }.cinema-site .kundli-cinema-page .analysis-compact-trigger strong { color:#f7f5f1; }
+  .cinema-site footer>div { padding:1.5rem 18px; }.cinema-site footer>div>div:first-child,.cinema-site footer>div>div:nth-child(2) { display:none; }.cinema-site footer nav { margin-top:0; }.cinema-site footer nav a { display:inline-flex; align-items:center; min-height:44px; }
+  .mobile-sheet-root { top:var(--app-viewport-offset,0); bottom:auto; height:var(--app-visible-height,100dvh); }
+  .mobile-sheet-root .glass-sheet { display:flex; flex-direction:column; height:min(88dvh,calc(var(--app-visible-height,100dvh) - 24px)); max-height:100%; background:var(--color-ink-deep); box-shadow:0 -20px 60px #0008; }
+  .mobile-sheet-heading { display:flex; align-items:center; justify-content:space-between; padding:0 20px 12px; gap:1rem; border-bottom:1px solid var(--color-border); }.mobile-sheet-heading h2 { font-size:1.25rem; font-weight:650; }.mobile-sheet-heading button { display:grid; place-items:center; width:44px; height:44px; border-radius:50%; background:var(--color-surface); color:var(--color-cream); }
+  .mobile-sheet-content { flex:1; min-height:0; max-height:none; padding-top:16px; -webkit-overflow-scrolling:touch; }
+  .mobile-sheet-heading { flex:none; }
+  .cinema-site[data-keyboard-open=true] .mobile-app-tabs { display:none; }
+  .mobile-tool-search { display:block; }.mobile-tool-search input { min-height:48px; width:100%; padding:12px 16px; border:1px solid var(--color-border); border-radius:14px; background:var(--color-surface); color:var(--color-cream); font-size:1rem; }
+  .mobile-explore-content>section>ul>li>a { min-height:64px; }.mobile-explore-content section h2 { font-size:.85rem; }.mobile-explore-content>ul:first-of-type a { border-radius:14px; }
+  .cinema-site :focus-visible { outline:2px solid var(--app-accent); outline-offset:3px; }
+}
+@media (max-width:360px) { .mobile-app-header { gap:8px; }.mobile-header-title>span { font-size:1rem; }.mobile-app-tabs a,.mobile-app-tabs button { font-size:.67rem; }.mobile-home-shortcuts a { font-size:.68rem; } }
+@media (prefers-reduced-motion:reduce) { .mobile-app-header,.mobile-app-tabs,.responsive-sky-content { animation:none!important; transition:none!important; } }
+@media print { .mobile-app-header,.mobile-app-tabs,.mobile-sky-trigger { display:none!important; }.responsive-sky-content { display:block!important; } }

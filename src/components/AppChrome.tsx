@@ -48,7 +48,8 @@ export default function AppChrome() {
     const chromium = !!(navigator as { userAgentData?: { brands?: { brand: string }[] } }).userAgentData?.brands?.some((b) => b.brand === "Chromium");
     const capable = (navigator.hardwareConcurrency ?? 4) >= 6 && ((navigator as { deviceMemory?: number }).deviceMemory ?? 4) >= 4;
     const reduced = window.matchMedia("(prefers-reduced-transparency: reduce)").matches;
-    document.documentElement.classList.toggle("glass-refract", chromium && capable && !reduced);
+    const desktop = window.matchMedia("(min-width:1024px)").matches;
+    document.documentElement.classList.toggle("glass-refract", desktop && chromium && capable && !reduced);
 
     // The glass highlight follows the finger, or the phone's tilt when the user has allowed it.
     let frame = 0;
@@ -75,7 +76,7 @@ export default function AppChrome() {
       schedule();
     };
     if (!still) {
-      window.addEventListener("pointermove", onPointer, { passive: true });
+      if (desktop) window.addEventListener("pointermove", onPointer, { passive: true });
       window.addEventListener("deviceorientation", onTilt);
     }
 

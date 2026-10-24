@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/db";
-import SkyDial, { skyNow } from "@/components/SkyDial";
-import QuickKundaliForm from "@/components/QuickKundaliForm";
+import SkyDial from "@/components/SkyDial";
+import { skyNow } from "@/lib/skySnapshot";
+import CinematicSkyStage from "@/components/CinematicSkyStage";
+import ResponsiveSkyPanel from "@/components/ResponsiveSkyPanel";
 import ToolIcon from "@/components/icons/ToolIcon";
 import { NAKSHATRAS, SIGNS, SIGN_SANSKRIT } from "@/lib/astrology/constants";
 import { tithiIndex, tithiName } from "@/lib/astrology/birthDetails";
@@ -13,6 +15,7 @@ import { getDictionary } from "@/lib/i18n/dictionary";
 import { localizeHref, type Locale } from "@/lib/i18n/locale";
 import { term } from "@/lib/i18n/terms";
 import "./home.css";
+import "./home-cinema.css";
 
 const TOOLS = [
   { key: "kundli", href: "/kundali" },
@@ -60,18 +63,31 @@ export default async function HomeView({ locale }: { locale: Locale }) {
     .catch(() => []);
 
   return (
-    <>
+    <div className="cinema-home">
       <section className="theme-night home-observatory">
+        <div className="home-cosmic-backdrop" aria-hidden="true"><div className="home-cosmic-horizon" /><div className="home-cosmic-planet" /></div>
         <div className="home-observatory-inner">
           <div className="home-observatory-copy">
-            <h1>{t.heroTitle}</h1>
+            <span className="home-feature-label">{locale === "hi" ? "वैदिक ज्योतिष · आपकी कहानी" : "Vedic astrology. Your story."}</span>
+            <h1>{locale === "hi" ? "अपनी कुंडली की कहानी जानें।" : "There’s a story in your stars."}</h1>
             <p className="home-observatory-short">{t.heroShort}</p>
-            <p className="home-observatory-body">{t.heroBody}</p>
+            <p className="home-observatory-body">{locale === "hi" ? "अपनी जन्म कुंडली समझें, ग्रहों के गोचर जानें और जीवन के विषयों को विस्तार से देखें। आपकी व्याख्या यहीं से शुरू होती है।" : "Understand your birth chart, follow planetary transits, and explore the questions that matter to you. Your reading starts here."}</p>
             <div className="home-observatory-now"><p>{t.heroNow(moonSign, nakshatra, tithiLabel)}</p><small>{t.updated(now.toFormat("h:mm a"))}</small></div>
-            <div className="home-observatory-actions"><a href="#kundli-form">{t.makeKundli}</a><Link href={href("/panchang")}>{t.seePanchang}</Link></div>
+            <div className="home-observatory-actions"><Link href={href("/kundali")}>{t.makeKundli}</Link><Link href={href("/panchang")}>{t.seePanchang}</Link></div>
           </div>
-          <div className="home-observatory-dial"><SkyDial sky={sky} locale={locale} className="mx-auto w-full max-w-[500px] text-center" /></div>
-          <div className="home-observatory-form" id="kundli-form"><QuickKundaliForm copy={t.form} /></div>
+          <nav className="mobile-home-shortcuts" aria-label={locale === "hi" ? "जल्दी खोलें" : "Quick actions"}>{[
+            { path:"/kundali", icon:"kundli" as const, label:locale === "hi" ? "मेरी कुंडली" : "My Kundli" },
+            { path:"/horoscope/personal", icon:"personal" as const, label:locale === "hi" ? "मेरा दिन" : "My day" },
+            { path:"/matching", icon:"matching" as const, label:locale === "hi" ? "मिलान" : "Matching" },
+            { path:"/panchang", icon:"panchang" as const, label:locale === "hi" ? "पंचांग" : "Panchang" },
+          ].map(item => <Link key={item.path} href={href(item.path)} transitionTypes={["nav-forward"]}><ToolIcon name={item.icon} className="h-6 w-6" /><span>{item.label}</span></Link>)}</nav>
+          <ResponsiveSkyPanel locale={locale}><CinematicSkyStage><SkyDial sky={sky} locale={locale} className="mx-auto w-full text-center" /></CinematicSkyStage></ResponsiveSkyPanel>
+        </div>
+        <div className="home-sky-strip" aria-label={locale === "hi" ? "आज का आकाश एक नज़र में" : "Today's sky at a glance"}>
+          <div><span>{locale === "hi" ? "चंद्र राशि" : "Moon sign"}</span><strong>{moonSign}</strong></div>
+          <div><span>{locale === "hi" ? "नक्षत्र" : "Nakshatra"}</span><strong>{nakshatra}</strong></div>
+          <div><span>{locale === "hi" ? "आज की तिथि" : "Today's tithi"}</span><strong>{tithiLabel}</strong></div>
+          <Link href={href("/panchang")}>{locale === "hi" ? "आज का पंचांग देखें" : "Explore today's Panchang"}<span aria-hidden="true">↗</span></Link>
         </div>
       </section>
 
@@ -99,7 +115,7 @@ export default async function HomeView({ locale }: { locale: Locale }) {
                   const [title, body] = d.tools[tool.key];
                   return (
                     <li key={key}>
-                      <Link href={href(tool.href)} className="home-tool-link group flex items-start gap-4 border-b border-border/50 py-4">
+                      <Link href={href(tool.href)} data-tool={tool.key} className="home-tool-link group flex items-start gap-4 border-b border-border/50 py-4">
                         <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-raised text-gold-bright" aria-hidden="true">
                           <ToolIcon name={tool.key} className="h-5 w-5" />
                         </span>
@@ -119,7 +135,7 @@ export default async function HomeView({ locale }: { locale: Locale }) {
       </section>
 
       {/* Horoscope by sign, set as type */}
-      <section className="border-y border-border bg-surface">
+      <section className="cinema-zodiac border-y border-border bg-surface">
         <div className="mx-auto max-w-6xl px-5 py-14 md:py-24">
           <h2 className="text-3xl leading-none font-semibold text-cream md:text-5xl">{t.zodiacTitle}</h2>
           <ul className="mt-10 grid grid-cols-2 gap-x-8 gap-y-1 sm:grid-cols-3 lg:grid-cols-4">
@@ -197,6 +213,6 @@ export default async function HomeView({ locale }: { locale: Locale }) {
           </Link>
         </div>
       </section>
-    </>
+    </div>
   );
 }

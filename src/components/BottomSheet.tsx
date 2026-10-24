@@ -22,7 +22,10 @@ export default function BottomSheet({ open, onClose, title, children }: { open: 
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const prevFocus = document.activeElement as HTMLElement | null;
-    panel.current?.focus();
+    const background = Array.from(document.querySelectorAll<HTMLElement>("body > main, body > header, body > footer, nav[aria-label='Quick']"));
+    const previousInert = background.map(element => element.inert);
+    background.forEach(element => { element.inert = true; });
+    panel.current?.focus({ preventScroll:true });
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
       if (e.key === "Tab" && panel.current) {
@@ -30,7 +33,7 @@ export default function BottomSheet({ open, onClose, title, children }: { open: 
         if (!items.length) return;
         const first = items[0];
         const last = items[items.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
+        if (e.shiftKey && (document.activeElement === first || document.activeElement === panel.current)) {
           e.preventDefault();
           last.focus();
         } else if (!e.shiftKey && document.activeElement === last) {
@@ -42,6 +45,7 @@ export default function BottomSheet({ open, onClose, title, children }: { open: 
     window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prevOverflow;
+      background.forEach((element, index) => { element.inert = previousInert[index]; });
       window.removeEventListener("keydown", onKey);
       prevFocus?.focus?.();
     };
@@ -58,7 +62,7 @@ export default function BottomSheet({ open, onClose, title, children }: { open: 
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[60] lg:hidden">
+        <div className="mobile-sheet-root fixed inset-0 z-[60] lg:hidden">
           <motion.div
             className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
             initial={{ opacity: 0 }}
@@ -90,7 +94,8 @@ export default function BottomSheet({ open, onClose, title, children }: { open: 
             <div className="flex cursor-grab touch-none justify-center pt-3 pb-2 active:cursor-grabbing" onPointerDown={(e) => drag.start(e)}>
               <span className="h-1.5 w-10 rounded-full bg-border" aria-hidden="true" />
             </div>
-            <div className="max-h-[calc(88dvh-2.5rem)] overflow-y-auto overscroll-contain px-5 pb-6">{children}</div>
+            <div className="mobile-sheet-heading"><h2>{title}</h2><button type="button" onClick={onClose} aria-label={`Close ${title}`}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg></button></div>
+            <div className="mobile-sheet-content max-h-[calc(88dvh-2.5rem)] overflow-y-auto overscroll-contain px-5 pb-6">{children}</div>
           </motion.div>
         </div>
       )}

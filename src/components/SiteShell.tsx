@@ -10,6 +10,9 @@ import { DISPLAY_INIT_SCRIPT } from "@/lib/displayPrefs";
 import type { Locale } from "@/lib/i18n/locale";
 import { LocaleProvider } from "@/lib/i18n/LocaleContext";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
+import "@/app/cinema-site.css";
+import "@/app/mobile-app.css";
+import MobileAppHeader from "@/components/MobileAppHeader";
 
 const SITE_JSON_LD = {
   "@context": "https://schema.org",
@@ -32,10 +35,11 @@ export function SiteHead() {
 /** The page chrome around every page, in the layout's language. */
 export function SiteBody({ locale, children }: { locale: Locale; children: React.ReactNode }) {
   return (
-    <body className="min-h-full flex flex-col bg-ink pb-[calc(5.25rem+env(safe-area-inset-bottom))] text-cream lg:pb-0 print:pb-0">
+    <body className="cinema-site min-h-full flex flex-col bg-ink pb-[calc(5.25rem+env(safe-area-inset-bottom))] text-cream lg:pb-0 print:pb-0">
       <MotionProvider>
         <AppChrome />
         <Header locale={locale} />
+        <MobileAppHeader locale={locale} />
         <main className="flex-1">
           <LocaleProvider locale={locale}>
             <PageTransition>{children}</PageTransition>

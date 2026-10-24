@@ -1,0 +1,45 @@
+export interface KundliSection {
+  slug:string; tab:string; title:string; titleHi:string; description:string; descriptionHi:string;
+  personal?:"My chart"|"Life areas"|"Timing"|"Guidance"; expert:"Charts"|"Calculations"|"Timing"|"Systems"|"Case file"|"Readings";
+}
+
+export const KUNDLI_SECTIONS: KundliSection[] = [
+  {slug:"rasi",tab:"D1 · Rasi Chart",title:"Birth chart · D1",titleHi:"जन्म कुंडली",description:"Explore planets, houses and the foundations of your chart.",descriptionHi:"ग्रह, भाव और कुंडली के मुख्य आधार समझें।",personal:"My chart",expert:"Charts"},
+  {slug:"navamsa",tab:"D9 · Navamsa",title:"Navamsa · D9",titleHi:"नवांश · D9",description:"The divisional chart of partnership and underlying strength.",descriptionHi:"साझेदारी और आंतरिक बल की वर्ग कुंडली।",personal:"My chart",expert:"Charts"},
+  {slug:"vargas",tab:"More Vargas",title:"Divisional chart library",titleHi:"वर्ग कुंडलियाँ",description:"All 16 vargas, with the purpose of each chart explained.",descriptionHi:"सभी 16 वर्ग कुंडलियाँ और उनका विषय।",personal:"My chart",expert:"Charts"},
+  {slug:"compare",tab:"Compare Charts",title:"Compare charts & birth times",titleHi:"कुंडली तुलना",description:"Inspect relationships between chart factors and comparison dates.",descriptionHi:"कुंडली के कारकों और तुलना की तिथियों को देखें।",expert:"Charts"},
+  {slug:"houses",tab:"Houses",title:"House-by-house reading",titleHi:"बारह भाव",description:"How each house connects to a part of your life.",descriptionHi:"हर भाव जीवन के किस क्षेत्र से जुड़ा है।",personal:"My chart",expert:"Readings"},
+  {slug:"planets",tab:"Planet Readings",title:"Planet-by-planet reading",titleHi:"आपके ग्रहों की व्याख्या",description:"Understand each graha and its place in your chart.",descriptionHi:"हर ग्रह और आपकी कुंडली में उसका स्थान समझें।",personal:"My chart",expert:"Readings"},
+  {slug:"report",tab:"Life Report",title:"Life overview",titleHi:"आपकी पूरी व्याख्या",description:"A continuous reading of the main themes in your chart.",descriptionHi:"कुंडली के मुख्य विषयों की क्रमबद्ध व्याख्या।",personal:"My chart",expert:"Readings"},
+  {slug:"career",tab:"Career",title:"Career & purpose",titleHi:"करियर और उद्देश्य",description:"Work, direction and professional responsibilities.",descriptionHi:"काम, दिशा और व्यावसायिक जिम्मेदारियाँ।",personal:"Life areas",expert:"Readings"},
+  {slug:"relationships",tab:"Relationships",title:"Relationships",titleHi:"संबंध",description:"Partnership, connection and the marriage indicators.",descriptionHi:"साझेदारी, जुड़ाव और विवाह के संकेत।",personal:"Life areas",expert:"Readings"},
+  {slug:"wealth",tab:"Wealth",title:"Money & resources",titleHi:"धन और संसाधन",description:"Earnings, accumulation and financial patterns.",descriptionHi:"आय, संचय और धन के संकेत।",personal:"Life areas",expert:"Readings"},
+  {slug:"education",tab:"Education",title:"Learning & education",titleHi:"शिक्षा और अध्ययन",description:"Study, curiosity and the pursuit of knowledge.",descriptionHi:"अध्ययन, जिज्ञासा और ज्ञान की खोज।",personal:"Life areas",expert:"Readings"},
+  {slug:"property",tab:"Property",title:"Home & property",titleHi:"घर और संपत्ति",description:"Roots, belonging and the foundations of home.",descriptionHi:"घर, आधार और अपनापन।",personal:"Life areas",expert:"Readings"},
+  {slug:"dashas",tab:"Dashas",title:"Planetary periods · Vimshottari",titleHi:"विंशोत्तरी दशा",description:"Follow your planetary periods and their subperiods.",descriptionHi:"ग्रह दशाएँ और उनकी अंतर्दशाएँ देखें।",personal:"Timing",expert:"Timing"},
+  {slug:"transits",tab:"Transits",title:"Transit explorer",titleHi:"वर्तमान गोचर",description:"The moving sky and its relationship to your birth chart.",descriptionHi:"बदलते आकाश का आपकी जन्म कुंडली से संबंध।",personal:"Timing",expert:"Timing"},
+  {slug:"monthly",tab:"Monthly Forecast",title:"Monthly outlook",titleHi:"आने वाला महीना",description:"Explore the changing themes of your selected month.",descriptionHi:"चुने हुए महीने के बदलते संकेत देखें।",personal:"Timing",expert:"Timing"},
+  {slug:"annual",tab:"Annual Reading",title:"Annual return reading",titleHi:"वार्षिक व्याख्या",description:"Look at the year through your annual chart.",descriptionHi:"वर्ष कुंडली के माध्यम से अपना वर्ष देखें।",personal:"Timing",expert:"Timing"},
+  {slug:"timeline",tab:"Life Timeline",title:"Life chapters & timing",titleHi:"जीवन समयरेखा",description:"Read longer periods and their overlapping themes.",descriptionHi:"लंबी अवधियों और उनके संयुक्त विषयों को समझें।",personal:"Timing",expert:"Timing"},
+  {slug:"calendar",tab:"Signal Calendar",title:"Timing calendar",titleHi:"संकेत कैलेंडर",description:"Inspect dated indicators and supporting evidence.",descriptionHi:"तिथि अनुसार संकेत और उनके आधार देखें।",expert:"Timing"},
+  {slug:"yogini",tab:"Yogini Dasha",title:"Yogini periods",titleHi:"योगिनी दशा",description:"A separate dasha framework for timing investigation.",descriptionHi:"समय की जाँच के लिए योगिनी दशा पद्धति।",expert:"Timing"},
+  {slug:"chara",tab:"Chara Dasha",title:"Jaimini periods · Chara",titleHi:"चर दशा",description:"Sign-based periods in the Jaimini framework.",descriptionHi:"जैमिनी पद्धति में राशि आधारित दशाएँ।",expert:"Timing"},
+  {slug:"shadbala",tab:"Shadbala",title:"Planetary strength · Shadbala",titleHi:"षड्बल",description:"Six-component planetary strengths, totals and thresholds.",descriptionHi:"ग्रहों के छह बल, कुल मान और आवश्यक बल।",expert:"Calculations"},
+  {slug:"ashtakavarga",tab:"Ashtakavarga",title:"Sign strength · Ashtakavarga",titleHi:"अष्टकवर्ग",description:"Bhinna and Sarva bindus with detailed strength analysis.",descriptionHi:"भिन्न और सर्व अष्टकवर्ग बिंदु तथा बल विश्लेषण।",expert:"Calculations"},
+  {slug:"lords",tab:"House Lords",title:"House rulers & placements",titleHi:"भाव स्वामी सारणी",description:"Lordships, placements and house relationships.",descriptionHi:"भाव स्वामित्व, स्थिति और भाव संबंध।",expert:"Calculations"},
+  {slug:"yogas",tab:"Yogas & Doshas",title:"Yogas, doshas & cancellations",titleHi:"योग और दोष",description:"Classical combinations, conditions and cancellations.",descriptionHi:"शास्त्रीय योग, स्थितियाँ और दोष निवारण के नियम।",personal:"Guidance",expert:"Calculations"},
+  {slug:"sectors",tab:"Life Sectors",title:"Life-area evidence",titleHi:"जीवन क्षेत्र विश्लेषण",description:"Inspect the evidence behind each life domain.",descriptionHi:"जीवन के हर क्षेत्र के संकेतों का आधार देखें।",expert:"Readings"},
+  {slug:"kp",tab:"KP System",title:"KP cusps & significators",titleHi:"केपी पद्धति",description:"Stellar and sub-lord analysis in the KP framework.",descriptionHi:"केपी पद्धति में नक्षत्र और उपस्वामी विश्लेषण।",expert:"Systems"},
+  {slug:"lalkitab",tab:"Lal Kitab",title:"Lal Kitab readings",titleHi:"लाल किताब",description:"The existing Lal Kitab analysis and remedies.",descriptionHi:"लाल किताब के विश्लेषण और उपाय।",expert:"Systems"},
+  {slug:"tables",tab:"Special Tables",title:"Classical reference tables",titleHi:"विशेष सारणियाँ",description:"Additional classical reference and calculation tables.",descriptionHi:"अन्य शास्त्रीय संदर्भ और गणना सारणियाँ।",expert:"Systems"},
+  {slug:"remedies",tab:"Remedies",title:"Remedies & practices",titleHi:"उपाय और अभ्यास",description:"Read the traditional recommendations and their basis.",descriptionHi:"पारंपरिक सुझाव और उनका आधार समझें।",personal:"Guidance",expert:"Systems"},
+  {slug:"rudraksha",tab:"Rudraksha",title:"Rudraksha guidance",titleHi:"रुद्राक्ष",description:"Chart-based rudraksha guidance with explanations.",descriptionHi:"व्याख्या सहित कुंडली आधारित रुद्राक्ष सुझाव।",personal:"Guidance",expert:"Systems"},
+  {slug:"vastu",tab:"Vastu & Home",title:"Vastu & home",titleHi:"वास्तु और घर",description:"Home layout with your personal chart context.",descriptionHi:"आपकी कुंडली के संदर्भ में घर का नक्शा।",personal:"Guidance",expert:"Systems"},
+  {slug:"precision",tab:"Birth Precision",title:"Birth-time reliability",titleHi:"जन्म समय की विश्वसनीयता",description:"Record uncertainty and inspect chart sensitivity.",descriptionHi:"अनिश्चितता दर्ज करें और कुंडली की संवेदनशीलता जाँचें।",personal:"My chart",expert:"Case file"},
+  {slug:"journal",tab:"Event Journal",title:"Life-event journal",titleHi:"घटना विवरण",description:"Record life events for later investigation.",descriptionHi:"आगे की जाँच के लिए जीवन की घटनाएँ दर्ज करें।",expert:"Case file"},
+  {slug:"calculations",tab:"Calculation Details",title:"Calculation methods & settings",titleHi:"गणना का विवरण",description:"Inspect the time zone, ayanamsa and calculation conventions.",descriptionHi:"समय क्षेत्र, अयनांश और गणना के नियम देखें।",expert:"Case file"},
+];
+
+export const PERSONAL_CATEGORIES = ["My chart", "Life areas", "Timing", "Guidance"] as const;
+export const EXPERT_CATEGORIES = ["Charts", "Calculations", "Timing", "Systems", "Case file", "Readings"] as const;
+export const CATEGORY_HI: Record<string,string> = { Overview:"अवलोकन", "My chart":"मेरी कुंडली", "Life areas":"जीवन क्षेत्र", Timing:"दशा और गोचर", Guidance:"मार्गदर्शन", Charts:"कुंडलियाँ", Calculations:"गणना और बल", Systems:"विशेष पद्धतियाँ", "Case file":"जन्म विवरण", Readings:"व्याख्याएँ" };

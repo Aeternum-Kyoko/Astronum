@@ -5,6 +5,19 @@ import { VARGA_KEYS } from "../constants";
 const chart = calculateKundali({ name: "Test", date: "1990-04-12", time: "06:45", latitude: 26.9124, longitude: 75.7873, timezone: "Asia/Kolkata", place: "Jaipur" });
 const at = new Date("2026-10-12T06:30:00Z");
 describe("connected chart inspection", () => {
+  it.each(VARGA_KEYS)("keeps %s conjunctions separate from incoming aspects", key => {
+    const source = key === "D1" ? chart.planets : chart.divisionalCharts[key].planets;
+    for (const planet of source) {
+      const detail = inspectChart(chart, key, { kind:"planet", planet:planet.planet }, at);
+      expect(detail.conjunctPlanets.map(p => p.planet).sort()).toEqual(source.filter(p => p.signIndex === planet.signIndex && p.planet !== planet.planet).map(p => p.planet).sort());
+      expect(detail.incoming.every(p => p.signIndex !== planet.signIndex)).toBe(true);
+      for (const group of detail.conjunctionReadings) {
+        expect(group.planets).toContain(planet.planet);
+        expect(group.house).toBe(detail.house);
+      }
+      if (key === "D2") expect(detail.conjunctionReadings).toEqual([]);
+    }
+  });
   it.each(VARGA_KEYS)("projects %s selection, occupants, lord and aspects from one calculation", key => {
     for (const planet of chart.planets) {
       const detail = inspectChart(chart, key, { kind: "planet", planet: planet.planet }, at);

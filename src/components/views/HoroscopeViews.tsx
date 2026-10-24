@@ -63,7 +63,8 @@ export function HoroscopeIndexView({ locale, day, by = "moon" }: { locale: Local
             <li key={h.slug}>
               <Link
                 href={horoscopeHref(lx(`/horoscope/${h.slug}`), dayKey, by)}
-                className="card-edge group flex h-full flex-col rounded-2xl p-5 transition-transform hover:-translate-y-0.5"
+                data-glyph={SIGN_GLYPHS[i]}
+                className="cinema-horoscope-card card-edge group flex h-full flex-col rounded-2xl p-5 transition-transform hover:-translate-y-0.5"
               >
                 <div className="flex items-center gap-4">
                   <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-gold/30 bg-gold/10 text-2xl text-gold-bright" aria-hidden="true">
