@@ -27,7 +27,7 @@ export default function KundliHeader({ chart, onEdit }: { chart: KundaliChart; o
   const locale = useLocale(); const L = pick(locale);
   const { name, date, time, place } = chart.input;
   const moon = chart.planets.find((p) => p.planet === "Moon")!;
-  return <div className="obs-profile-bar print:hidden"><details><summary>{L("Birth details", "जन्म विवरण")}<span>{formatDate(date,locale)} · {formatTime(time)} · {place.split(",")[0]}</span></summary><div><strong>{name}</strong><p>{formatDate(date,locale)} · {formatTime(time)} · {place}</p><p>{L("Lagna", "लग्न")}: {term(locale,chart.ascendant.sign)} {dmsText(chart.ascendant.degreeInSign)} · {L("Moon", "चंद्र")}: {term(locale,moon.sign)} · Lahiri {chart.ayanamsa.toFixed(2)}°</p><button type="button" onClick={onEdit}>{L("Edit birth details", "जन्म विवरण बदलें")}</button></div></details><div className="obs-profile-actions"><SaveChartButton input={chart.input}/><a href={`/api/kundali/pdf?${toBirthQuery(chart.input)}`} onClick={event=>{const selected=new URLSearchParams(window.location.search);const url=new URL(event.currentTarget.href);for(const key of ["analysisDate","analysisTime"]){const value=selected.get(key);if(value)url.searchParams.set(key,value);}event.currentTarget.href=url.toString();}}>{L("PDF", "PDF")}</a><ActionsMenu onEdit={onEdit}/></div></div>;
+  return <div className="obs-profile-bar print:hidden"><details><summary>{L("Birth details", "जन्म विवरण")}<span>{formatDate(date,locale)} · {formatTime(time)} · {place.split(",")[0]}</span></summary><div><strong>{name}</strong><p>{formatDate(date,locale)} · {formatTime(time)} · {place}</p><p>{L("Lagna", "लग्न")}: {term(locale,chart.ascendant.sign)} {dmsText(chart.ascendant.degreeInSign)} · {L("Moon", "चंद्र")}: {term(locale,moon.sign)} · Lahiri {chart.ayanamsa.toFixed(2)}°</p><button type="button" onClick={onEdit}>{L("Edit birth details", "जन्म विवरण बदलें")}</button></div></details><div className="obs-profile-actions"><button type="button" onClick={onEdit} className="rounded-full border border-border px-3 py-2 text-xs text-gold-bright">{L("Edit / New Kundli", "बदलें / नई कुंडली")}</button><SaveChartButton input={chart.input}/><a href={`/api/kundali/pdf?${toBirthQuery(chart.input)}`} onClick={event=>{const selected=new URLSearchParams(window.location.search);const url=new URL(event.currentTarget.href);for(const key of ["analysisDate","analysisTime"]){const value=selected.get(key);if(value)url.searchParams.set(key,value);}event.currentTarget.href=url.toString();}}>{L("PDF", "PDF")}</a><ActionsMenu onEdit={onEdit}/></div></div>;
 
 }
 
@@ -35,6 +35,7 @@ function ActionsMenu({ onEdit }: { onEdit: () => void }) {
   const L = pick(useLocale());
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -50,12 +51,13 @@ function ActionsMenu({ onEdit }: { onEdit: () => void }) {
   }, [open]);
 
   async function copy() {
+    setCopyError(false);
     try {
       await navigator.clipboard.writeText(window.location.href);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      /* the address bar still has the link */
+      setCopied(false); setCopyError(true);
     }
   }
   const item = "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-cream hover:bg-surface-raised";
@@ -78,7 +80,7 @@ function ActionsMenu({ onEdit }: { onEdit: () => void }) {
       {open && (
         <div className="card-glass shadow-floating absolute right-0 z-30 mt-2 w-52 rounded-2xl p-1.5">
           <button type="button" className={item} onClick={copy}>
-            {copied ? L("Link copied","लिंक कॉपी हुआ") : L("Copy link","लिंक कॉपी करें")}
+            {copyError ? L("Copy failed — try again", "कॉपी नहीं हुआ — पुनः प्रयास करें") : copied ? L("Link copied","लिंक कॉपी हुआ") : L("Copy link","लिंक कॉपी करें")}
           </button>
           <button
             type="button"

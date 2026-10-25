@@ -13,15 +13,20 @@ export default function SaveChartButton({ input }: { input: BirthInput }) {
   const [message, setMessage] = useState<string | null>(null);
 
   async function save() {
+    if (state === "saving" || state === "saved") return;
     setState("saving");
+    setMessage(null);
+    try {
     const res = await fetch("/api/charts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
+      signal: AbortSignal.timeout(30000),
     });
     if (res.status === 401) {
       // Come back to this exact chart after signing in.
       router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      setState("idle");
       return;
     }
     const data = await res.json().catch(() => ({}));
@@ -31,6 +36,10 @@ export default function SaveChartButton({ input }: { input: BirthInput }) {
       return;
     }
     setState("saved");
+    } catch {
+      setState("error");
+      setMessage(L("Could not save the chart. Check your connection and try again.", "कुंडली सहेजी नहीं जा सकी। कनेक्शन जाँचें और पुनः प्रयास करें।"));
+    }
   }
 
   return (

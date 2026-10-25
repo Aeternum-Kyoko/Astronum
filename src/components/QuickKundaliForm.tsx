@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import DatePicker from "@/components/DatePicker";
 import TimePicker from "@/components/TimePicker";
@@ -16,7 +16,7 @@ export default function QuickKundaliForm({ copy, target = "/kundali" }: { copy: 
   const [time, setTime] = useState("");
   const [place, setPlace] = useState<PlaceSuggestion | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, startNavigation] = useTransition();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,8 +25,7 @@ export default function QuickKundaliForm({ copy, target = "/kundali" }: { copy: 
       return;
     }
     setError(null);
-    setSubmitting(true);
-    router.push(
+    startNavigation(() => router.push(
       `${target}?${toBirthQuery({
         name: name.trim(),
         date,
@@ -36,7 +35,7 @@ export default function QuickKundaliForm({ copy, target = "/kundali" }: { copy: 
         longitude: place.longitude,
         timezone: place.timezone,
       })}`
-    );
+    ));
   }
 
   return (

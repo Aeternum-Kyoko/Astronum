@@ -15,15 +15,22 @@ export function ForgotPasswordForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    try {
     const res = await fetch("/api/auth/forgot", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
+      signal: AbortSignal.timeout(30000),
     });
     const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) setError(data.error ?? "Something went wrong");
     else setMessage(data.message);
+    } catch {
+      setError("Could not send the reset link. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -79,10 +86,12 @@ export function ResetPasswordForm() {
     }
     setLoading(true);
     setError(null);
+    try {
     const res = await fetch("/api/auth/reset", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, password }),
+      signal: AbortSignal.timeout(30000),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -93,6 +102,11 @@ export function ResetPasswordForm() {
     window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
     router.push("/account");
     router.refresh();
+    } catch {
+      setError("Could not reset your password. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (!token) {

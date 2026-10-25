@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import type { KundaliChart } from "@/lib/astrology/types";
@@ -75,6 +75,7 @@ export default function KundaliForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ birth: chart.input, sections: missing, locale }),
+        signal: AbortSignal.timeout(60000),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not load the detailed readings.");
@@ -89,7 +90,8 @@ export default function KundaliForm() {
     }
   }
   const anchorRef = useRef<HTMLDivElement>(null);
-  const autoLoaded = useRef(false);
+  const lastBirthQuery = useRef<string | null>(null);
+  const request = useRef<AbortController | null>(null);
   // Home-page tool tiles link to e.g. /kundali?tab=dashas; open the result on that section.
   const [initialTab, setInitialTab] = useState(() => searchParams.get("tab"));
 
@@ -101,7 +103,12 @@ export default function KundaliForm() {
   }, [view]);
 
   async function generate(params: BirthParams) {
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
     const epoch = ++generation.current;
+    setName(params.name); setDate(params.date); setTime(params.time);
+    setSelectedPlace({ displayName: params.place, latitude: params.latitude, longitude: params.longitude, timezone: params.timezone });
     pending.current.clear(); failedSections.current.clear(); setSectionError(null);
     setError(null);
     setCalculationInput(params);
@@ -118,9 +125,11 @@ export default function KundaliForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...params, locale }),
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(60000)]),
       });
       const data = res ? await res.json() : cached!;
       if (res && !res.ok) throw new Error(data.error ?? t("Something went wrong"));
+      if (generation.current !== epoch) return;
       chartMemory.set(cacheKey,{at:Date.now(),chart:data.chart,report:data.report});
       ready = true;
 
@@ -139,10 +148,12 @@ export default function KundaliForm() {
       setOfflineFrom(null);
       haptic("success");
       // Reflect the chart in the URL so it can be bookmarked or shared.
+      lastBirthQuery.current = toBirthQuery(params);
       router.replace(`${locale === "hi" ? "/hi" : ""}/kundali?${nextQuery.toString()}`, { scroll: false });
     } catch (err) {
+      if (controller.signal.aborted || generation.current !== epoch) return;
       // No connection: open the copy kept on this device, if there is one.
-      const stored = err instanceof TypeError ? await loadChart(params) : null;
+      const stored = err instanceof TypeError ? await loadChart(params).catch(() => null) : null;
       if (generation.current !== epoch) return;
       if (stored) {
         ready = true;
@@ -165,16 +176,34 @@ export default function KundaliForm() {
     }
   }
 
-  // Generate straight away for birth details that arrived in the URL.
+  // Same-route links and browser history must update the workspace as well.
+  const syncLocation = useEffectEvent((query: string) => {
+    const params = fromBirthQuery(new URLSearchParams(query));
+    const key = params ? toBirthQuery(params) : "";
+    if (lastBirthQuery.current === key) return;
+    lastBirthQuery.current = key;
+    if (params) void generate(params);
+    else {
+      request.current?.abort();
+      generation.current++;
+      pending.current.clear(); failedSections.current.clear();
+      setLoading(false); setChart(null); setReport(null); setError(null); setSectionError(null); setOfflineFrom(null);
+    }
+  });
+  const locationQuery = searchParams.toString();
   useEffect(() => {
-    if (autoLoaded.current || !urlParams) return;
-    autoLoaded.current = true;
-    void generate(urlParams);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once for the URL present on arrival
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronize this persistent workspace with external URL navigation
+    syncLocation(locationQuery);
+  }, [locationQuery]);
+  useEffect(() => () => {
+    request.current?.abort();
+    generation.current++;
+    lastBirthQuery.current = null;
   }, []);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
     if (!name.trim() || !date || !time || !selectedPlace) {
       setError(t("Please fill in your name, birth date, time, and select a birth place from the list."));
       return;
@@ -191,13 +220,18 @@ export default function KundaliForm() {
   }
 
   function editChart() {
+    request.current?.abort();
+    generation.current++;
+    setLoading(false);
     setChart(null);
-    router.replace("/kundali", { scroll: false });
+    setReport(null); setError(null); setSectionError(null); setOfflineFrom(null);
+    lastBirthQuery.current = "";
+    router.replace(locale === "hi" ? "/hi/kundali" : "/kundali", { scroll: false });
   }
 
   return (
     <div ref={anchorRef} className="scroll-mt-24">
-      {loading && calculationInput && <div className="kundli-entry-overlay"><KundliCalculation birth={calculationInput} chart={chart}/></div>}
+      {loading && calculationInput && <div className="kundli-entry-overlay"><KundliCalculation birth={calculationInput} chart={chart}/><button type="button" onClick={editChart} className="mx-auto block rounded-full border border-gold px-6 py-3 text-gold-bright">{locale === "hi" ? "रद्द करें और विवरण बदलें" : "Cancel and edit details"}</button></div>}
       <AnimatePresence mode="wait">
         {view === "form" && (
           <motion.div
@@ -261,6 +295,7 @@ export default function KundaliForm() {
 
                 <button
                   type="submit"
+                  disabled={loading}
                   className="kundli-entry-submit mt-8 flex w-full items-center justify-center gap-2.5 rounded-full px-6 py-4 text-base font-semibold md:w-auto md:px-9"
                 >
                   {t("Generate Kundali")}
@@ -284,14 +319,14 @@ export default function KundaliForm() {
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.7, ease: EASE_OUT_EXPO }}
           >
-            <KundliHeader chart={chart} onEdit={editChart} />
+            <KundliHeader key={toBirthQuery(chart.input)} chart={chart} onEdit={editChart} />
             {offlineFrom && (
               <p role="status" className="mx-auto mt-6 max-w-2xl rounded-xl border border-gold/40 bg-gold/5 px-4 py-2.5 text-center text-sm text-cream">
                 {t("You're offline — showing the copy saved on this device on")} {new Date(offlineFrom).toLocaleString(locale === "hi" ? "hi-IN" : undefined)}.
               </p>
             )}
             {sectionError && <p role="alert" className="mb-5 rounded-xl border border-rose/30 p-4 text-sm text-cream">{sectionError} <button type="button" className="ml-2 font-semibold text-gold-bright underline" onClick={() => { const retry = [...failedSections.current]; failedSections.current.clear(); setSectionError(null); void loadSections(retry); }}>{locale === "hi" ? "पुनः प्रयास" : "Retry readings"}</button></p>}
-            <KundaliResult chart={chart} report={report} initialTab={initialTab} loadSections={loadSections} />
+            <KundaliResult key={toBirthQuery(chart.input)} chart={chart} report={report} initialTab={initialTab} loadSections={loadSections} />
           </motion.div>
         )}
       </AnimatePresence>

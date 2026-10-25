@@ -67,7 +67,8 @@
 @media(max-width:1023px) { .obs-navigation { top:calc(68px + env(safe-area-inset-top)); background:#0f1520f5; gap:.6rem; }.obs-navigation>nav { gap:1.1rem; }.obs-navigation button { font-size:.85rem; }.obs-navigation .obs-library-trigger { font-size:.7rem; }.obs-library-results { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:480px) { .obs-library-results { grid-template-columns:1fr; }.obs-subnav button { border-radius:9px; }.obs-library { padding:.8rem; } }
 
-.obs-profile-bar { scroll-margin-top:80px; }
+.obs-profile-bar { scroll-margin-top:80px; flex-wrap:wrap; }
+.obs-profile-actions { flex-wrap:wrap; max-width:100%; }
 .kundli-rebuilt :is(.obs-overview,.obs-timing) { grid-template-columns:minmax(0,1fr); min-width:0; max-width:100%; }
 .obs-overview>*,.obs-timing>*,.obs-answer-grid>*,.obs-summary-grid>*,.obs-chart-grid>* { min-width:0; }
 .obs-ticker { min-width:0; max-width:100%; }
