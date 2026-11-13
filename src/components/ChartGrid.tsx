@@ -137,7 +137,7 @@ export default function ChartGrid({
                     ]
                       .filter(Boolean)
                       .join(" · ")}
-                    className={`chart-fade font-semibold ${relationships?.lord === p.planet && p.layer !== "transit" ? "text-gold-bright underline decoration-gold" : relationships?.incoming.some(item => item.planet === p.planet) && p.layer !== "transit" ? "text-[#73b8aa] underline decoration-[#73b8aa]" : p.layer === "transit" ? "text-[#55B6A4]" : p.layer === "natal" ? "text-gold-bright" : p.dignity ? DIGNITY_COLOR[p.dignity] : "text-cream"} ${glyphs ? (crowded ? "text-[12px]" : "text-[15px]") : crowded ? "text-[11px]" : "text-[13px]"}`}
+                    className={`chart-fade font-semibold ${relationships?.lord === p.planet && p.layer !== "transit" ? "text-gold-bright underline decoration-gold" : relationships?.incoming.some(item => item.planet === p.planet) && p.layer !== "transit" ? "text-[#73b8aa] underline decoration-[#73b8aa]" : p.layer === "transit" ? "text-[var(--chart-transit-color,#55B6A4)]" : p.layer === "natal" ? "text-[var(--chart-natal-color,var(--color-gold-bright))]" : p.dignity ? DIGNITY_COLOR[p.dignity] : "text-cream"} ${glyphs ? (crowded ? "text-[12px]" : "text-[15px]") : crowded ? "text-[11px]" : "text-[13px]"}`}
                     style={glyphs ? { fontFamily: "'Noto Sans Symbols 2','Segoe UI Symbol','Apple Symbols',serif" } : undefined}
                   >
                     {p.layer === "transit" ? "◇" : p.layer === "natal" ? "●" : ""}{glyphs ? PLANET_GLYPH[p.planet] : planetAbbr(p.planet, locale)}

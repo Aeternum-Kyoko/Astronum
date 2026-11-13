@@ -70,7 +70,7 @@ export default function MobileTabBar({ locale }: { locale: Locale }) {
                   onClick={event => {
                     rememberChart();
                     closeMore();
-                    if (pathname === href) {
+                    if (pathname === href && !window.location.search) {
                       event.preventDefault();
                       window.scrollTo({ top:0, behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
                     } else if (tab.key === "kundli") {
@@ -84,7 +84,7 @@ export default function MobileTabBar({ locale }: { locale: Locale }) {
                 >
                   {active && (
                     // The pill slides between tabs, then squashes and settles like a drop of liquid.
-                    <motion.span layoutId="tabbar-pill" className="absolute top-1.5 h-8 w-14" transition={{ type: "spring", stiffness: 520, damping: 34 }}>
+                    <motion.span layoutId="tabbar-pill" className="pointer-events-none absolute top-1.5 h-8 w-14" transition={{ type: "spring", stiffness: 520, damping: 34 }}>
                       <motion.span
                         key={tab.key}
                         className="block h-full w-full rounded-full bg-gold/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]"

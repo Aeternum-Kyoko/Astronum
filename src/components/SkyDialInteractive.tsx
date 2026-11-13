@@ -104,7 +104,11 @@ export default function SkyDialInteractive({ positions, at, className = "", loca
         </radialGradient>
       </defs>
 
+      <circle cx={C} cy={C} r={299} fill="#16181c" stroke="#a88a5c" strokeWidth="2" />
       <circle cx={C} cy={C} r={296} fill={`url(#${gradientId})`} />
+      <circle cx={C} cy={C} r={295} fill="none" stroke="#e7c58a" strokeOpacity=".48" />
+      <path d="M9 300 A291 291 0 0 1 300 9" fill="none" stroke="#fff0cb" strokeOpacity=".35" strokeWidth="2" />
+      <path d="M300 591 A291 291 0 0 0 591 300" fill="none" stroke="#05070b" strokeOpacity=".8" strokeWidth="3" />
 
       <path d={arc(Math.floor(active.longitude / 30) * 30, (Math.floor(active.longitude / 30) + 1) * 30, 259)} stroke="#69c6bc" strokeWidth={24} strokeOpacity={.13} />
       {/* Engraved rings */}

@@ -31,6 +31,7 @@ export default function KundaliForm() {
   const searchParams = useSearchParams();
   // Opened from the home page form or a shared link: the URL carries the birth details.
   const [urlParams] = useState(() => fromBirthQuery(new URLSearchParams(searchParams.toString())));
+  const [step, setStep] = useState(0);
   const [name, setName] = useState(urlParams?.name ?? "");
   const [date, setDate] = useState(urlParams?.date ?? "");
   const [time, setTime] = useState(urlParams?.time ?? "");
@@ -167,7 +168,7 @@ export default function KundaliForm() {
       }
     } finally {
       if (ready && firstEntry) {
-        const minimum = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 150 : 4200;
+        const minimum = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 280;
         const remaining = minimum - (performance.now()-started);
         if (remaining>0) await new Promise(resolve=>window.setTimeout(resolve,remaining));
         try { sessionStorage.setItem("kundli-entry-seen-v2","1"); } catch { /* optional storage */ }
@@ -204,6 +205,11 @@ export default function KundaliForm() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
+    if (step < 2) {
+      if (step === 0 && !name.trim()) { setError(locale === "hi" ? "अपना नाम दर्ज करें।" : "Please enter your name"); return; }
+      if (step === 1 && (!date || !time)) { setError(locale === "hi" ? "जन्म तिथि और समय दर्ज करें।" : "Please enter your birth date and time"); return; }
+      setError(null); setStep(step + 1); return;
+    }
     if (!name.trim() || !date || !time || !selectedPlace) {
       setError(t("Please fill in your name, birth date, time, and select a birth place from the list."));
       return;
@@ -249,10 +255,10 @@ export default function KundaliForm() {
                 className="kundli-entry-form card-edge rounded-3xl p-7 md:p-10"
               >
                 <div className="kundli-entry-form-heading"><h2>{locale === "hi" ? "जन्म विवरण" : "Birth details"}</h2><p>{locale === "hi" ? "अपनी कुंडली बनाने के लिए ये चार विवरण भरें।" : "Enter these four details to create your chart."}</p></div>
-                <div className="grid gap-5 md:grid-cols-2">
-                  <Field label={t("Name")}>
+                <div className="birth-progress" aria-label="Birth details progress">{(locale === "hi" ? ["नाम", "जन्म समय", "जन्म स्थान"] : ["Your name", "Birth date & time", "Birthplace"]).map((label, index) => <span key={label} aria-current={step === index ? "step" : undefined}>{index + 1}. {label}</span>)}</div><div className="grid gap-5">
+                  <div hidden={step !== 0}><Field label={t("Name")}>
                     <input
-                      required
+                      required={step === 0}
                       value={name}
                       aria-label={t("Name")}
                       onChange={(e) => setName(e.target.value)}
@@ -261,7 +267,7 @@ export default function KundaliForm() {
                     />
                   </Field>
 
-                  <div className="@container">
+                  </div><div hidden={step !== 1} className="@container">
                     <div className="grid gap-5 @sm:grid-cols-2">
                       <Field label={t("Date of birth")}>
                         <DatePicker value={date} onChange={setDate} />
@@ -273,7 +279,7 @@ export default function KundaliForm() {
                     </div>
                   </div>
 
-                  <div className="md:col-span-2">
+                  <div hidden={step !== 2} className="md:col-span-2">
                     <Field label={t("Place of birth")}>
                       <PlaceInput selected={selectedPlace} onSelect={setSelectedPlace} />
                     </Field>
@@ -298,8 +304,9 @@ export default function KundaliForm() {
                   disabled={loading}
                   className="kundli-entry-submit mt-8 flex w-full items-center justify-center gap-2.5 rounded-full px-6 py-4 text-base font-semibold md:w-auto md:px-9"
                 >
-                  {t("Generate Kundali")}
+                  {step < 2 ? (locale === "hi" ? "आगे बढ़ें" : "Continue") : t("Generate Kundali")}
                 </button>
+                {step > 0 && <div className="birth-step-actions"><button type="button" onClick={() => { setError(null); setStep(step - 1); }}>{locale === "hi" ? "वापस" : "Back"}</button></div>}
               </form>
             </div>
             <div className="mt-10">
@@ -319,14 +326,14 @@ export default function KundaliForm() {
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.7, ease: EASE_OUT_EXPO }}
           >
-            <KundliHeader key={toBirthQuery(chart.input)} chart={chart} onEdit={editChart} />
+            <KundliHeader key={`header:${toBirthQuery(chart.input)}`} chart={chart} onEdit={editChart} />
             {offlineFrom && (
               <p role="status" className="mx-auto mt-6 max-w-2xl rounded-xl border border-gold/40 bg-gold/5 px-4 py-2.5 text-center text-sm text-cream">
                 {t("You're offline — showing the copy saved on this device on")} {new Date(offlineFrom).toLocaleString(locale === "hi" ? "hi-IN" : undefined)}.
               </p>
             )}
             {sectionError && <p role="alert" className="mb-5 rounded-xl border border-rose/30 p-4 text-sm text-cream">{sectionError} <button type="button" className="ml-2 font-semibold text-gold-bright underline" onClick={() => { const retry = [...failedSections.current]; failedSections.current.clear(); setSectionError(null); void loadSections(retry); }}>{locale === "hi" ? "पुनः प्रयास" : "Retry readings"}</button></p>}
-            <KundaliResult key={toBirthQuery(chart.input)} chart={chart} report={report} initialTab={initialTab} loadSections={loadSections} />
+            <KundaliResult key={`result:${toBirthQuery(chart.input)}`} chart={chart} report={report} initialTab={initialTab} loadSections={loadSections} />
           </motion.div>
         )}
       </AnimatePresence>

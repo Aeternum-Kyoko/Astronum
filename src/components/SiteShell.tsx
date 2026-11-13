@@ -12,6 +12,7 @@ import { LocaleProvider } from "@/lib/i18n/LocaleContext";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import "@/app/cinema-site.css";
 import "@/app/mobile-app.css";
+import "@/app/design-system.css";
 import MobileAppHeader from "@/components/MobileAppHeader";
 
 const SITE_JSON_LD = {

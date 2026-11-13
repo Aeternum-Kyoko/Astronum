@@ -148,7 +148,7 @@ export default function NorthIndianChart({
                   fontSize={fs}
                   fontWeight="600"
                   className={onPick ? "chart-fade cursor-pointer outline-none" : "chart-fade"}
-                  fill={isLord ? "var(--color-gold-bright)" : isIncoming ? "var(--workspace-teal, #73b8aa)" : p.layer === "transit" ? "var(--workspace-teal, #55B6A4)" : p.layer === "natal" ? "var(--color-gold-bright)" : p.dignity ? DIGNITY_COLOR[p.dignity] : "var(--color-cream)"}
+                  fill={isLord ? "var(--color-gold-bright)" : isIncoming ? "var(--workspace-teal, #73b8aa)" : p.layer === "transit" ? "var(--chart-transit-color, #55B6A4)" : p.layer === "natal" ? "var(--chart-natal-color, var(--color-gold-bright))" : p.dignity ? DIGNITY_COLOR[p.dignity] : "var(--color-cream)"}
                   textDecoration={isPicked || isLord || isIncoming ? "underline" : undefined}
                   style={glyphs ? { fontFamily: "'Noto Sans Symbols 2','Segoe UI Symbol','Apple Symbols',serif" } : undefined}
                   {...(onPick

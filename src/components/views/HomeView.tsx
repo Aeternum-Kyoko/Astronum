@@ -1,218 +1,45 @@
 import Link from "next/link";
-import { DateTime } from "luxon";
-import { prisma } from "@/lib/db";
-import SkyDial from "@/components/SkyDial";
+import SolarSystem from "@/components/SolarSystem";
+import LiveTransits from "@/components/LiveTransits";
 import { skyNow } from "@/lib/skySnapshot";
-import CinematicSkyStage from "@/components/CinematicSkyStage";
-import ResponsiveSkyPanel from "@/components/ResponsiveSkyPanel";
-import ToolIcon from "@/components/icons/ToolIcon";
-import { NAKSHATRAS, SIGNS, SIGN_SANSKRIT } from "@/lib/astrology/constants";
-import { tithiIndex, tithiName } from "@/lib/astrology/birthDetails";
-import { observancesForYear } from "@/lib/astrology/festivals";
-import { observanceName } from "@/lib/astrology/festivalsText";
-import { FESTIVAL_LOCATION } from "@/lib/festivalPages";
-import { getDictionary } from "@/lib/i18n/dictionary";
-import { localizeHref, type Locale } from "@/lib/i18n/locale";
+import { SIGNS, SIGN_GLYPHS } from "@/lib/astrology/constants";
 import { term } from "@/lib/i18n/terms";
-import "./home.css";
-import "./home-cinema.css";
+import { localizeHref, type Locale } from "@/lib/i18n/locale";
+import "./atlas-home.css";
+import ResponsiveHome from "./ResponsiveHome";
 
-const TOOLS = [
-  { key: "kundli", href: "/kundali" },
-  { key: "matching", href: "/matching" },
-  { key: "horoscope", href: "/horoscope" },
-  { key: "personal", href: "/horoscope/personal" },
-  { key: "panchang", href: "/panchang" },
-  { key: "festivals", href: "/festivals" },
-  { key: "muhurat", href: "/muhurat" },
-  { key: "sadeSati", href: "/sade-sati" },
-  { key: "numerology", href: "/numerology" },
-  { key: "palmistry", href: "/palmistry" },
-  { key: "rectification", href: "/rectification" },
-  { key: "vastu", href: "/vastu" },
-] as const;
-
-export default async function HomeView({ locale }: { locale: Locale }) {
-  const d = getDictionary(locale);
-  const t = d.home;
-  const href = (path: string) => localizeHref(locale, path);
-
-  // The live reading for the hero and the tool list, all from one moment.
-  const sky = skyNow();
-  const sun = sky.positions.find((p) => p.planet === "Sun")!.longitude;
-  const moon = sky.positions.find((p) => p.planet === "Moon")!.longitude;
-  const { tithi, paksha } = tithiName(tithiIndex(sun, moon));
-  const moonSign = term(locale, SIGNS[Math.floor(moon / 30)]);
-  const nakshatra = term(locale, NAKSHATRAS[Math.floor(moon / (360 / 27))]);
-  const tithiLabel = term(locale, `${paksha} ${tithi}`);
-  const now = DateTime.fromJSDate(sky.at, { zone: "Asia/Kolkata" }).setLocale(locale);
-  const nextFestival = observancesForYear(now.year, FESTIVAL_LOCATION)
-    .concat(observancesForYear(now.year + 1, FESTIVAL_LOCATION))
-    .find((o) => (o.category === "Festival" || o.category === "Sankranti") && o.date >= now.toISODate()!);
-
-  const live: Partial<Record<(typeof TOOLS)[number]["key"], string>> = {
-    horoscope: t.todayMoon(moonSign),
-    panchang: t.todayTithi(tithiLabel),
-    festivals: nextFestival
-      ? t.nextFestival(observanceName(nextFestival, locale).split(" · ")[0], DateTime.fromISO(nextFestival.date).setLocale(locale).toFormat("d LLL"))
-      : undefined,
-  };
-
-  const posts = await prisma.blogPost
-    .findMany({ where: { published: true }, orderBy: { publishedAt: "desc" }, take: 3 })
-    .catch(() => []);
-
-  return (
-    <div className="cinema-home">
-      <section className="theme-night home-observatory">
-        <div className="home-cosmic-backdrop" aria-hidden="true"><div className="home-cosmic-horizon" /><div className="home-cosmic-planet" /></div>
-        <div className="home-observatory-inner">
-          <div className="home-observatory-copy">
-            <span className="home-feature-label">{locale === "hi" ? "वैदिक ज्योतिष · आपकी कहानी" : "Vedic astrology. Your story."}</span>
-            <h1>{locale === "hi" ? "अपनी कुंडली की कहानी जानें।" : "There’s a story in your stars."}</h1>
-            <p className="home-observatory-short">{t.heroShort}</p>
-            <p className="home-observatory-body">{locale === "hi" ? "अपनी जन्म कुंडली समझें, ग्रहों के गोचर जानें और जीवन के विषयों को विस्तार से देखें। आपकी व्याख्या यहीं से शुरू होती है।" : "Understand your birth chart, follow planetary transits, and explore the questions that matter to you. Your reading starts here."}</p>
-            <div className="home-observatory-now"><p>{t.heroNow(moonSign, nakshatra, tithiLabel)}</p><small>{t.updated(now.toFormat("h:mm a"))}</small></div>
-            <div className="home-observatory-actions"><Link href={href("/kundali")}>{t.makeKundli}</Link><Link href={href("/panchang")}>{t.seePanchang}</Link></div>
+const chapters = [
+  { planet:2, side:"right", name:"Earth", hiName:"पृथ्वी", title:"A sky that belongs to you.", hiTitle:"आपका अपना आकाश।", description:"Return to the moment you were born. Explore your houses, planetary placements and dashas, with explanations that make your Kundli easier to understand.", hiDescription:"जन्म के पल में लौटें। भाव, ग्रह स्थिति और दशाओं को सरल व्याख्या के साथ समझें।", path:"/kundali", action:"Explore my birth chart", hiAction:"मेरी जन्म कुंडली बनाएं", features:"Birth chart / Dashas / Divisional charts", hiFeatures:"जन्म कुंडली / दशा / वर्ग कुंडली" },
+  { planet:1, side:"left", name:"Venus", hiName:"शुक्र", title:"Two stories. A shared sky.", hiTitle:"दो कहानियाँ। एक साझा आकाश।", description:"Bring two birth charts together. Understand the traditional points of compatibility and the nuances behind a matching score.", hiDescription:"दो जन्म कुंडलियों को साथ देखें। पारंपरिक गुण मिलान और उसके पीछे की बारीकियों को समझें।", path:"/matching", action:"Explore compatibility", hiAction:"कुंडली मिलान देखें", features:"Guna Milan / Both charts / Clear context", hiFeatures:"गुण मिलान / दोनों कुंडलियाँ / सरल संदर्भ" },
+  { planet:4, side:"right", name:"Jupiter", hiName:"बृहस्पति", title:"Let curiosity lead the way.", hiTitle:"जिज्ञासा से समझ की ओर।", description:"Learn the language of your chart, from the twelve houses to the twenty-seven nakshatras. Follow the sources and explore real charts in our research library.", hiDescription:"बारह भाव से सत्ताईस नक्षत्र तक, कुंडली की भाषा सीखें। शोध संग्रह में स्रोतों के साथ कुंडलियाँ देखें।", path:"/learn", action:"Discover the learning library", hiAction:"सीखने का संग्रह खोलें", features:"Planet guides / Nakshatras / Chart research", hiFeatures:"ग्रह परिचय / नक्षत्र / कुंडली शोध" },
+  { planet:5, side:"left", name:"Saturn", hiName:"शनि", title:"Find your rhythm in time.", hiTitle:"समय के साथ अपनी लय खोजें।", description:"Meet each day with a little more perspective. Explore the Panchang, daily horoscopes and the transits moving through your sky right now.", hiDescription:"हर दिन को नए दृष्टिकोण से देखें। पंचांग, दैनिक राशिफल और वर्तमान गोचर जानें।", path:"/panchang", action:"Open today’s Panchang", hiAction:"आज का पंचांग देखें", features:"Panchang / Daily horoscope / Live transits", hiFeatures:"पंचांग / दैनिक राशिफल / वर्तमान गोचर" },
+];
+export default function HomeView({locale}:{locale:Locale}) {
+  const hi=locale==="hi";
+  const sky=skyNow();
+  const href=(path:string)=>localizeHref(locale,path);
+  return <ResponsiveHome locale={locale} positions={sky.positions} at={sky.at.toISOString()}><div className="atlas-home">
+    <div className="cosmic-journey">
+      <div className="cosmic-stage"><SolarSystem locale={locale} cinematic /></div>
+      <div className="cosmic-chapters">
+        <section className="atlas-hero cosmic-chapter" data-planet-chapter="-1">
+          <div className="atlas-hero-copy cosmic-copy">
+            <span className="atlas-signature">{hi?"वैदिक ज्योतिष, सरल भाषा में":"Vedic astrology, made clear"}</span>
+            <h1>{hi?"आपका आकाश। आपकी कहानी।":"Your sky. Your story."}</h1>
+            <p>{hi?"अपनी जन्म कुंडली बनाएं। ग्रहों को जानें। एक समय में एक बात समझें।":"Meet your birth chart. Understand your planets. One clear insight at a time."}</p>
+            <Link className="atlas-primary" href={href("/kundali")}>{hi?"मेरी कुंडली बनाएं":"Create my Kundli"}<span aria-hidden="true">↗</span></Link>
+            <small>{hi?"निःशुल्क · खाता बनाना ज़रूरी नहीं":"Free to explore · No account needed"}</small>
+            <a className="cosmic-skip" href="#live-transits">{hi?"वर्तमान गोचर और अंश देखें":"See live transits & degrees"} ↓</a>
           </div>
-          <nav className="mobile-home-shortcuts" aria-label={locale === "hi" ? "जल्दी खोलें" : "Quick actions"}>{[
-            { path:"/kundali", icon:"kundli" as const, label:locale === "hi" ? "मेरी कुंडली" : "My Kundli" },
-            { path:"/horoscope/personal", icon:"personal" as const, label:locale === "hi" ? "मेरा दिन" : "My day" },
-            { path:"/matching", icon:"matching" as const, label:locale === "hi" ? "मिलान" : "Matching" },
-            { path:"/panchang", icon:"panchang" as const, label:locale === "hi" ? "पंचांग" : "Panchang" },
-          ].map(item => <Link key={item.path} href={href(item.path)} transitionTypes={["nav-forward"]}><ToolIcon name={item.icon} className="h-6 w-6" /><span>{item.label}</span></Link>)}</nav>
-          <ResponsiveSkyPanel locale={locale}><CinematicSkyStage><SkyDial sky={sky} locale={locale} className="mx-auto w-full text-center" /></CinematicSkyStage></ResponsiveSkyPanel>
-        </div>
-        <div className="home-sky-strip" aria-label={locale === "hi" ? "आज का आकाश एक नज़र में" : "Today's sky at a glance"}>
-          <div><span>{locale === "hi" ? "चंद्र राशि" : "Moon sign"}</span><strong>{moonSign}</strong></div>
-          <div><span>{locale === "hi" ? "नक्षत्र" : "Nakshatra"}</span><strong>{nakshatra}</strong></div>
-          <div><span>{locale === "hi" ? "आज की तिथि" : "Today's tithi"}</span><strong>{tithiLabel}</strong></div>
-          <Link href={href("/panchang")}>{locale === "hi" ? "आज का पंचांग देखें" : "Explore today's Panchang"}<span aria-hidden="true">↗</span></Link>
-        </div>
-      </section>
-
-      <section className="home-reading-includes border-b border-border">
-        <div className="mx-auto max-w-6xl px-5 py-12 md:py-16"><div><h2>{t.formTitle}</h2><p>{t.formBody}</p></div><ul>{t.includes.map(item => <li key={item}><span aria-hidden="true" />{item}</li>)}</ul></div>
-      </section>
-
-      {/* Tools grouped by the question people bring to the site. */}
-      <section className="home-tools mx-auto max-w-6xl px-5 py-16 md:py-24">
-        <div className="max-w-2xl">
-          <h2 className="text-4xl leading-none font-semibold text-cream md:text-5xl">{t.toolsTitle}</h2>
-          <p className="mt-4 text-lg text-muted">{t.toolsBody}</p>
-        </div>
-        <div className="mt-10 grid gap-8 lg:grid-cols-3 lg:gap-6">
-          {[
-            { title: locale === "hi" ? "मेरी कुंडली" : "My chart", keys: ["kundli", "matching", "personal", "rectification"] },
-            { title: locale === "hi" ? "आज और आने वाले दिन" : "Today and ahead", keys: ["horoscope", "panchang", "festivals", "muhurat"] },
-            { title: locale === "hi" ? "और जानें" : "Explore more", keys: ["sadeSati", "numerology", "palmistry", "vastu"] },
-          ].map((group) => (
-            <div key={group.title} className="home-tool-group">
-              <h3 className="mb-2 border-b border-border pb-4 text-xl font-semibold text-cream">{group.title}</h3>
-              <ul>
-                {group.keys.map((key) => {
-                  const tool = TOOLS.find((entry) => entry.key === key)!;
-                  const [title, body] = d.tools[tool.key];
-                  return (
-                    <li key={key}>
-                      <Link href={href(tool.href)} data-tool={tool.key} className="home-tool-link group flex items-start gap-4 border-b border-border/50 py-4">
-                        <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-raised text-gold-bright" aria-hidden="true">
-                          <ToolIcon name={tool.key} className="h-5 w-5" />
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block text-lg font-semibold leading-tight text-cream group-hover:text-gold-bright">{title}</span>
-                          <span className="mt-1 block text-sm leading-snug text-muted">{body}</span>
-                          {live[tool.key] && <span className="mt-2 block text-xs font-medium text-gold-bright">{live[tool.key]}</span>}
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Horoscope by sign, set as type */}
-      <section className="cinema-zodiac border-y border-border bg-surface">
-        <div className="mx-auto max-w-6xl px-5 py-14 md:py-24">
-          <h2 className="text-3xl leading-none font-semibold text-cream md:text-5xl">{t.zodiacTitle}</h2>
-          <ul className="mt-10 grid grid-cols-2 gap-x-8 gap-y-1 sm:grid-cols-3 lg:grid-cols-4">
-            {SIGNS.map((sign) => (
-              <li key={sign}>
-                <Link
-                  href={href(`/horoscope/${sign.toLowerCase()}`)}
-                  className="flex items-baseline justify-between gap-3 border-b border-border py-3 text-xl text-cream transition-colors hover:text-gold-bright md:text-2xl"
-                  style={{ fontVariationSettings: '"wdth" 84' }}
-                >
-                  {term(locale, sign)}
-                  <span className="text-sm text-muted">{locale === "hi" ? sign : SIGN_SANSKRIT[SIGNS.indexOf(sign)]}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* Why it can be trusted */}
-      <section className="mx-auto max-w-6xl px-5 py-14 md:py-28">
-        <h2 className="max-w-3xl text-4xl leading-none font-semibold text-cream md:text-6xl">{t.builtTitle}</h2>
-        <div className="mt-14 grid gap-10 md:grid-cols-3">
-          {t.facts.map((f) => (
-            <div key={f.title} className="border-t border-gold pt-6">
-              <h3 className="text-xl font-semibold text-cream">{f.title}</h3>
-              <p className="mt-3 leading-relaxed text-muted">{f.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* The astrologer */}
-      <section className="theme-night">
-        <div className="mx-auto max-w-4xl px-5 py-14 text-center md:py-28">
-          <h2 className="text-4xl leading-none font-semibold text-cream md:text-6xl">{t.guidanceTitle}</h2>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted">{t.guidanceBody}</p>
-          <Link href="/about" className="mt-8 inline-block font-medium text-gold-bright underline-offset-4 hover:underline">
-            {t.readStory}
-          </Link>
-        </div>
-      </section>
-
-      {posts.length > 0 && (
-        <section className="mx-auto max-w-6xl px-5 py-14 md:py-28">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <h2 className="text-3xl leading-none font-semibold text-cream md:text-5xl">{t.blogTitle}</h2>
-            <Link href="/blog" className="font-medium text-gold-bright underline-offset-4 hover:underline">
-              {t.viewAll}
-            </Link>
-          </div>
-          <ul className={`mt-10 grid gap-10 ${posts.length === 1 ? "max-w-2xl" : "md:grid-cols-3"}`}>
-            {posts.map((post) => (
-              <li key={post.id} className="border-t border-border pt-6">
-                <Link href={`/blog/${post.slug}`} className="group block">
-                  <p className="text-sm text-gold-bright">{post.category}</p>
-                  <h3 className="mt-2 text-2xl leading-tight font-semibold text-cream group-hover:text-cream">{post.title}</h3>
-                  <p className="mt-3 line-clamp-3 leading-relaxed text-muted">{post.excerpt}</p>
-                </Link>
-              </li>
-            ))}
-          </ul>
         </section>
-      )}
-
-      <section className="border-t border-border">
-        <div className="mx-auto max-w-4xl px-5 py-14 text-center md:py-28">
-          <h2 className="text-4xl leading-none font-semibold text-cream md:text-6xl">{t.ctaTitle}</h2>
-          <p className="mx-auto mt-6 max-w-xl text-lg text-muted">{t.ctaBody}</p>
-          <Link
-            href="/consultation"
-            className="mt-10 inline-block rounded-full bg-gold px-8 py-4 text-base font-semibold text-on-gold transition-colors hover:bg-gold-bright"
-          >
-            {t.ctaButton}
-          </Link>
-        </div>
-      </section>
+        {chapters.map(chapter=><section key={chapter.name} className="cosmic-chapter cosmic-feature" data-planet-chapter={chapter.planet} data-planet-side={chapter.side}>
+          <div className="cosmic-copy"><span className="cosmic-planet-name">{hi?chapter.hiName:chapter.name}</span><h2>{hi?chapter.hiTitle:chapter.title}</h2><p>{hi?chapter.hiDescription:chapter.description}</p><p className="cosmic-feature-list">{hi?chapter.hiFeatures:chapter.features}</p><Link className="cosmic-link" href={href(chapter.path)}>{hi?chapter.hiAction:chapter.action}<span aria-hidden="true">↗</span></Link></div>
+        </section>)}
+      </div>
     </div>
-  );
+    <LiveTransits positions={sky.positions} at={sky.at.toISOString()} locale={locale}/>
+    <section className="atlas-signs"><div className="atlas-section-heading"><h2>{hi?"अपनी राशि चुनें।":"Your sign. Your daily pause."}</h2></div><div className="atlas-zodiac">{SIGNS.map((sign,i)=><Link key={sign} href={href(`/horoscope/${sign.toLowerCase()}`)}><span aria-hidden="true">{SIGN_GLYPHS[i]}</span><strong>{term(locale,sign)}</strong></Link>)}</div></section>
+    <section className="atlas-note"><span aria-hidden="true">◎</span><div><h2>{hi?"कुंडली शोध संग्रह":"The chart research library"}</h2><p>{hi?"स्रोत और जन्म विवरण की सीमाओं के साथ ऐतिहासिक व पारंपरिक अध्ययन।":"Historical lives and traditional charts, with sources and uncertainty in view."}</p></div><Link href="/research">{hi?"संग्रह खोलें":"Explore the collection"} ↗</Link></section>
+    <section className="atlas-note"><span aria-hidden="true">✧</span><div><h2>{hi?"परंपरा, समझ के साथ।":"Tradition, with perspective."}</h2><p>{hi?"ग्रह स्थिति की खगोलीय गणना। वैदिक परंपरा पर आधारित व्याख्या। जीवन के निर्णय आपके हैं।":"Astronomically calculated positions. Interpretations rooted in Vedic tradition. Your decisions remain yours."}</p></div><Link href={href("/about")}>{hi?"हमारी पद्धति":"Our approach"} ↗</Link></section>
+  </div></ResponsiveHome>;
 }

@@ -38,7 +38,7 @@ export default async function ToolShell({
   const form = getDictionary(locale).home.form;
   const profiles = birth ? [] : await getProfiles();
   return (
-    <section className="tool-page relative">
+    <section className={`tool-page atlas-tool-page relative ${birth ? "has-reading" : "is-entry"}`}>
       <div className={`relative mx-auto max-w-5xl px-5 ${birth ? "py-8 md:py-14" : "py-14 md:py-20"}`}>
         {birth ? (
           // With a result on screen, the page title steps back so the reading comes first.
@@ -63,7 +63,7 @@ export default async function ToolShell({
         {birth ? (
           <div className="mt-8">{children}</div>
         ) : (
-          <div className="mx-auto mt-10 max-w-md">
+          <div className="atlas-tool-form mx-auto mt-10 max-w-md">
             {profiles.length > 0 && (
               <div className="mb-6 text-center">
                 <p className="text-xs font-semibold text-muted">{hi ? "सहेजी गई प्रोफ़ाइल चुनें" : "Use a saved profile"}</p>

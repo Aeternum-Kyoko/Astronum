@@ -10,13 +10,13 @@ export default function LearnPageHeader({
   description: string;
 }) {
   return (
-    <div className="text-center">
+    <header className="atlas-learn-heading">
       <Link href="/learn" className="text-xs font-semibold text-gold-bright hover:text-gold">
         ← Learn
       </Link>
       <p className="mt-4 text-sm font-medium text-gold-bright">{eyebrow}</p>
       <h1 className="mt-3 font-display text-3xl text-cream md:text-4xl">{title}</h1>
       <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted">{description}</p>
-    </div>
+    </header>
   );
 }

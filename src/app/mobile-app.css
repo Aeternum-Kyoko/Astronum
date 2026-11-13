@@ -89,3 +89,51 @@
 @media (max-width:360px) { .mobile-app-header { gap:8px; }.mobile-header-title>span { font-size:1rem; }.mobile-app-tabs a,.mobile-app-tabs button { font-size:.67rem; }.mobile-home-shortcuts a { font-size:.68rem; } }
 @media (prefers-reduced-motion:reduce) { .mobile-app-header,.mobile-app-tabs,.responsive-sky-content { animation:none!important; transition:none!important; } }
 @media print { .mobile-app-header,.mobile-app-tabs,.mobile-sky-trigger { display:none!important; }.responsive-sky-content { display:block!important; } }
+
+/* Phone dock: one selection cue, comfortable targets, and room for safe areas. */
+@media(max-width:1023px) {
+ .cinema-site .mobile-app-tabs { inset-inline:12px; bottom:calc(10px + env(safe-area-inset-bottom)); border:1px solid var(--color-border); border-radius:24px; padding:6px; background:var(--color-ink-deep); box-shadow:0 8px 30px #0003; }
+ .mobile-app-tabs ul { align-items:stretch; gap:2px; }
+ .mobile-app-tabs a,.mobile-app-tabs button { min-width:0; min-height:58px; justify-content:center; gap:5px; border-radius:18px; font-size:11px; }
+ .mobile-app-tabs a[aria-current]::before,.mobile-app-tabs button[aria-current]::before { display:none; }
+ .mobile-app-tabs a[aria-current] { background:var(--color-surface-raised); }
+ .mobile-app-tabs a[aria-current]>span:first-child { opacity:1; }
+ .mobile-app-tabs a>span.absolute { display:none; }
+ .mobile-app-tabs button[aria-expanded=true] { background:var(--color-surface-raised); }
+ .mobile-app-tabs svg { width:22px; height:22px; }
+ .mobile-header-title { text-decoration:none; color:var(--color-cream); min-height:44px; display:flex; flex-direction:column; justify-content:center; }
+ body.cinema-site { padding-bottom:calc(100px + env(safe-area-inset-bottom)); }
+}
+/* Keep the first form field on screen when opening Kundli from the mobile dashboard. */
+@media(max-width:1023px) {
+ .cinema-site .kundli-cinema-page .kundli-page-frame { padding:20px 16px 32px; }
+ .cinema-site .kundli-cinema-page .kundli-entry-intro { display:block; min-height:0; padding:0; margin-bottom:24px; }
+ .cinema-site .kundli-cinema-page .kundli-entry-eyebrow,.cinema-site .kundli-cinema-page .kundli-entry-points { display:none; }
+ .cinema-site .kundli-cinema-page .kundli-entry-copy h1 { font-size:28px; line-height:1.2; max-width:20ch; margin:0 0 12px; }
+ .cinema-site .kundli-cinema-page .kundli-entry-copy>p { font-size:14px; line-height:1.7; max-width:48ch; margin:0; }
+ .cinema-site .kundli-cinema-page .kundli-entry-form-wrap { margin-top:0; }
+ .cinema-site .kundli-cinema-page .kundli-entry-form { padding:22px 18px; border-radius:18px; }
+ .cinema-site .kundli-cinema-page .kundli-entry-form-heading { margin-bottom:20px; }
+ .cinema-site .kundli-cinema-page .kundli-entry-form-heading h2 { font-size:21px; }
+ .cinema-site .kundli-cinema-page .kundli-entry-form-heading p { font-size:12px; }
+ .cinema-site .kundli-cinema-page .birth-progress { margin-bottom:20px; gap:8px; }
+ .cinema-site .kundli-cinema-page .birth-progress span { font-size:11px; line-height:1.5; padding:8px 3px; }
+ .cinema-site .kundli-cinema-page .kundli-entry-submit { min-height:48px; margin-top:24px; padding-block:12px; border-radius:12px; }
+}
+/* Quiet surfaces and translucent navigation for the mobile app. */
+@media(max-width:1023px) {
+ body.cinema-site { --color-ink:#0c0c10; --color-ink-deep:#101014; --color-surface:#1c1c21; --color-surface-raised:#2b2b32; --color-border:#ffffff18; --color-cream:#f5f5f7; --color-muted:#a6a6b1; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+ :root[data-theme=light] body.cinema-site { --color-ink:#f5f5f7; --color-ink-deep:#fff; --color-surface:#fff; --color-surface-raised:#eaeaef; --color-border:#00000012; --color-cream:#1d1d1f; --color-muted:#6e6e79; }
+ .cinema-site .mobile-app-header { background:#0c0c10b8; border-bottom-color:#ffffff09; backdrop-filter:blur(24px) saturate(150%); -webkit-backdrop-filter:blur(24px) saturate(150%); padding-inline:22px; }
+ .cinema-site .mobile-header-brand,.cinema-site .mobile-header-account,.cinema-site .mobile-header-back { background:#ffffff07; border:1px solid #ffffff0a; border-radius:50%; color:#d6d6df; }
+ .cinema-site .mobile-header-title>span { font-size:17px; letter-spacing:-.035em; font-weight:650; }.cinema-site .mobile-header-title small { font-size:10px; letter-spacing:.01em; }
+ .cinema-site .mobile-app-tabs { inset-inline:16px; bottom:calc(12px + env(safe-area-inset-bottom)); padding:6px; background:#25252bc7; border:1px solid #ffffff14; border-radius:30px; box-shadow:0 12px 35px #0004,inset 0 1px 0 #ffffff08; backdrop-filter:blur(28px) saturate(170%); -webkit-backdrop-filter:blur(28px) saturate(170%); }
+ .cinema-site .mobile-app-tabs a,.cinema-site .mobile-app-tabs button { color:#a8a8b5; font-size:10px; min-height:55px; border-radius:23px; gap:6px; }.cinema-site .mobile-app-tabs a[aria-current],.cinema-site .mobile-app-tabs button[aria-expanded=true] { color:#c1d7ff; background:#ffffff10; box-shadow:inset 0 1px 0 #ffffff08; }.cinema-site .mobile-app-tabs svg { width:21px; height:21px; }
+ .cinema-site .mobile-app-tabs a:active,.cinema-site .mobile-app-tabs button:active { background:#ffffff0d; }
+ :root[data-theme=light] .cinema-site .mobile-app-header { background:#f5f5f7bf; border-bottom-color:#00000005; }:root[data-theme=light] .cinema-site .mobile-header-brand,:root[data-theme=light] .cinema-site .mobile-header-account,:root[data-theme=light] .cinema-site .mobile-header-back { background:#00000004; border-color:#00000005; color:#50505a; }
+ :root[data-theme=light] .cinema-site .mobile-app-tabs { background:#ffffffc9; border-color:#00000008; box-shadow:0 10px 35px #191b2417,inset 0 1px 0 #fff; }:root[data-theme=light] .cinema-site .mobile-app-tabs a,:root[data-theme=light] .cinema-site .mobile-app-tabs button { color:#777782; }:root[data-theme=light] .cinema-site .mobile-app-tabs a[aria-current],:root[data-theme=light] .cinema-site .mobile-app-tabs button[aria-expanded=true] { color:#0066cc; background:#007aff0b; box-shadow:none; }
+ .cinema-site .mobile-sheet-root .glass-sheet { border-radius:30px 30px 0 0; }.cinema-site .mobile-sheet-heading h2 { letter-spacing:-.035em; }
+}
+@media(prefers-reduced-transparency:reduce) { .cinema-site .mobile-app-header,.cinema-site .mobile-app-tabs { backdrop-filter:none; -webkit-backdrop-filter:none; background:var(--color-ink-deep); } }
+
+@media(max-width:1023px) { .cinema-site .mobile-header-theme { width:40px; height:44px; flex-shrink:0; border:0; color:var(--color-muted); } }

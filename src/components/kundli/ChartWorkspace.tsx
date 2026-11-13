@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { DateTime } from "luxon";
 import { useAnalysis } from "./AnalysisContext";
 import KundliChart, { type ChartPoint } from "../KundliChart";
@@ -38,6 +38,8 @@ export default function ChartWorkspace({ chart, mode, go, transitOnly = false }:
     go(returnTab);
     requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-evidence-id="${CSS.escape(evidence.id)}"] summary`)?.focus());
   };
+  const [birthOverlay, setBirthOverlay] = useState(false);
+  const [overlayPalette, setOverlayPalette] = useState("gold-teal");
   const transits = a.transits;
   const transitPoints = overlayPoints(transits, chart.ascendant.signIndex);
   const sky = useMemo(() => transitSkyChart(transits, a.at, chart.input.latitude, chart.input.longitude), [transits, a.at, chart.input.latitude, chart.input.longitude]);
@@ -65,19 +67,19 @@ export default function ChartWorkspace({ chart, mode, go, transitOnly = false }:
   const pickChart = (key: VargaKey, second?: VargaKey | "transit") => a.update({ primary: key, reference: "lagna", ...(second ? { secondary: second, compare: true } : {}) });
   const openPersonalChart = (slug: string, update: Parameters<typeof a.update>[0]) => { go(slug); a.update(update); };
   const showToday = () => { const now = DateTime.now().setZone(a.zone); a.update({ date: now.toISODate()!, time: now.toFormat("HH:mm:ss"), filter: "all" }); };
-  if (transitOnly) return <section className="chart-workspace transit-only-workspace" aria-label={L("Transit chart", "गोचर कुंडली")}>
+  if (transitOnly) return <section className="chart-workspace transit-only-workspace" data-overlay-palette={overlayPalette} aria-label={L("Transit chart", "गोचर कुंडली")}>
     <div className="transit-chart-heading"><div><span className="transit-orbit" aria-hidden="true">◎</span><div><h2>{a.date === a.today ? L("Today's transit chart", "आज की गोचर कुंडली") : L("Transit chart at selected date", "चुनी तिथि की गोचर कुंडली")}</h2><p>{L("Birth chart, transit relationship and current sky", "जन्म कुंडली, गोचर संबंध और वर्तमान आकाश")} · {a.date} {a.time.slice(0, 5)} · {chart.input.place}</p></div></div><button className="transit-today-button" type="button" onClick={showToday}>{L("Show today", "आज देखें")}</button></div>
     <div className="transit-sky-context"><span>{L("Transit ascendant", "गोचर लग्न")}: <strong>{n(SIGNS[sky.ascendantSignIndex])} {sky.ascendantDegree.toFixed(1)}°</strong></span><span>{L("Lahiri sidereal · whole-sign houses · place shown above", "लाहिरी निरयण · पूर्ण राशि भाव · ऊपर दर्शाया स्थान")}</span></div>
     <div className="rebuilt-transit-controls"><div className="transit-style"><ChartStyleButtons value={a.style} onChange={style => a.update({ style })} /></div>
-    <div className="transit-filter" role="group" aria-label={L("Transit planets", "गोचर ग्रह")}>
+    <label className="overlay-switch"><input type="checkbox" checked={birthOverlay} onChange={event=>setBirthOverlay(event.target.checked)}/>{L("Show birth planets on transit charts", "गोचर कुंडली पर जन्म ग्रह दिखाएं")}</label><select aria-label={L("Overlay colors", "परतों के रंग")} value={overlayPalette} onChange={event=>setOverlayPalette(event.target.value)}><option value="gold-teal">{L("Gold / teal", "स्वर्ण / हरा")}</option><option value="violet-blue">{L("Violet / blue", "बैंगनी / नीला")}</option></select><span className="overlay-legend">{L("● Birth · ◇ Transit", "● जन्म · ◇ गोचर")}</span><div className="transit-filter" role="group" aria-label={L("Transit planets", "गोचर ग्रह")}>
       {(["all", "slow", "selected"] as const).map(filter => <button key={filter} type="button" aria-pressed={a.filter === filter} onClick={() => a.update({ filter })}>{filter === "all" ? L("All planets", "सभी ग्रह") : filter === "slow" ? L("Slow planets", "धीमे ग्रह") : L("Selected planet", "चुना ग्रह")}</button>)}
     </div>
     </div>
     {a.filter === "selected" && !selected && <p className="transit-filter-hint">{L("Choose a planet below to see its transit.", "उसका गोचर देखने के लिए नीचे ग्रह चुनें।")}</p>}
     <div className="rebuilt-transit-trio">
       <section className="rebuilt-chart-card"><h3>{L("Birth chart · D1", "जन्म कुंडली · D1")}</h3><p>{L("Fixed natal positions · birth ascendant", "स्थिर जन्म स्थिति · जन्म लग्न")}</p><KundliChart ascendantSignIndex={chart.ascendant.signIndex} planets={chart.planets.map(p => ({ ...p, markers: marks[p.planet] }))} style={a.style} selected={a.selected} onPick={select} ariaLabel={L("Birth chart for transit comparison", "गोचर तुलना के लिए जन्म कुंडली")} /></section>
-      <section className="rebuilt-chart-card"><h3>{L("Transits in birth houses", "जन्म भावों में गोचर")}</h3><p>{L("Moving planets · your natal ascendant", "गतिशील ग्रह · आपका जन्म लग्न")}</p><KundliChart ascendantSignIndex={chart.ascendant.signIndex} planets={filtered} style={a.style} selected={a.selected} onPick={select} ariaLabel={L("Transits counted from birth ascendant", "जन्म लग्न से गोचर")} /></section>
-      <section className="rebuilt-chart-card"><h3>{L("Sky at selected time", "चुने समय का आकाश")}</h3><p>{L("Moving planets · transit ascendant", "गतिशील ग्रह · गोचर लग्न")}</p><KundliChart ascendantSignIndex={sky.ascendantSignIndex} planets={skyFiltered} style={a.style} selected={a.selected} onPick={select} ariaLabel={L("Transit-only sky chart", "केवल गोचर आकाश कुंडली")} /></section>
+      <section className="rebuilt-chart-card"><h3>{L("Transits in birth houses", "जन्म भावों में गोचर")}</h3><p>{L("Moving planets · your natal ascendant", "गतिशील ग्रह · आपका जन्म लग्न")}</p><KundliChart ascendantSignIndex={chart.ascendant.signIndex} planets={[...filtered, ...(birthOverlay ? chart.planets.map(p=>({...p,layer:"natal" as const})) : [])]} style={a.style} selected={a.selected} onPick={select} ariaLabel={L("Transits counted from birth ascendant", "जन्म लग्न से गोचर")} /></section>
+      <section className="rebuilt-chart-card"><h3>{L("Sky at selected time", "चुने समय का आकाश")}</h3><p>{L("Moving planets · transit ascendant", "गतिशील ग्रह · गोचर लग्न")}</p><KundliChart ascendantSignIndex={sky.ascendantSignIndex} planets={[...skyFiltered, ...(birthOverlay ? chart.planets.map(p=>({...p,house:(p.signIndex-sky.ascendantSignIndex+12)%12+1,layer:"natal" as const})) : [])]} style={a.style} selected={a.selected} onPick={select} ariaLabel={L("Transit-only sky chart", "केवल गोचर आकाश कुंडली")} /></section>
     </div>
     <div className="transit-planet-rail" role="group" aria-label={L("Inspect transit planet", "गोचर ग्रह देखें")}>{transits.map(p => <button type="button" key={p.planet} aria-pressed={selected === p.planet} onClick={() => select({ kind: "planet", planet: p.planet })}><strong>{n(p.planet)}</strong><span>{n(p.sign)} · {p.degree.toFixed(1)}°</span></button>)}</div>
     <button type="button" className="inspector-trigger" aria-expanded={inspectorOpen} onClick={() => setInspectorOpen(true)}>{L("Planet and house details", "ग्रह और भाव विवरण")}</button>

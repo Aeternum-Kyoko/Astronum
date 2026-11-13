@@ -50,7 +50,7 @@ export function ObservatoryCharts({chart,go,mode,overview=false,pair,title}:Prop
     setFocus(lens);setAnalysisOpen(true);a.update({selected});
     window.requestAnimationFrame(()=>document.getElementById(analysisId)?.scrollIntoView({block:"start",behavior:"instant"}));
   };
-  const keys:(VargaKey|"transit")[]=overview?["D1","D9","transit"]:pair??[a.primary,a.secondary];
+  const keys:(VargaKey|"transit")[]=overview?(mode==="user"?["D1"]:["D1","D9","transit"]):pair??[a.primary,a.secondary];
   const pick=a.selected as InspectionPick|null;
   const transit=a.selected?.kind==="planet"?a.transits.find(p=>p.planet===(a.selected?.kind==="planet"?a.selected.planet:null)):null;
   const moving=overlayPoints(a.transits,chart.ascendant.signIndex);

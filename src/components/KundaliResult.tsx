@@ -14,6 +14,7 @@ import SegmentedControl from "./SegmentedControl";
 import PrintReport from "./PrintReport";
 import { AnalysisProvider, useAnalysis } from "./kundli/AnalysisContext";
 import AnalysisCalendar from "./kundli/AnalysisCalendar";
+import AtlasReading from "./kundli/AtlasReading";
 import ObservatoryOverview, {
   ObservatoryHeader,
   ObservatoryCharts,
@@ -270,7 +271,7 @@ function SectionContent(props: WorkbenchProps & { section: Tab }) {
   const Tool = WORKBENCHES[section];
   if (Tool) return <Tool {...props} />;
   if (section === "Summary")
-    return <ObservatoryOverview chart={chart} go={go} mode={mode} />;
+    return mode === "user" ? <AtlasReading chart={chart} go={go} /> : <ObservatoryOverview chart={chart} go={go} mode={mode} />;
   if (section === "Dashas")
     return <TimingLanding chart={chart} report={report} go={go} mode={mode} />;
   if (["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas"].includes(section))
@@ -486,7 +487,7 @@ function KundaliWorkspace({
     >
       <div className="print:hidden">
         <header className="rebuilt-topbar">
-          <ObservatoryHeader chart={chart} go={go} />
+          {mode === "astrologer" && <ObservatoryHeader chart={chart} go={go} />}
           <SegmentedControl
             layoutId="reading-mode"
             ariaLabel={pick(locale)(

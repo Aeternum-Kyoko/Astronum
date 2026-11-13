@@ -1,0 +1,77 @@
+.atlas-home { background:var(--color-ink); color:var(--color-cream); overflow:clip; }
+.atlas-home section { max-width:1280px; margin-inline:auto; padding-inline:clamp(20px,5vw,80px); }
+.atlas-home h2 { font-size:clamp(30px,3.5vw,48px); line-height:1.12; font-weight:400; }
+.atlas-primary { display:inline-flex; align-items:center; justify-content:space-between; gap:40px; background:#e2bd83; color:#151b28; border-radius:6px; padding:17px 24px; font-weight:600; margin-top:28px; }
+.atlas-primary:hover { background:#f4d7aa; }
+.atlas-live { font-size:13px; display:flex; gap:10px; align-items:center; }
+.atlas-live i { width:6px; height:6px; border-radius:50%; background:#a2cbb9; box-shadow:0 0 0 5px #a2cbb912; }
+/* One persistent scene. The document scrolls normally over it. */
+.cosmic-journey { position:relative; isolation:isolate; background:#080e1b; color:#f5f4fa; }
+.cosmic-stage { position:absolute; inset:0; z-index:0; }
+.solar-experience { position:relative; width:100%; height:100%; color:#eef3fc; overflow:hidden; background:radial-gradient(ellipse at 65% 40%,#13273b66,transparent 65%),#080e1b; }
+.solar-canvas { width:100%; height:100%; }
+.solar-cinematic { position:sticky; top:0; height:100svh; }
+.solar-canvas canvas { display:block; }
+.solar-topline { position:absolute; inset:100px clamp(20px,5vw,80px) auto; display:flex; justify-content:space-between; gap:12px; z-index:1; pointer-events:none; font-size:11px; color:#b8c9df; }
+.solar-topline>span { display:flex; align-items:center; gap:9px; }
+.solar-topline i { width:5px; height:5px; background:#aed8c6; border-radius:50%; box-shadow:0 0 12px #aed8c6; }
+.solar-controls { position:absolute; bottom:26px; left:clamp(20px,5vw,80px); right:clamp(20px,5vw,80px); display:flex; align-items:center; justify-content:space-between; gap:12px; color:#aabbd2; font-size:11px; z-index:3; }
+.solar-controls button { min-height:44px; padding:8px 14px; border:1px solid #b7d1ed35; background:#080e1b88; backdrop-filter:blur(8px); border-radius:6px; color:#d9e5f5; cursor:pointer; }
+.solar-controls button:hover { background:#233044; }
+.solar-cinematic .solar-disclaimer,.solar-cinematic .solar-credits { display:none; }
+.solar-fallback { position:absolute; inset:18% 20% auto 55%; text-align:center; font-size:12px; color:#aebed1; }
+.solar-fallback-sun { display:block; margin:0 auto 20px; width:140px; height:140px; border-radius:50%; background:radial-gradient(circle at 35% 35%,#fff0ba,#eeb268 60%,#b25f28); box-shadow:0 0 90px #eea34d44; }
+.cosmic-chapters { position:relative; z-index:1; pointer-events:none; }
+.atlas-home .cosmic-chapter { position:relative; min-height:100svh; max-width:1600px; display:flex; align-items:center; padding-block:150px 110px; }
+.cosmic-copy { width:min(44%,550px); position:relative; pointer-events:auto; padding:30px 28px; margin-left:-28px; border-radius:30px; background:linear-gradient(100deg,#080e1ba8,#080e1b38); backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px); }
+.cosmic-copy h1,.cosmic-copy h2 { font-family:Georgia,'Times New Roman',serif; font-weight:400; letter-spacing:-.055em; }
+.cosmic-copy h1 { font-size:clamp(64px,7.8vw,120px); line-height:.98; max-width:9ch; margin:24px 0; }
+.atlas-signature,.cosmic-planet-name { color:#e2bd83; font-size:14px; }
+.cosmic-copy>p { font-size:18px; line-height:1.8; max-width:39ch; color:#c3cedf; }
+.cosmic-copy>small { display:block; margin-top:16px; font-size:12px; color:#aabbd2; }
+.cosmic-skip { display:block; margin-top:30px; width:fit-content; font-size:13px; color:#c3cedf; border-bottom:1px solid #b7d1ed40; padding-block:5px; }
+.atlas-home .cosmic-feature { min-height:110svh; }
+.cosmic-feature[data-planet-side=left] { justify-content:flex-end; }
+.cosmic-feature[data-planet-side=left] .cosmic-copy { margin-left:0; margin-right:-28px; }
+.atlas-home .cosmic-feature h2 { font-size:clamp(44px,5vw,76px); max-width:12ch; margin:22px 0; }
+.cosmic-copy>.cosmic-feature-list { font-size:12px; color:#90a4c0; margin-top:25px; }
+.cosmic-link { display:flex; justify-content:space-between; align-items:center; gap:24px; width:fit-content; color:#f4d7aa; border-bottom:1px solid #e2bd8366; padding-block:12px; margin-top:18px; font-size:15px; }
+.cosmic-journey a:focus-visible,.cosmic-journey button:focus-visible { outline:3px solid #f4d7aa; outline-offset:5px; }
+/* Data is flat, readable, and separate from the cinematic illustration. */
+.atlas-home .live-transits { padding-block:100px; scroll-margin-top:80px; }
+.transit-heading { display:flex; justify-content:space-between; align-items:flex-end; gap:32px; margin-bottom:40px; }
+.transit-heading h2 { margin:22px 0 16px; font-family:Georgia,'Times New Roman',serif; letter-spacing:-.035em; }
+.transit-heading p { max-width:52ch; color:var(--color-muted); font-size:15px; }
+.transit-timestamp { flex-shrink:0; max-width:230px; font-size:12px; color:var(--color-muted); }
+.transit-timestamp time { display:block; color:var(--color-cream); margin-bottom:5px; }
+.transit-workspace { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:40px; align-items:start; }
+.transit-table-wrap { overflow:auto; }
+.transit-table { width:100%; border-collapse:collapse; text-align:left; font-size:14px; }
+.transit-table thead th { color:var(--color-muted); font-weight:400; font-size:12px; padding:0 12px 16px; }
+.transit-table tbody tr { border-top:1px solid var(--color-border); }
+.transit-table tbody tr[data-selected=true] { background:color-mix(in srgb,var(--color-gold) 9%,transparent); }
+.transit-table td { padding:16px 12px; }
+.transit-table tbody th { width:28%; font-weight:500; }
+.transit-table button { padding:16px 12px; min-height:60px; width:100%; display:flex; gap:12px; align-items:center; justify-content:space-between; text-align:left; cursor:pointer; }
+.transit-table button span { color:var(--color-gold-bright); }
+.transit-table td strong { display:block; font-weight:400; }
+.transit-table td>span,.transit-table small { display:block; font-size:12px; color:var(--color-muted); margin-top:4px; }
+.transit-reading { background:var(--color-surface); border:1px solid var(--color-border); border-radius:16px; padding:clamp(24px,3vw,40px); position:sticky; top:100px; }
+.transit-reading>span { color:var(--color-muted); font-size:12px; }
+.transit-reading h3 { font-family:Georgia,'Times New Roman',serif; font-size:48px; line-height:1.2; margin-top:16px; }
+.transit-reading .transit-degree { color:var(--color-gold-bright); font-size:28px; margin-top:10px; }.transit-degree span { font-size:17px; }
+.transit-reading dl { margin-block:28px; border-block:1px solid var(--color-border); padding-block:16px; }
+.transit-reading dl>div { display:flex; justify-content:space-between; gap:16px; padding-block:6px; font-size:13px; }.transit-reading dt { color:var(--color-muted); }.transit-reading dd { text-align:right; }
+.transit-reading>p { font-size:14px; color:var(--color-muted); margin-top:16px; line-height:1.8; }.transit-reading>a { display:inline-block; color:var(--color-gold-bright); font-size:14px; padding-block:12px; margin-top:16px; }
+.transit-method { margin-top:32px; color:var(--color-muted); font-size:12px; }.transit-method summary { cursor:pointer; padding-block:12px; width:fit-content; }.transit-method p { max-width:85ch; margin-top:12px; }.transit-method a { color:var(--color-gold-bright); text-decoration:underline; }
+.atlas-signs { padding-block:72px; }.atlas-section-heading { margin-bottom:32px; }
+.atlas-zodiac { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; }.atlas-zodiac a { display:flex; align-items:center; flex-direction:column; gap:12px; padding:24px 8px; border-radius:16px; }.atlas-zodiac a:hover { background:var(--color-surface); }.atlas-zodiac span { font-size:40px; color:var(--color-gold-bright); }.atlas-zodiac strong { font-size:14px; font-weight:500; }
+.atlas-note { display:flex; gap:28px; align-items:center; padding-block:40px; border-top:1px solid var(--color-border); margin-bottom:40px!important; }.atlas-note>span { color:var(--color-gold); font-size:64px; }.atlas-note h2 { font-size:24px; }.atlas-note p { max-width:60ch; font-size:15px; color:var(--color-muted); margin-top:12px; }.atlas-note a { margin-left:auto; white-space:nowrap; color:var(--color-gold-bright); font-size:14px; }
+@media(max-width:900px) { .cosmic-copy { width:48%; }.cosmic-copy>p { font-size:16px; }.transit-workspace { gap:24px; }.transit-heading { flex-wrap:wrap; } }
+@media(max-width:759px) {
+  .solar-topline { top:88px; font-size:10px; flex-wrap:wrap; }.solar-controls { bottom:95px; font-size:10px; }.solar-controls>span { max-width:20ch; }
+  .atlas-home .cosmic-chapter { padding-block:160px 155px; align-items:center; }.cosmic-copy { width:100%; max-width:480px; padding:24px 20px; margin:0; border-radius:20px; background:linear-gradient(90deg,#080e1bbd,#080e1b68); backdrop-filter:blur(5px); }.cosmic-copy h1 { font-size:clamp(55px,13vw,86px); max-width:9ch; }.cosmic-copy>p { font-size:16px; }.cosmic-copy>small { font-size:11px; }
+  .atlas-home .cosmic-feature { min-height:115svh; align-items:flex-end; padding-top:48svh; padding-bottom:150px; }.cosmic-feature[data-planet-side=left] .cosmic-copy { margin:0; }.atlas-home .cosmic-feature h2 { font-size:clamp(40px,10vw,56px); max-width:14ch; margin:14px 0; }.cosmic-feature-list { display:none; }.cosmic-feature .cosmic-copy>p { font-size:14px; }.cosmic-link { font-size:14px; }.solar-fallback { inset:15% 15% auto; }
+  .atlas-home .live-transits { padding-block:64px; }.transit-workspace { grid-template-columns:1fr; }.transit-heading { gap:20px; }.transit-timestamp { max-width:none; }.transit-reading { position:static; }.transit-table { font-size:12px; }.transit-table td { padding:12px 8px; }.transit-table thead th { padding-inline:8px; }.transit-table button { padding-inline:8px; }.atlas-zodiac { grid-template-columns:repeat(3,1fr); }.atlas-signs { padding-block:40px; }.atlas-note { flex-wrap:wrap; }.atlas-note>span { display:none; }.atlas-note a { margin-left:0; }
+}
+@media(prefers-reduced-motion:reduce) { .atlas-home * { scroll-behavior:auto!important; transition:none!important; } }

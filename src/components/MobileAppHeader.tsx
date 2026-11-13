@@ -7,6 +7,7 @@ import type { Locale } from "@/lib/i18n/locale";
 import { localizeHref } from "@/lib/i18n/locale";
 import { mobileNavigation } from "@/lib/mobileNavigation";
 import MoonMark from "./MoonMark";
+import ThemeToggle from "./ThemeToggle";
 
 export default function MobileAppHeader({ locale }: { locale: Locale }) {
   const pathname = usePathname() ?? "/";
@@ -43,7 +44,8 @@ export default function MobileAppHeader({ locale }: { locale: Locale }) {
       addTransitionType("nav-back");
       if (window.history.length > 1) router.back(); else router.push(localizeHref(locale, "/"));
     })}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m14 5-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></button> : <Link className="mobile-header-brand" href={localizeHref(locale,"/")} aria-label="Astronum" transitionTypes={["tab"]}><MoonMark /></Link>}
-    <div className="mobile-header-title"><span>{hi ? nav.titleHi : nav.title}</span><small>{nav.tab === "home" ? (hi ? "आपका दैनिक ज्योतिष" : "Your daily astrology") : (hi ? "Astronum में जानें" : "Explore with Astronum")}</small></div>
+    <Link href={localizeHref(locale,"/")} className="mobile-header-title" aria-label={hi ? "Astronum मुख्य पृष्ठ" : "Astronum home"}><span>Astronum</span><small>{nav.tab === "home" ? (hi ? "आपका दैनिक ज्योतिष" : "Your daily astrology") : (hi ? nav.titleHi : nav.title)}</small></Link>
+    <ThemeToggle className="mobile-header-theme" />
     <Link href="/account" className="mobile-header-account" aria-label={hi ? "मेरी कुंडलियाँ और खाता" : "My charts and account"} transitionTypes={["nav-forward"]}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.6" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg></Link>
   </header>;
 }
