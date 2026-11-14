@@ -4,6 +4,7 @@
  */
 
 export interface BirthParams {
+  timeAccuracy?: "recorded" | "approximate";
   name: string;
   date: string; // YYYY-MM-DD
   time: string; // HH:mm
@@ -20,11 +21,13 @@ export function toBirthQuery(p: BirthParams, prefix = ""): string {
     date: p.date,
     time: p.time,
     place: p.place,
-    lat: p.latitude.toFixed(4),
-    lon: p.longitude.toFixed(4),
+    lat: String(p.latitude),
+    lon: String(p.longitude),
     tz: p.timezone,
   };
-  return new URLSearchParams(Object.entries(entries).map(([k, v]) => [prefix + k, v])).toString();
+  const query = new URLSearchParams(Object.entries(entries).map(([k, v]) => [prefix + k, v]));
+  if (p.timeAccuracy) query.set(`${prefix}timeAccuracy`, p.timeAccuracy);
+  return query.toString();
 }
 
 /** Returns null unless every field is present and well-formed. */
@@ -44,5 +47,6 @@ export function fromBirthQuery(q: URLSearchParams, prefix = ""): BirthParams | n
   if (!Number.isFinite(latitude) || Math.abs(latitude) > 90) return null;
   if (!Number.isFinite(longitude) || Math.abs(longitude) > 180) return null;
 
-  return { name, date, time, place, latitude, longitude, timezone };
+  const timeAccuracy = get("timeAccuracy");
+  return { name, date, time, place, latitude, longitude, timezone, ...(timeAccuracy === "recorded" || timeAccuracy === "approximate" ? { timeAccuracy } : {}) };
 }

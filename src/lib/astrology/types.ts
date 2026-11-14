@@ -4,6 +4,7 @@ import type { Dignity } from "./dignity";
 import type { MangalDoshaResult } from "./mangalDosha";
 
 export interface BirthInput {
+  timeAccuracy?: "recorded" | "approximate";
   date: string; // YYYY-MM-DD
   time: string; // HH:mm or HH:mm:ss, 24h, local to the birth place
   latitude: number;

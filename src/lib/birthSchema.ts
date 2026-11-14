@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { inspectBirthMoment } from "./birthMoment";
 
 /** Request-body shape for one person's birth details, shared by the chart and matching APIs. */
 export const birthInputSchema = z.object({
@@ -9,4 +10,8 @@ export const birthInputSchema = z.object({
   longitude: z.number().min(-180).max(180),
   timezone: z.string().min(1),
   place: z.string().trim().max(200),
+  timeAccuracy: z.enum(["recorded", "approximate"]).optional(),
+}).superRefine((value, context) => {
+  const moment = inspectBirthMoment(value.date, value.time, value.timezone);
+  if (!moment.valid) context.addIssue({ code: "custom", path: ["time"], message: moment.error });
 });

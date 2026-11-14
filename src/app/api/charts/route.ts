@@ -41,7 +41,10 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
-  const birth = parsed.data;
+  // Account profiles store birth coordinates/time. Reliability metadata remains in
+  // the chart URL/device snapshot; an account profile without it is shown as unassessed.
+  const { name, date, time, place, latitude, longitude, timezone } = parsed.data;
+  const birth = { name, date, time, place, latitude, longitude, timezone };
 
   // Saving the same birth details twice is a no-op rather than a duplicate.
   const existing = await prisma.savedChart.findFirst({

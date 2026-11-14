@@ -3,6 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // The development badge otherwise covers the phone's Home tab.
   devIndicators: false,
+  // geo-tz reads binary boundary files at runtime; bundling it breaks exact coastal lookups.
+  serverExternalPackages: ["geo-tz"],
+  outputFileTracingIncludes: {
+    "/api/geocode": ["./node_modules/geo-tz/data/timezones.geojson.*"],
+  },
   experimental: {
     // The app has two root layouts ((en) and hi), so URLs matching neither need app/global-not-found.tsx.
     globalNotFound: true,

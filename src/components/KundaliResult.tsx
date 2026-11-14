@@ -5,19 +5,19 @@ import { DateTime } from "luxon";
 import type { KundaliChart } from "@/lib/astrology/types";
 import type { HeavySection, KundaliReport } from "@/lib/astrology/report";
 import type { TopicKey } from "@/lib/astrology/topicReading";
+import { vargaInfo } from "@/lib/astrology/content";
 import { SIGN_SANSKRIT, type VargaKey } from "@/lib/astrology/constants";
 import { useLocale } from "@/lib/i18n/LocaleContext";
 import { pick } from "@/lib/i18n/ui";
 import { useDeviceStore } from "@/lib/useDeviceStore";
 import { KUNDLI_SECTIONS } from "@/lib/kundliLibrary";
-import SegmentedControl from "./SegmentedControl";
+import { flushSync } from "react-dom";
+import { StudioIdentity, StudioSectionStats, StudioCharts, StudioOverview, StudioEvidenceBoard } from "./kundli/KundliStudio";
 import PrintReport from "./PrintReport";
 import { AnalysisProvider, useAnalysis } from "./kundli/AnalysisContext";
 import AnalysisCalendar from "./kundli/AnalysisCalendar";
-import AtlasReading from "./kundli/AtlasReading";
-import ObservatoryOverview, {
-  ObservatoryHeader,
-  ObservatoryCharts,
+
+import {
   TimingLanding,
   PositionLedger,
 } from "./kundli/Observatory";
@@ -33,6 +33,7 @@ import "./kundli/workspace.css";
 import "./kundli/cinema.css";
 import "./kundli/rebuilt.css";
 import "./kundli/research.css";
+import "./kundli/studio.css";
 function ToolLoading() {
   return (
     <div className="research-empty" role="status">
@@ -172,12 +173,6 @@ type Tab =
   | "Rudraksha"
   | "Vastu & Home";
 
-const USER_TABS = new Set<string>([
-  "Summary",
-  ...KUNDLI_SECTIONS.filter((item) => item.personal).map((item) => item.tab),
-]);
-
-/** The heavy report sections each tab needs. */
 const TAB_SECTIONS: Partial<Record<Tab, HeavySection[]>> = {
   "Life Timeline": ["timeline"],
   "Signal Calendar": ["timeline"],
@@ -271,13 +266,13 @@ function SectionContent(props: WorkbenchProps & { section: Tab }) {
   const Tool = WORKBENCHES[section];
   if (Tool) return <Tool {...props} />;
   if (section === "Summary")
-    return mode === "user" ? <AtlasReading chart={chart} go={go} /> : <ObservatoryOverview chart={chart} go={go} mode={mode} />;
+    return <StudioOverview chart={chart} go={go} mode={mode} />;
   if (section === "Dashas")
     return <TimingLanding chart={chart} report={report} go={go} mode={mode} />;
   if (["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas"].includes(section))
     return <PositionLedger chart={chart} />;
   if (section === "Life Report")
-    return <ReadingAtlas chart={chart} mode={mode} go={go} />;
+    return mode === "astrologer" ? <StudioEvidenceBoard chart={chart} go={go}/> : <ReadingAtlas chart={chart} mode={mode} go={go} />;
   if (section === "Planet Readings" || section === "Houses")
     return (
       <PlacementReader
@@ -289,7 +284,7 @@ function SectionContent(props: WorkbenchProps & { section: Tab }) {
     );
   const topic = TOPIC_TABS[section];
   if (topic)
-    return <TopicChapter chart={chart} mode={mode} go={go} topic={topic} />;
+    return mode === "astrologer" ? <StudioEvidenceBoard chart={chart} go={go} topic={topic}/> : <TopicChapter chart={chart} mode={mode} go={go} topic={topic} />;
   return null;
 }
 
@@ -476,8 +471,9 @@ function KundaliWorkspace({
   const currentSection = KUNDLI_SECTIONS.find((item) => item.tab === tab);
   const changeMode = (value: string) => {
     if (value === mode) return;
-    if (value === "user" && !USER_TABS.has(tab)) setTab("Summary");
-    saveMode(value);
+    const change = () => flushSync(() => saveMode(value));
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches && document.startViewTransition) document.startViewTransition(change);
+    else change();
   };
   return (
     <div
@@ -486,25 +482,8 @@ function KundaliWorkspace({
       data-active-tab={tab}
     >
       <div className="print:hidden">
-        <header className="rebuilt-topbar">
-          {mode === "astrologer" && <ObservatoryHeader chart={chart} go={go} />}
-          <SegmentedControl
-            layoutId="reading-mode"
-            ariaLabel={pick(locale)(
-              "Choose Personal or Astrologer mode",
-              "व्यक्तिगत या ज्योतिषी दृश्य चुनें",
-            )}
-            value={mode}
-            options={[
-              { value: "user", label: pick(locale)("Personal", "व्यक्तिगत") },
-              {
-                value: "astrologer",
-                label: pick(locale)("Astrologer", "ज्योतिषी"),
-              },
-            ]}
-            onChange={changeMode}
-          />
-        </header>
+        <StudioIdentity chart={chart}/>
+        <header className="rebuilt-topbar studio-mode-bar"><div><strong>{mode === "astrologer" ? "Astrologer desk" : "Your chart, explained"}</strong><span>{mode === "astrologer" ? "Charts. Aspects. Degrees. Evidence." : "Explore one question at a time. The guide stays with you."}</span></div><button type="button" className="studio-mode-button" aria-pressed={mode === "astrologer"} onClick={()=>changeMode(mode === "astrologer" ? "user" : "astrologer")}><span aria-hidden="true">{mode === "astrologer" ? "◉" : "✦"}</span>{mode === "astrologer" ? "Return to guided view" : "Astrologer"}<small>{mode === "astrologer" ? "Personal guide" : "Technical workspace"}</small></button></header>
         <ObservatoryNavigation mode={mode} go={go} tab={tab} />
         {![
           "Summary",
@@ -520,7 +499,7 @@ function KundaliWorkspace({
               {pick(locale)("‹ Back to overview", "‹ अवलोकन पर लौटें")}
             </button>
             <h2>
-              {currentSection
+              {["D1 · Rasi Chart", "D9 · Navamsa", "More Vargas"].includes(tab) ? `${analysis.primary} · ${vargaInfo(analysis.primary, locale).title}` : currentSection
                 ? locale === "hi"
                   ? currentSection.titleHi
                   : currentSection.title
@@ -543,22 +522,17 @@ function KundaliWorkspace({
             )}
           </header>
         )}
-        {tab !== "Summary" && <SectionLearningGuide tab={tab} />}
+        <StudioSectionStats chart={chart} section={tab}/>
+        {mode === "user" && tab !== "Summary" && <SectionLearningGuide tab={tab} />}
         <div className="rebuilt-content">
-          {tab !== "Summary" && <SectionContents tab={tab} />}
+          {mode === "user" && tab !== "Summary" && <SectionContents tab={tab} />}
           {[
             "D1 · Rasi Chart",
             "D9 · Navamsa",
             "More Vargas",
-            "Transits",
           ].includes(tab) && (
             <section className="rebuilt-chart-stage">
-              <ObservatoryCharts
-                chart={chart}
-                mode={mode}
-                go={go}
-                overview={tab === "Transits"}
-              />
+              <StudioCharts chart={chart} mode={mode}/>
             </section>
           )}
           <main
@@ -586,7 +560,7 @@ function KundaliWorkspace({
               </div>
             ))}
           </main>
-          {tab !== "Summary" && (
+          {mode === "user" && tab !== "Summary" && (
             <SectionNextSteps tab={tab} mode={mode} go={go} />
           )}
         </div>

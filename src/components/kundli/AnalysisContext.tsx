@@ -37,7 +37,7 @@ export function AnalysisProvider({ chart, children }: { chart: KundaliChart; chi
   const [inspector, setInspector] = useState<{ open: boolean; side: "primary" | "secondary" }>({ open: false, side: "primary" });
   const [focusedEvidence, setFocusedEvidence] = useState<{ evidence: ReadingEvidence; returnTab: string } | null>(null);
   const today = DateTime.now().setZone(chart.input.timezone).toISODate()!;
-  const initial = useMemo<AnalysisState>(() => ({ date: today, time: "12:00", style: "north", reference: "lagna", primary: "D1", secondary: "D9", overlay: false, compare: false, filter: "all", selected: null }), [today]);
+  const initial = useMemo<AnalysisState>(() => ({ date: today, time: DateTime.now().setZone(chart.input.timezone).toFormat("HH:mm:ss"), style: "north", reference: "lagna", primary: "D1", secondary: "D9", overlay: false, compare: false, filter: "all", selected: null }), [today, chart.input.timezone]);
   const key = `kundli-workspace:${chart.utcDate}:${chart.input.latitude}:${chart.input.longitude}`;
   const [stored, save] = useDeviceStore<AnalysisState>(key, initial);
   const state = useMemo(() => {

@@ -14,6 +14,8 @@ import PlaceInput, { type PlaceSuggestion } from "@/components/PlaceInput";
 import ProfileChips from "@/components/ProfileChips";
 import KundliHeader from "@/components/KundliHeader";
 import KundliCalculation from "@/components/kundli/KundliCalculation";
+import DesktopBirthEntry from "@/components/kundli/DesktopBirthEntry";
+import "@/components/kundli/studio.css";
 import { listCharts, loadChart, saveChart, type StoredChart } from "@/lib/offlineCharts";
 import { haptic } from "@/lib/haptics";
 import { useLocale, useT } from "@/lib/i18n/LocaleContext";
@@ -32,6 +34,8 @@ export default function KundaliForm() {
   // Opened from the home page form or a shared link: the URL carries the birth details.
   const [urlParams] = useState(() => fromBirthQuery(new URLSearchParams(searchParams.toString())));
   const [step, setStep] = useState(0);
+  const [timeAccuracy, setTimeAccuracy] = useState<"recorded" | "approximate">(urlParams?.timeAccuracy ?? "recorded");
+  const skipReveal = useRef(false);
   const [name, setName] = useState(urlParams?.name ?? "");
   const [date, setDate] = useState(urlParams?.date ?? "");
   const [time, setTime] = useState(urlParams?.time ?? "");
@@ -108,6 +112,8 @@ export default function KundaliForm() {
     const controller = new AbortController();
     request.current = controller;
     const epoch = ++generation.current;
+    skipReveal.current = false;
+    setTimeAccuracy(params.timeAccuracy ?? "recorded");
     setName(params.name); setDate(params.date); setTime(params.time);
     setSelectedPlace({ displayName: params.place, latitude: params.latitude, longitude: params.longitude, timezone: params.timezone });
     pending.current.clear(); failedSections.current.clear(); setSectionError(null);
@@ -117,7 +123,7 @@ export default function KundaliForm() {
     setChart(null);
     const started = performance.now();
     let firstEntry = true;
-    try { firstEntry = sessionStorage.getItem("kundli-entry-seen-v2") !== "1"; } catch { /* session animation still works */ }
+    try { firstEntry = sessionStorage.getItem(`kundli-handcraft:${toBirthQuery(params)}`) !== "1"; } catch { /* session animation still works */ }
     let ready = false;
     const cacheKey = `${locale}:${toBirthQuery(params)}`;
     try {
@@ -168,10 +174,10 @@ export default function KundaliForm() {
       }
     } finally {
       if (ready && firstEntry) {
-        const minimum = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 280;
+        const minimum = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 6200;
         const remaining = minimum - (performance.now()-started);
-        if (remaining>0) await new Promise(resolve=>window.setTimeout(resolve,remaining));
-        try { sessionStorage.setItem("kundli-entry-seen-v2","1"); } catch { /* optional storage */ }
+        if (remaining>0) { const until=performance.now()+remaining; while(performance.now()<until && !skipReveal.current && !controller.signal.aborted && generation.current===epoch) await new Promise(resolve=>window.setTimeout(resolve,80)); }
+        try { sessionStorage.setItem(`kundli-handcraft:${toBirthQuery(params)}`,"1"); } catch { /* optional storage */ }
       }
       if (generation.current === epoch) setLoading(false);
     }
@@ -218,6 +224,7 @@ export default function KundaliForm() {
       name,
       date,
       time,
+      timeAccuracy,
       latitude: selectedPlace.latitude,
       longitude: selectedPlace.longitude,
       timezone: selectedPlace.timezone,
@@ -237,7 +244,7 @@ export default function KundaliForm() {
 
   return (
     <div ref={anchorRef} className="scroll-mt-24">
-      {loading && calculationInput && <div className="kundli-entry-overlay"><KundliCalculation birth={calculationInput} chart={chart}/><button type="button" onClick={editChart} className="mx-auto block rounded-full border border-gold px-6 py-3 text-gold-bright">{locale === "hi" ? "रद्द करें और विवरण बदलें" : "Cancel and edit details"}</button></div>}
+      {loading && calculationInput && <div className="kundli-entry-overlay"><KundliCalculation birth={calculationInput} chart={chart} onSkip={() => { skipReveal.current = true; }}/><button type="button" onClick={editChart} className="mx-auto block rounded-full border border-gold px-6 py-3 text-gold-bright">{locale === "hi" ? "रद्द करें और विवरण बदलें" : "Cancel and edit details"}</button></div>}
       <AnimatePresence mode="wait">
         {view === "form" && (
           <motion.div
@@ -248,7 +255,8 @@ export default function KundaliForm() {
             transition={{ duration: 0.15, ease: EASE_OUT_EXPO }}
             className="kundli-entry-shell"
           >
-            <KundaliIntro />
+            <div className="studio-desktop-entry"><DesktopBirthEntry name={name} date={date} time={time} place={selectedPlace} accuracy={timeAccuracy} setName={setName} setDate={setDate} setTime={setTime} setPlace={setSelectedPlace} setAccuracy={setTimeAccuracy} onGenerate={params=>void generate(params)}/></div>
+            <div className="studio-legacy-entry"><KundaliIntro />
             <div className="kundli-entry-form-wrap">
               <form
                 onSubmit={handleSubmit}
@@ -309,7 +317,7 @@ export default function KundaliForm() {
                 {step > 0 && <div className="birth-step-actions"><button type="button" onClick={() => { setError(null); setStep(step - 1); }}>{locale === "hi" ? "वापस" : "Back"}</button></div>}
               </form>
             </div>
-            <div className="mt-10">
+            </div><div className="mt-10">
               <ProfileChips onPick={(p) => void generate({ name: p.name, date: p.date, time: p.time, place: p.place, latitude: p.latitude, longitude: p.longitude, timezone: p.timezone })} />
               <RecentCharts onPick={(input) => void generate(input)} />
             </div>
